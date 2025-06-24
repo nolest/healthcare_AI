@@ -29,11 +29,11 @@ npm install
 npm run dev
 ```
 
-3. 在瀏覽器中打開：http://localhost:5173
+3. 在瀏覽器中打開：http://localhost:6886
 
 ## 📋 測試賬戶
 
-- **患者賬戶**: patient001 / password123
+- **患者賬戶**: p001 / 123456
 - **醫護人員賬戶**: doctor001 / password123
 
 ## 📚 詳細文檔
@@ -80,5 +80,5 @@ healthcare_frontend/
 
 - 首次運行需要執行 `npm install` 安裝依賴
 - 項目不包含 node_modules 文件夾，需要自行安裝
-- 開發服務器默認運行在 http://localhost:5173
+- 開發服務器默認運行在 http://localhost:6886
 
