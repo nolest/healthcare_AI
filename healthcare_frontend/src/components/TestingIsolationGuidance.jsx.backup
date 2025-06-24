@@ -1,0 +1,683 @@
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button.jsx'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx'
+import { Badge } from '@/components/ui/badge.jsx'
+import { Alert, AlertDescription } from '@/components/ui/alert.jsx'
+import { Progress } from '@/components/ui/progress.jsx'
+import { 
+  TestTube, 
+  Home, 
+  Users, 
+  Calendar,
+  MapPin,
+  Phone,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Shield,
+  Heart,
+  Info
+} from 'lucide-react'
+
+// 檢測類型和建議
+const testingRecommendations = {
+  very_high: {
+    priority: 'urgent',
+    tests: [
+      {
+        type: 'PCR',
+        description: 'RT-PCR核酸檢測',
+        timeframe: '立即',
+        accuracy: '高準確性',
+        notes: '金標準檢測方法，結果最可靠'
+      },
+      {
+        type: 'Antigen',
+        description: '快速抗原檢測',
+        timeframe: '立即',
+        accuracy: '中等準確性',
+        notes: '可作為PCR檢測的補充，快速獲得初步結果'
+      }
+    ],
+    followUp: '如檢測陰性但症狀持續，建議24-48小時後重複檢測'
+  },
+  high: {
+    priority: 'high',
+    tests: [
+      {
+        type: 'PCR',
+        description: 'RT-PCR核酸檢測',
+        timeframe: '24小時內',
+        accuracy: '高準確性',
+        notes: '建議優先選擇PCR檢測'
+      },
+      {
+        type: 'Antigen',
+        description: '快速抗原檢測',
+        timeframe: '立即',
+        accuracy: '中等準確性',
+        notes: '可先進行快速檢測，再確認PCR結果'
+      }
+    ],
+    followUp: '根據檢測結果決定後續措施'
+  },
+  medium: {
+    priority: 'moderate',
+    tests: [
+      {
+        type: 'Antigen',
+        description: '快速抗原檢測',
+        timeframe: '24-48小時內',
+        accuracy: '中等準確性',
+        notes: '適合初步篩查'
+      },
+      {
+        type: 'PCR',
+        description: 'RT-PCR核酸檢測',
+        timeframe: '如快篩陽性',
+        accuracy: '高準確性',
+        notes: '快篩陽性後建議PCR確認'
+      }
+    ],
+    followUp: '觀察症狀變化，必要時重複檢測'
+  },
+  low: {
+    priority: 'low',
+    tests: [
+      {
+        type: 'Antigen',
+        description: '快速抗原檢測',
+        timeframe: '可考慮檢測',
+        accuracy: '中等準確性',
+        notes: '症狀輕微時的選擇'
+      }
+    ],
+    followUp: '繼續觀察症狀'
+  },
+  very_low: {
+    priority: 'optional',
+    tests: [],
+    followUp: '暫不需要檢測，繼續觀察'
+  }
+}
+
+// 隔離指導
+const isolationGuidelines = {
+  very_high: {
+    duration: '立即隔離，直到獲得陰性檢測結果',
+    location: '單獨房間，獨立衛浴',
+    precautions: [
+      '完全避免與他人接觸',
+      '佩戴N95或醫用外科口罩',
+      '使用獨立衛浴設施',
+      '餐具、毛巾等個人用品不可共用',
+      '房間保持通風',
+      '定期消毒接觸表面'
+    ],
+    monitoring: [
+      '每日測量體溫',
+      '密切觀察症狀變化',
+      '記錄症狀日誌',
+      '如出現呼吸困難立即就醫'
+    ]
+  },
+  high: {
+    duration: '預防性隔離5-7天',
+    location: '單獨房間',
+    precautions: [
+      '避免與他人密切接觸',
+      '在家中佩戴口罩',
+      '盡量使用獨立衛浴',
+      '加強手部衛生',
+      '保持房間通風',
+      '定期清潔消毒'
+    ],
+    monitoring: [
+      '每日測量體溫',
+      '觀察症狀變化',
+      '記錄健康狀況'
+    ]
+  },
+  medium: {
+    duration: '居家觀察3-5天',
+    location: '盡量單獨房間',
+    precautions: [
+      '減少與他人接觸',
+      '外出時佩戴口罩',
+      '加強個人衛生',
+      '避免參加聚會',
+      '保持社交距離'
+    ],
+    monitoring: [
+      '自我監測症狀',
+      '定期測量體溫'
+    ]
+  },
+  low: {
+    duration: '注意個人防護',
+    location: '正常居住',
+    precautions: [
+      '佩戴口罩',
+      '勤洗手',
+      '避免觸摸面部',
+      '保持社交距離'
+    ],
+    monitoring: [
+      '觀察症狀變化'
+    ]
+  },
+  very_low: {
+    duration: '正常生活',
+    location: '正常居住',
+    precautions: [
+      '保持良好衛生習慣',
+      '適當佩戴口罩'
+    ],
+    monitoring: [
+      '日常健康觀察'
+    ]
+  }
+}
+
+// 接觸者追蹤指導
+const contactTracingGuidelines = {
+  definition: '密切接觸者定義：在症狀出現前2天至隔離開始期間，與患者有以下接觸的人員',
+  criteria: [
+    '同一房間或封閉環境中共處15分鐘以上',
+    '直接接觸患者的分泌物',
+    '在1米範圍內面對面接觸',
+    '同住家庭成員',
+    '共同用餐或密切交談'
+  ],
+  actions: [
+    '列出所有密切接觸者',
+    '通知接觸者進行健康監測',
+    '建議接觸者進行檢測',
+    '提供隔離指導',
+    '定期追蹤接觸者健康狀況'
+  ]
+}
+
+export default function TestingIsolationGuidance({ riskLevel, assessmentResult, user }) {
+  const [activeTab, setActiveTab] = useState('testing')
+  const [isolationDay, setIsolationDay] = useState(1)
+  const [contactList, setContactList] = useState([])
+
+  const currentGuidelines = testingRecommendations[riskLevel] || testingRecommendations.very_low
+  const currentIsolation = isolationGuidelines[riskLevel] || isolationGuidelines.very_low
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'urgent': return 'bg-red-600'
+      case 'high': return 'bg-red-500'
+      case 'moderate': return 'bg-yellow-500'
+      case 'low': return 'bg-green-500'
+      case 'optional': return 'bg-gray-400'
+      default: return 'bg-gray-400'
+    }
+  }
+
+  const getPriorityLabel = (priority) => {
+    switch (priority) {
+      case 'urgent': return '緊急'
+      case 'high': return '高優先級'
+      case 'moderate': return '中等優先級'
+      case 'low': return '低優先級'
+      case 'optional': return '可選'
+      default: return '未知'
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TestTube className="h-6 w-6 text-blue-600" />
+            檢測建議和隔離指導
+          </CardTitle>
+          <CardDescription>
+            基於您的風險評估結果，提供個人化的檢測和隔離建議
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="testing">檢測建議</TabsTrigger>
+          <TabsTrigger value="isolation">隔離指導</TabsTrigger>
+          <TabsTrigger value="contacts">接觸者追蹤</TabsTrigger>
+          <TabsTrigger value="recovery">康復指導</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="testing" className="space-y-6">
+          {/* 檢測優先級 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TestTube className="h-5 w-5" />
+                檢測優先級
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4 mb-4">
+                <div className={`inline-flex items-center px-4 py-2 rounded-full text-white font-semibold ${getPriorityColor(currentGuidelines.priority)}`}>
+                  {getPriorityLabel(currentGuidelines.priority)}
+                </div>
+                {assessmentResult && (
+                  <Badge variant="outline">
+                    風險等級: {assessmentResult.risk_level.label}
+                  </Badge>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 推薦檢測方法 */}
+          {currentGuidelines.tests.length > 0 ? (
+            <div className="space-y-4">
+              {currentGuidelines.tests.map((test, index) => (
+                <Card key={index}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <TestTube className="h-5 w-5" />
+                      {test.description}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-600">建議時間</Label>
+                        <p className="text-sm">{test.timeframe}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-gray-600">準確性</Label>
+                        <p className="text-sm">{test.accuracy}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-gray-600">檢測類型</Label>
+                        <p className="text-sm">{test.type}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">說明</Label>
+                      <p className="text-sm text-gray-700">{test.notes}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center text-gray-500">
+                  <TestTube className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>根據您的風險評估，暫時不需要進行檢測</p>
+                  <p className="text-sm">請繼續觀察症狀變化</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 後續追蹤 */}
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              <strong>後續追蹤：</strong> {currentGuidelines.followUp}
+            </AlertDescription>
+          </Alert>
+
+          {/* 檢測地點信息 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                檢測地點信息
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-4 w-4 text-blue-600 mt-1" />
+                  <div>
+                    <p className="font-medium">社區檢測站</p>
+                    <p className="text-sm text-gray-600">就近的社區衛生服務中心或指定檢測點</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Phone className="h-4 w-4 text-green-600 mt-1" />
+                  <div>
+                    <p className="font-medium">預約電話</p>
+                    <p className="text-sm text-gray-600">建議提前電話預約，避免現場等待</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Clock className="h-4 w-4 text-orange-600 mt-1" />
+                  <div>
+                    <p className="font-medium">檢測時間</p>
+                    <p className="text-sm text-gray-600">通常在症狀出現後24-48小時檢測效果最佳</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="isolation" className="space-y-6">
+          {/* 隔離概覽 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Home className="h-5 w-5" />
+                隔離指導概覽
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">隔離期間</Label>
+                  <p className="text-lg font-semibold">{currentIsolation.duration}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-600">隔離地點</Label>
+                  <p>{currentIsolation.location}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 隔離預防措施 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                預防措施
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {currentIsolation.precautions.map((precaution, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm">{precaution}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 健康監測 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Heart className="h-5 w-5" />
+                健康監測
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {currentIsolation.monitoring.map((item, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 隔離進度追蹤 */}
+          {riskLevel !== 'very_low' && riskLevel !== 'low' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  隔離進度追蹤
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">隔離第 {isolationDay} 天</span>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setIsolationDay(isolationDay + 1)}
+                    >
+                      更新天數
+                    </Button>
+                  </div>
+                  <Progress value={(isolationDay / 14) * 100} className="w-full" />
+                  <p className="text-xs text-gray-500">
+                    建議隔離期通常為5-14天，具體根據症狀和檢測結果調整
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* 緊急情況 */}
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>緊急情況：</strong> 如出現呼吸困難、持續胸痛、意識模糊、嘴唇或面部發青等症狀，請立即就醫或撥打急救電話。
+            </AlertDescription>
+          </Alert>
+        </TabsContent>
+
+        <TabsContent value="contacts" className="space-y-6">
+          {/* 密切接觸者定義 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                密切接觸者定義
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-sm text-gray-700">{contactTracingGuidelines.definition}</p>
+                <div>
+                  <Label className="text-sm font-medium text-gray-600 mb-2 block">接觸標準：</Label>
+                  <div className="space-y-2">
+                    {contactTracingGuidelines.criteria.map((criterion, index) => (
+                      <div key={index} className="flex items-start gap-2">
+                        <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm">{criterion}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 需要採取的行動 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                需要採取的行動
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {contactTracingGuidelines.actions.map((action, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm">{action}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 接觸者通知模板 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>接觸者通知模板</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  "您好，我最近進行了COVID-19/流感評估，結果顯示我可能有感染風險。
+                  根據接觸時間記錄，您可能是我的密切接觸者。建議您：
+                  <br />1. 進行健康監測，注意是否出現相關症狀
+                  <br />2. 考慮進行檢測
+                  <br />3. 適當採取預防措施
+                  <br />如有任何疑問，請諮詢醫療專業人員。"
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 接觸者管理工具 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>接觸者記錄</CardTitle>
+              <CardDescription>
+                記錄和管理您的密切接觸者信息
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-gray-500">
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>接觸者管理功能</p>
+                <p className="text-sm">可以記錄和追蹤密切接觸者的健康狀況</p>
+                <Button variant="outline" className="mt-4">
+                  添加接觸者
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="recovery" className="space-y-6">
+          {/* 康復標準 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5" />
+                康復標準
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-600 mb-2 block">COVID-19康復標準：</Label>
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">症狀完全消失至少24小時</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">體溫正常（低於37.3°C）</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">兩次PCR檢測陰性（間隔24小時）</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label className="text-sm font-medium text-gray-600 mb-2 block">流感康復標準：</Label>
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">發燒症狀消失至少24小時</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">其他症狀明顯改善</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">能夠正常進行日常活動</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 康復後注意事項 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Heart className="h-5 w-5" />
+                康復後注意事項
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">逐步恢復正常活動，避免過度勞累</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">繼續保持良好的個人衛生習慣</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">注意營養補充和充足休息</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">如出現後遺症狀，及時就醫</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm">考慮接種疫苗以預防再次感染</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 返回工作/學校指導 */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                返回工作/學校指導
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    返回工作或學校前，請確保滿足康復標準並獲得醫療專業人員的確認。
+                  </AlertDescription>
+                </Alert>
+                
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm">提供康復證明或陰性檢測報告</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm">初期仍需佩戴口罩</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm">避免參加大型聚會活動</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm">繼續關注身體狀況</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}
+
