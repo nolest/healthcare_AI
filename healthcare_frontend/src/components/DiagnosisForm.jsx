@@ -45,30 +45,110 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
 
   const fetchPatientMeasurements = async () => {
     try {
-      // 使用真实API获取患者的测量记录
-      const patientMeasurements = await apiService.getUserMeasurements(patient._id || patient.id)
+      console.log('DiagnosisForm - Patient object:', patient)
       
-      console.log('DiagnosisForm - Patient measurements:', patientMeasurements.length)
+      // 首先检查患者对象是否已经包含历史测量记录
+      if (patient.history_measurements && Array.isArray(patient.history_measurements)) {
+        console.log('DiagnosisForm - Using history_measurements from patient object:', patient.history_measurements.length)
+        const patientMeasurements = patient.history_measurements
+        
+        // 按时间排序，最新的在前（已经在后端排序，但这里再次确保）
+        const sortedMeasurements = patientMeasurements
+          .sort((a, b) => new Date(b.createdAt || b.measurementTime) - new Date(a.createdAt || a.measurementTime))
+          .slice(0, 20)
+        
+        console.log('DiagnosisForm - Sorted measurements:', sortedMeasurements.length)
+        setMeasurements(sortedMeasurements)
+        
+        // 默认选中最新的异常测量记录，如果没有异常则选中最新的测量记录
+        if (sortedMeasurements.length > 0) {
+          const abnormalMeasurements = sortedMeasurements.filter(m => m.isAbnormal)
+          if (abnormalMeasurements.length > 0) {
+            setSelectedMeasurements([abnormalMeasurements[0]._id])
+          } else {
+            setSelectedMeasurements([sortedMeasurements[0]._id])
+          }
+        }
+        return
+      }
+      
+      // 如果患者对象没有包含历史测量记录，则使用原有的API调用方式
+      const patientId = patient._id || patient.id
+      const currentUser = apiService.getCurrentUser()
+      
+      console.log('DiagnosisForm - Current user:', currentUser)
+      console.log('DiagnosisForm - Fetching measurements for patient ID:', patientId)
+      console.log('DiagnosisForm - API Token exists:', !!apiService.token)
+      
+      // 使用真实API获取患者的测量记录
+      let patientMeasurements = []
+      
+      try {
+        console.log('DiagnosisForm - Making API call to:', `/measurements/user/${patientId}`)
+        patientMeasurements = await apiService.getUserMeasurements(patientId)
+        console.log('DiagnosisForm - Direct API call successful, got:', patientMeasurements.length, 'measurements')
+      } catch (directError) {
+        console.warn('DiagnosisForm - Direct API call failed, trying alternative method:', directError.message)
+        
+        // 备用方案：获取所有测量记录然后过滤
+        try {
+          const allMeasurements = await apiService.getAllMeasurements()
+          console.log('DiagnosisForm - Got all measurements:', allMeasurements.length)
+          
+          patientMeasurements = allMeasurements.filter(m => {
+            const measurementUserId = m.userId?._id || m.userId
+            const measurementUserIdString = String(measurementUserId)
+            const patientIdString = String(patientId)
+            
+            const matches = measurementUserIdString === patientIdString || 
+                           measurementUserId === patient.username ||
+                           (m.userId?.username && m.userId.username === patient.username)
+            
+            return matches
+          })
+          
+          console.log('DiagnosisForm - Filtered measurements:', patientMeasurements.length)
+        } catch (fallbackError) {
+          console.error('DiagnosisForm - Fallback method also failed:', fallbackError)
+          throw new Error(`无法获取测量记录: ${directError.message}`)
+        }
+      }
+      
+      console.log('DiagnosisForm - Final measurements count:', patientMeasurements.length)
       
       // 按时间排序，最新的在前
       const sortedMeasurements = patientMeasurements
         .sort((a, b) => new Date(b.createdAt || b.measurementTime) - new Date(a.createdAt || a.measurementTime))
         .slice(0, 20)
       
+      console.log('DiagnosisForm - Sorted measurements:', sortedMeasurements.length)
       setMeasurements(sortedMeasurements)
       
       // 默认选中最新的异常测量记录，如果没有异常则选中最新的测量记录
       if (sortedMeasurements.length > 0) {
         const abnormalMeasurements = sortedMeasurements.filter(m => m.isAbnormal)
         if (abnormalMeasurements.length > 0) {
-          setSelectedMeasurements(abnormalMeasurements.slice(0, 3).map(m => m._id))
+          setSelectedMeasurements([abnormalMeasurements[0]._id])
         } else {
           setSelectedMeasurements([sortedMeasurements[0]._id])
         }
       }
     } catch (error) {
       console.error('Error fetching measurements:', error)
-      setError('無法載入患者測量記錄')
+      
+      // 显示更友好的错误信息
+      let errorMessage = '無法載入患者測量記錄'
+      if (error.response?.status === 404) {
+        errorMessage = '該患者暫無測量記錄'
+      } else if (error.response?.status === 403) {
+        errorMessage = '權限不足，無法訪問患者測量記錄'
+      } else if (error.response?.status === 401) {
+        errorMessage = '認證失效，請重新登錄'
+      } else {
+        errorMessage = `載入失敗: ${error.response?.data?.message || error.message}`
+      }
+      
+      setError(errorMessage)
     }
   }
 
@@ -105,9 +185,10 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
 
   const handleMeasurementSelect = (measurementId, checked) => {
     if (checked) {
-      setSelectedMeasurements([...selectedMeasurements, measurementId])
+      // 只允许选择一条记录
+      setSelectedMeasurements([measurementId])
     } else {
-      setSelectedMeasurements(selectedMeasurements.filter(id => id !== measurementId))
+      setSelectedMeasurements([])
     }
   }
 
@@ -118,15 +199,28 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
     setSuccess('')
 
     try {
-      // 使用真实API保存诊断记录
+      // 验证必填字段
+      if (!formData.diagnosis.trim()) {
+        setError('診斷結論為必填項目')
+        setLoading(false)
+        return
+      }
+
+      if (selectedMeasurements.length === 0) {
+        setError('請至少選擇一條測量記錄')
+        setLoading(false)
+        return
+      }
+
+      // 使用真实API保存诊断记录 - 使用后端期望的字段格式
       const diagnosisData = {
-        patientId: patient._id || patient.id,
-        measurementIds: selectedMeasurements,
+        measurementId: selectedMeasurements[0], // 只取第一个测量记录ID
         diagnosis: formData.diagnosis,
-        recommendations: formData.recommendations,
-        riskLevel: formData.risk_level,
-        followUpRequired: formData.follow_up_required,
-        followUpDate: formData.follow_up_date || null
+        treatment: formData.recommendations.length > 0 
+          ? formData.recommendations.join('；') 
+          : '无特殊治疗建议',
+        followUpDate: formData.follow_up_date || undefined,
+        notes: `風險等級: ${formData.risk_level}${formData.follow_up_required ? '；需要後續追蹤' : ''}`
       }
 
       console.log('Saving diagnosis:', diagnosisData)
@@ -139,15 +233,6 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
           await apiService.updateMeasurementStatus(measurementId, 'processed', false)
         } catch (error) {
           console.error('Error updating measurement status:', error)
-        }
-      }
-      
-      // 如果风险等级不是紧急，将患者的所有异常测量记录标记为已处理
-      if (formData.risk_level !== 'critical') {
-        try {
-          await apiService.processPatientMeasurements(patient._id || patient.id)
-        } catch (error) {
-          console.error('Error processing patient measurements:', error)
         }
       }
       
@@ -181,6 +266,9 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
     if (measurement.oxygenSaturation) {
       values.push(`血氧: ${measurement.oxygenSaturation}%`)
     }
+    if (measurement.bloodSugar) {
+      values.push(`血糖: ${measurement.bloodSugar} mg/dL`)
+    }
     
     return values.join(' | ') || 'N/A'
   }
@@ -191,27 +279,135 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
     if (measurement.heartRate) types.push('心率')
     if (measurement.temperature) types.push('體溫')
     if (measurement.oxygenSaturation) types.push('血氧')
+    if (measurement.bloodSugar) types.push('血糖')
     
     return types.join(' + ') || '健康測量'
+  }
+
+  const renderDetailedMeasurementValues = (measurement) => {
+    const measurementItems = [
+      {
+        label: '收縮壓',
+        value: measurement.systolic,
+        unit: 'mmHg',
+        normalRange: '90-140'
+      },
+      {
+        label: '舒張壓',
+        value: measurement.diastolic,
+        unit: 'mmHg',
+        normalRange: '60-90'
+      },
+      {
+        label: '心率',
+        value: measurement.heartRate,
+        unit: '次/分',
+        normalRange: '60-100'
+      },
+      {
+        label: '體溫',
+        value: measurement.temperature,
+        unit: '°C',
+        normalRange: '36.1-37.2'
+      },
+      {
+        label: '血氧',
+        value: measurement.oxygenSaturation,
+        unit: '%',
+        normalRange: '95-100'
+      },
+      {
+        label: '血糖',
+        value: measurement.bloodSugar,
+        unit: 'mg/dL',
+        normalRange: '70-140'
+      }
+    ]
+
+    return measurementItems.map((item, index) => {
+      const hasValue = item.value !== undefined && item.value !== null
+      
+      // 检查是否异常 - 基于异常原因或值范围
+      let isAbnormal = false
+      if (hasValue && measurement.abnormalReasons && measurement.abnormalReasons.length > 0) {
+        // 检查异常原因中是否包含该项目
+        const reasonText = measurement.abnormalReasons.join(' ').toLowerCase()
+        isAbnormal = reasonText.includes(item.label.toLowerCase()) ||
+                    reasonText.includes('收縮壓') && item.label === '收縮壓' ||
+                    reasonText.includes('舒張壓') && item.label === '舒張壓' ||
+                    reasonText.includes('心率') && item.label === '心率' ||
+                    reasonText.includes('體溫') && item.label === '體溫' ||
+                    reasonText.includes('血氧') && item.label === '血氧' ||
+                    reasonText.includes('血糖') && item.label === '血糖' ||
+                    reasonText.includes('systolic') && item.label === '收縮壓' ||
+                    reasonText.includes('diastolic') && item.label === '舒張壓' ||
+                    reasonText.includes('heart') && item.label === '心率' ||
+                    reasonText.includes('temperature') && item.label === '體溫' ||
+                    reasonText.includes('oxygen') && item.label === '血氧' ||
+                    reasonText.includes('sugar') && item.label === '血糖'
+      }
+
+              return (
+          <div key={index} className="flex items-center justify-between py-1 px-2 rounded hover:bg-gray-50">
+            <span className="text-gray-700 font-medium min-w-[60px]">{item.label}：</span>
+            <div className="flex items-center space-x-2">
+              {hasValue ? (
+                <>
+                  <span className={`font-semibold ${isAbnormal ? 'text-red-600' : 'text-green-600'}`}>
+                    {item.value} {item.unit}
+                  </span>
+                  {isAbnormal ? (
+                    <Badge variant="destructive" className="text-xs">異常</Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">正常</Badge>
+                  )}
+                </>
+              ) : (
+                <span className="text-gray-400 italic">未測量</span>
+              )}
+            </div>
+          </div>
+        )
+    })
+  }
+
+  const createTestMeasurement = async () => {
+    try {
+      setLoading(true)
+      setError('')
+      
+      // 使用当前登录用户的身份创建测试数据
+      const currentUser = apiService.getCurrentUser()
+      console.log('Creating test measurement for current user:', currentUser)
+      
+      const testMeasurement = await apiService.createTestMeasurement()
+      console.log('Test measurement created:', testMeasurement)
+      
+      // 重新获取测量记录
+      await fetchPatientMeasurements()
+      
+      setSuccess('測試數據創建成功！')
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (error) {
+      console.error('Error creating test measurement:', error)
+      setError('創建測試測量記錄時發生錯誤，請重試')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center">
-                <User className="h-5 w-5 mr-2" />
-                為 {patient.fullName || patient.name} 創建診斷記錄
-              </CardTitle>
-              <CardDescription>患者ID: {patient._id || patient.id}</CardDescription>
-            </div>
-            <Button variant="outline" onClick={onCancel}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              返回
-            </Button>
-          </div>
+          <CardTitle className="flex items-center">
+            <User className="h-5 w-5 mr-2" />
+            為 {patient.fullName || patient.name || patient.username} 創建診斷記錄
+          </CardTitle>
+          <CardDescription>
+            患者ID: {patient._id || patient.id || patient.username || '未知'}
+            {patient.email && ` | 邮箱: ${patient.email}`}
+          </CardDescription>
         </CardHeader>
       </Card>
 
@@ -219,41 +415,141 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
       <Card>
         <CardHeader>
           <CardTitle>相關測量記錄</CardTitle>
-          <CardDescription>選擇與此次診斷相關的測量記錄</CardDescription>
+          <CardDescription>選擇與此次診斷相關的測量記錄（只能選擇一條）</CardDescription>
         </CardHeader>
         <CardContent>
-          {measurements.length === 0 ? (
-            <p className="text-gray-500">暫無測量記錄</p>
-          ) : (
-            <div className="space-y-3">
-              {measurements.slice(0, 10).map((measurement) => (
-                <div key={measurement._id} className="flex items-center space-x-3 p-3 border rounded-lg">
-                  <Checkbox
-                    id={`measurement-${measurement._id}`}
-                    checked={selectedMeasurements.includes(measurement._id)}
-                    onCheckedChange={(checked) => handleMeasurementSelect(measurement._id, checked)}
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="font-medium">{getMeasurementLabel(measurement)}</span>
-                        <span className="ml-2 text-lg">{formatMeasurementValue(measurement)}</span>
-                        {measurement.isAbnormal && (
-                          <Badge variant="destructive" className="ml-2">異常</Badge>
-                        )}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {new Date(measurement.createdAt || measurement.measurementTime).toLocaleString('zh-TW')}
-                      </div>
-                    </div>
-                    {measurement.location && (
-                      <p className="text-sm text-gray-500 mt-1">地點: {measurement.location}</p>
-                    )}
+          {/* 调试信息 */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mb-4 p-3 bg-gray-100 rounded-lg">
+              <h4 className="font-semibold mb-2 text-sm">调试信息 (开发环境):</h4>
+              <div className="text-xs text-gray-600 space-y-2">
+                <p>患者ID: {patient._id || patient.id || '未知'}</p>
+                <p>患者用户名: {patient.username || '未知'}</p>
+                <p>找到 {measurements.length} 条测量记录</p>
+                {error && (
+                  <p className="text-red-600 font-medium">错误: {error}</p>
+                )}
+                {measurements.length === 0 && (
+                  <div className="mt-2">
+                    <Button 
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={createTestMeasurement}
+                      disabled={loading}
+                    >
+                      创建测试测量数据
+                    </Button>
+                    <p className="text-xs text-gray-500 mt-1">
+                      如果患者没有测量记录，可以创建一些测试数据
+                    </p>
                   </div>
-                </div>
-              ))}
+                )}
+              </div>
+              {measurements.length > 0 && (
+                <details className="text-xs mt-2">
+                  <summary className="cursor-pointer text-gray-700 hover:text-gray-900">
+                    查看第一条测量记录数据结构
+                  </summary>
+                  <pre className="mt-2 overflow-auto bg-white p-2 rounded border text-xs">
+                    {JSON.stringify(measurements[0], null, 2)}
+                  </pre>
+                </details>
+              )}
+              {measurements.length === 0 && (
+                <details className="text-xs mt-2">
+                  <summary className="cursor-pointer text-gray-700 hover:text-gray-900">
+                    查看患者对象结构
+                  </summary>
+                  <pre className="mt-2 overflow-auto bg-white p-2 rounded border text-xs">
+                    {JSON.stringify(patient, null, 2)}
+                  </pre>
+                </details>
+              )}
             </div>
           )}
+          
+          <div className="space-y-3">
+            {measurements.length === 0 ? (
+              <div className="p-4 border rounded-lg bg-gray-50">
+                <div className="flex items-center space-x-3 mb-3">
+                  <Checkbox disabled />
+                  <span className="font-medium text-gray-500">暫無測量記錄</span>
+                </div>
+                <div className="ml-8 space-y-2 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-600">收縮壓：</span>
+                    <span className="text-gray-400">未測量</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-600">舒張壓：</span>
+                    <span className="text-gray-400">未測量</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-600">心率：</span>
+                    <span className="text-gray-400">未測量</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-600">體溫：</span>
+                    <span className="text-gray-400">未測量</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-600">血氧：</span>
+                    <span className="text-gray-400">未測量</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-600">血糖：</span>
+                    <span className="text-gray-400">未測量</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              measurements.slice(0, 10).map((measurement) => (
+                <div key={measurement._id} className={`border rounded-lg p-4 ${measurement.isAbnormal ? 'border-red-200 bg-red-50/30' : 'border-gray-200 bg-white'}`}>
+                  <div className="flex items-start space-x-3">
+                    <Checkbox
+                      id={`measurement-${measurement._id}`}
+                      checked={selectedMeasurements.includes(measurement._id)}
+                      onCheckedChange={(checked) => handleMeasurementSelect(measurement._id, checked)}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-semibold text-lg">{getMeasurementLabel(measurement)}</span>
+                          {measurement.isAbnormal && (
+                            <Badge variant="destructive">整體異常</Badge>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {new Date(measurement.createdAt || measurement.measurementTime).toLocaleString('zh-TW')}
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-1 text-sm">
+                          {renderDetailedMeasurementValues(measurement)}
+                        </div>
+                      </div>
+                      
+                      {measurement.location && (
+                        <p className="text-sm text-gray-500 mt-2 flex items-center">
+                          <span className="mr-1">📍</span>
+                          地點: {measurement.location}
+                        </p>
+                      )}
+                      
+                      {measurement.notes && (
+                        <p className="text-sm text-gray-600 mt-2 italic">
+                          備註: {measurement.notes}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
 

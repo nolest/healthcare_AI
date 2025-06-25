@@ -2,25 +2,30 @@ import { IsNumber, IsString, IsOptional, IsBoolean, IsEnum, IsDateString } from 
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateMeasurementDto {
-  @ApiProperty({ description: '收缩压' })
+  @ApiProperty({ description: '收缩压', required: false })
+  @IsOptional()
   @IsNumber()
-  systolic: number;
+  systolic?: number;
 
-  @ApiProperty({ description: '舒张压' })
+  @ApiProperty({ description: '舒张压', required: false })
+  @IsOptional()
   @IsNumber()
-  diastolic: number;
+  diastolic?: number;
 
-  @ApiProperty({ description: '心率' })
+  @ApiProperty({ description: '心率', required: false })
+  @IsOptional()
   @IsNumber()
-  heartRate: number;
+  heartRate?: number;
 
-  @ApiProperty({ description: '体温' })
+  @ApiProperty({ description: '体温', required: false })
+  @IsOptional()
   @IsNumber()
-  temperature: number;
+  temperature?: number;
 
-  @ApiProperty({ description: '血氧饱和度' })
+  @ApiProperty({ description: '血氧饱和度', required: false })
+  @IsOptional()
   @IsNumber()
-  oxygenSaturation: number;
+  oxygenSaturation?: number;
 
   @ApiProperty({ description: '备注', required: false })
   @IsOptional()

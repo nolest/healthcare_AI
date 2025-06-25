@@ -3,25 +3,34 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Measurement, MeasurementDocument } from '../schemas/measurement.schema';
 import { CreateMeasurementDto, UpdateMeasurementStatusDto } from '../dto/measurement.dto';
+import { AbnormalRangesService } from '../abnormal-ranges/abnormal-ranges.service';
 
 @Injectable()
 export class MeasurementsService {
   constructor(
     @InjectModel(Measurement.name) private measurementModel: Model<MeasurementDocument>,
+    private abnormalRangesService: AbnormalRangesService,
   ) {}
 
   async create(userId: string, createMeasurementDto: CreateMeasurementDto) {
-    // 检测异常数据
-    const isAbnormal = this.detectAbnormalValues(createMeasurementDto);
+    // 使用异常值服务检测异常数据
+    const abnormalResult = await this.detectAbnormalValues(createMeasurementDto);
     
     const measurement = new this.measurementModel({
       userId,
       ...createMeasurementDto,
-      isAbnormal,
+      isAbnormal: abnormalResult.isAbnormal,
+      abnormalReasons: abnormalResult.reasons,
       measurementTime: createMeasurementDto.measurementTime || new Date(),
     });
 
-    return measurement.save();
+    const savedMeasurement = await measurement.save();
+    
+    // 返回包含异常检测结果的数据
+    return {
+      ...savedMeasurement.toObject(),
+      abnormalResult
+    };
   }
 
   async findAll() {
@@ -81,17 +90,56 @@ export class MeasurementsService {
     );
   }
 
-  private detectAbnormalValues(measurement: CreateMeasurementDto): boolean {
-    // 异常值检测逻辑
-    const abnormalConditions = [
-      measurement.systolic > 140 || measurement.systolic < 90,  // 收缩压异常
-      measurement.diastolic > 90 || measurement.diastolic < 60, // 舒张压异常
-      measurement.heartRate > 100 || measurement.heartRate < 60, // 心率异常
-      measurement.temperature > 37.5 || measurement.temperature < 36.0, // 体温异常
-      measurement.oxygenSaturation < 95, // 血氧饱和度异常
-    ];
+  private async detectAbnormalValues(measurement: CreateMeasurementDto): Promise<{ isAbnormal: boolean; reasons: string[] }> {
+    const allReasons: string[] = [];
+    let hasAbnormal = false;
 
-    return abnormalConditions.some(condition => condition);
+    // 检查血压
+    if (measurement.systolic || measurement.diastolic) {
+      const result = await this.abnormalRangesService.checkMeasurementAbnormal('blood_pressure', {
+        systolic: measurement.systolic,
+        diastolic: measurement.diastolic
+      });
+      if (result.isAbnormal) {
+        hasAbnormal = true;
+        allReasons.push(...result.reasons);
+      }
+    }
+
+    // 检查心率
+    if (measurement.heartRate) {
+      const result = await this.abnormalRangesService.checkMeasurementAbnormal('heart_rate', {
+        rate: measurement.heartRate
+      });
+      if (result.isAbnormal) {
+        hasAbnormal = true;
+        allReasons.push(...result.reasons);
+      }
+    }
+
+    // 检查体温
+    if (measurement.temperature) {
+      const result = await this.abnormalRangesService.checkMeasurementAbnormal('temperature', {
+        celsius: measurement.temperature
+      });
+      if (result.isAbnormal) {
+        hasAbnormal = true;
+        allReasons.push(...result.reasons);
+      }
+    }
+
+    // 检查血氧饱和度
+    if (measurement.oxygenSaturation) {
+      const result = await this.abnormalRangesService.checkMeasurementAbnormal('oxygen_saturation', {
+        percentage: measurement.oxygenSaturation
+      });
+      if (result.isAbnormal) {
+        hasAbnormal = true;
+        allReasons.push(...result.reasons);
+      }
+    }
+
+    return { isAbnormal: hasAbnormal, reasons: allReasons };
   }
 
   async getStats() {

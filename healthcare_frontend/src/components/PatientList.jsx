@@ -38,61 +38,59 @@ export default function PatientList({ onViewCovidAssessments }) {
       setLoading(true)
       setError('')
       
-      // 获取异常测量数据（包含患者信息）
-      const abnormalMeasurements = await apiService.getAbnormalMeasurements()
+      // 获取所有患者和相关数据
+      const [allPatients, allMeasurements] = await Promise.all([
+        apiService.getPatients(),
+        apiService.getAllMeasurements()
+      ])
       
-      console.log('PatientList fetched abnormal measurements:', abnormalMeasurements.length)
+      console.log('PatientList fetched:', {
+        allPatients: allPatients.length,
+        allMeasurements: allMeasurements.length
+      })
       
-      // 按患者分组统计
-      const patientStats = {}
-      
-      abnormalMeasurements.forEach(measurement => {
-        const patientId = measurement.userId._id
-        const patient = measurement.userId
+      // 为每个患者统计测量数据
+      const patientsWithStats = allPatients.map(patient => {
+        // 获取该患者的所有测量记录
+        const patientMeasurements = allMeasurements.filter(m => 
+          m.userId && (m.userId._id === patient._id || m.userId === patient._id)
+        )
         
-        if (!patientStats[patientId]) {
-          patientStats[patientId] = {
-            ...patient,
-            id: patientId,
-            measurementCount: 0,
-            abnormalCount: 0,
-            pendingAbnormalCount: 0,
-            lastMeasurement: null,
-            measurements: []
-          }
+        // 统计异常和待处理的测量
+        const abnormalCount = patientMeasurements.filter(m => m.isAbnormal).length
+        const pendingAbnormalCount = patientMeasurements.filter(m => 
+          m.isAbnormal && m.status === 'pending'
+        ).length
+        
+        // 获取最后测量时间
+        let lastMeasurement = null
+        if (patientMeasurements.length > 0) {
+          const sortedMeasurements = patientMeasurements.sort((a, b) => 
+            new Date(b.createdAt || b.measurementTime) - new Date(a.createdAt || a.measurementTime)
+          )
+          lastMeasurement = sortedMeasurements[0].createdAt || sortedMeasurements[0].measurementTime
         }
         
-        patientStats[patientId].measurements.push(measurement)
-        patientStats[patientId].measurementCount++
-        
-        if (measurement.isAbnormal) {
-          patientStats[patientId].abnormalCount++
-          
-          if (measurement.status === 'pending') {
-            patientStats[patientId].pendingAbnormalCount++
-          }
-        }
-        
-        // 更新最后测量时间
-        const measurementTime = new Date(measurement.createdAt || measurement.measurementTime)
-        if (!patientStats[patientId].lastMeasurement || 
-            measurementTime > new Date(patientStats[patientId].lastMeasurement)) {
-          patientStats[patientId].lastMeasurement = measurementTime.toISOString()
+        return {
+          ...patient,
+          id: patient._id,
+          measurementCount: patientMeasurements.length,
+          abnormalCount,
+          pendingAbnormalCount,
+          lastMeasurement,
+          measurements: patientMeasurements,
+          hasAbnormal: abnormalCount > 0,
+          needsDiagnosis: pendingAbnormalCount > 0
         }
       })
       
-      // 转换为数组并添加状态标记
-      const patientsWithStats = Object.values(patientStats).map(patient => ({
-        ...patient,
-        hasAbnormal: patient.abnormalCount > 0,
-        needsDiagnosis: patient.pendingAbnormalCount > 0
-      }))
-      
-      // 按需要诊断的患者优先排序
+      // 按优先级排序：需要诊断的患者优先，然后按异常数量排序
       patientsWithStats.sort((a, b) => {
         if (a.needsDiagnosis && !b.needsDiagnosis) return -1
         if (!a.needsDiagnosis && b.needsDiagnosis) return 1
-        return b.pendingAbnormalCount - a.pendingAbnormalCount
+        if (a.hasAbnormal && !b.hasAbnormal) return -1
+        if (!a.hasAbnormal && b.hasAbnormal) return 1
+        return b.abnormalCount - a.abnormalCount
       })
       
       setPatients(patientsWithStats)
@@ -161,7 +159,7 @@ export default function PatientList({ onViewCovidAssessments }) {
         {filteredPatients.length === 0 ? (
           <div className="text-center py-8">
             <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">{searchTerm ? '未找到匹配的患者' : '暂无需要关注的患者'}</p>
+            <p className="text-gray-500">{searchTerm ? '未找到匹配的患者' : '暂无患者数据'}</p>
           </div>
         ) : (
           <div className="space-y-4">

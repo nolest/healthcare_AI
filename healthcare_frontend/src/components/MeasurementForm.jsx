@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Input } from '@/components/ui/input.jsx'
@@ -18,6 +18,16 @@ export default function MeasurementForm({ onMeasurementAdded }) {
     notes: '',
     measurementTime: ''
   })
+
+  // 设置默认测量时间为当前时间
+  useEffect(() => {
+    const now = new Date()
+    const localISOTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+    setFormData(prev => ({
+      ...prev,
+      measurementTime: localISOTime
+    }))
+  }, [])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -32,17 +42,35 @@ export default function MeasurementForm({ onMeasurementAdded }) {
   const validateForm = () => {
     const errors = []
     
-    if (!formData.systolic || formData.systolic <= 0) errors.push('收縮壓必須填寫')
-    if (!formData.diastolic || formData.diastolic <= 0) errors.push('舒張壓必須填寫')
-    if (!formData.heartRate || formData.heartRate <= 0) errors.push('心率必須填寫')
-    if (!formData.temperature || formData.temperature <= 0) errors.push('體溫必須填寫')
-    if (!formData.oxygenSaturation || formData.oxygenSaturation <= 0) errors.push('血氧飽和度必須填寫')
+    // 检查是否至少填写了一个生理指标
+    const hasAnyMeasurement = formData.systolic || formData.diastolic || formData.heartRate || 
+                             formData.temperature || formData.oxygenSaturation
     
-    if (formData.systolic > 300 || formData.systolic < 50) errors.push('收縮壓數值異常')
-    if (formData.diastolic > 200 || formData.diastolic < 30) errors.push('舒張壓數值異常')
-    if (formData.heartRate > 200 || formData.heartRate < 30) errors.push('心率數值異常')
-    if (formData.temperature > 45 || formData.temperature < 30) errors.push('體溫數值異常')
-    if (formData.oxygenSaturation > 100 || formData.oxygenSaturation < 50) errors.push('血氧飽和度數值異常')
+    if (!hasAnyMeasurement) {
+      errors.push('请至少填写一个生理指标')
+    }
+    
+    // 测量时间必填
+    if (!formData.measurementTime) {
+      errors.push('测量时间必须填写')
+    }
+    
+    // 只检查基本的数据类型和极端值（防止明显错误输入）
+    if (formData.systolic && (isNaN(formData.systolic) || formData.systolic <= 0)) {
+      errors.push('收縮壓必須是有效數字')
+    }
+    if (formData.diastolic && (isNaN(formData.diastolic) || formData.diastolic <= 0)) {
+      errors.push('舒張壓必須是有效數字')
+    }
+    if (formData.heartRate && (isNaN(formData.heartRate) || formData.heartRate <= 0)) {
+      errors.push('心率必須是有效數字')
+    }
+    if (formData.temperature && (isNaN(formData.temperature) || formData.temperature <= 0)) {
+      errors.push('體溫必須是有效數字')
+    }
+    if (formData.oxygenSaturation && (isNaN(formData.oxygenSaturation) || formData.oxygenSaturation <= 0)) {
+      errors.push('血氧飽和度必須是有效數字')
+    }
     
     return errors
   }
@@ -61,30 +89,36 @@ export default function MeasurementForm({ onMeasurementAdded }) {
         return
       }
 
-      // 準備API數據
+      // 準備API數據（只包含有值的字段）
       const measurementData = {
-        systolic: parseFloat(formData.systolic),
-        diastolic: parseFloat(formData.diastolic),
-        heartRate: parseFloat(formData.heartRate),
-        temperature: parseFloat(formData.temperature),
-        oxygenSaturation: parseFloat(formData.oxygenSaturation),
         notes: formData.notes,
-        measurementTime: formData.measurementTime || new Date().toISOString()
+        measurementTime: formData.measurementTime
       }
+
+      // 只添加有值的测量数据
+      if (formData.systolic) measurementData.systolic = parseFloat(formData.systolic)
+      if (formData.diastolic) measurementData.diastolic = parseFloat(formData.diastolic)
+      if (formData.heartRate) measurementData.heartRate = parseFloat(formData.heartRate)
+      if (formData.temperature) measurementData.temperature = parseFloat(formData.temperature)
+      if (formData.oxygenSaturation) measurementData.oxygenSaturation = parseFloat(formData.oxygenSaturation)
 
       // 調用API提交測量數據
       const response = await apiService.submitMeasurement(measurementData)
       console.log('Measurement submitted:', response)
 
-      // 檢查是否有異常值
-      const isAbnormal = checkAbnormalValues(measurementData)
-      
-      setSuccess('測量記錄已成功保存！')
-      if (isAbnormal) {
-        setSuccess(prev => prev + ' ⚠️ 檢測到異常值，建議諮詢醫護人員。')
+      // 使用后端返回的异常检测结果
+      let successMessage = '✅ 測量記錄已成功保存！'
+      if (response.abnormalResult && response.abnormalResult.isAbnormal) {
+        successMessage += '\n\n⚠️ 異常檢測結果：\n' + response.abnormalResult.reasons.join('\n') + '\n\n建議盡快諮詢醫護人員。'
+      } else {
+        successMessage += '\n\n✅ 所有測量值均在正常範圍內。'
       }
       
-      // 重置表單
+      setSuccess(successMessage)
+      
+      // 重置表單（保留当前时间）
+      const now = new Date()
+      const localISOTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
       setFormData({
         systolic: '',
         diastolic: '',
@@ -92,7 +126,7 @@ export default function MeasurementForm({ onMeasurementAdded }) {
         temperature: '',
         oxygenSaturation: '',
         notes: '',
-        measurementTime: ''
+        measurementTime: localISOTime
       })
       
       // 通知父組件
@@ -107,16 +141,7 @@ export default function MeasurementForm({ onMeasurementAdded }) {
     }
   }
 
-  // 檢查異常值的函數
-  const checkAbnormalValues = (data) => {
-    return (
-      data.systolic > 140 || data.systolic < 90 ||
-      data.diastolic > 90 || data.diastolic < 60 ||
-      data.heartRate > 100 || data.heartRate < 60 ||
-      data.temperature > 37.5 || data.temperature < 36.0 ||
-      data.oxygenSaturation < 95
-    )
-  }
+
 
   return (
     <Card className="max-w-2xl mx-auto">
@@ -126,7 +151,7 @@ export default function MeasurementForm({ onMeasurementAdded }) {
           <span>生理指標測量</span>
         </CardTitle>
         <CardDescription>
-          請輸入您的生理指標測量數據
+          請輸入您的生理指標測量數據（至少填寫一項）
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -138,8 +163,8 @@ export default function MeasurementForm({ onMeasurementAdded }) {
           )}
           
           {success && (
-            <Alert>
-              <AlertDescription>{success}</AlertDescription>
+            <Alert className={success.includes('⚠️') ? 'border-orange-200 bg-orange-50' : 'border-green-200 bg-green-50'}>
+              <AlertDescription className="whitespace-pre-line">{success}</AlertDescription>
             </Alert>
           )}
 
@@ -147,7 +172,7 @@ export default function MeasurementForm({ onMeasurementAdded }) {
             <div className="space-y-2">
               <Label htmlFor="systolic" className="flex items-center space-x-2">
                 <Heart className="h-4 w-4 text-red-500" />
-                <span>收縮壓 (mmHg)</span>
+                <span>收縮壓 (mmHg) <span className="text-gray-500 text-sm">可選</span></span>
               </Label>
               <Input
                 id="systolic"
@@ -155,7 +180,6 @@ export default function MeasurementForm({ onMeasurementAdded }) {
                 placeholder="120"
                 value={formData.systolic}
                 onChange={(e) => handleChange('systolic', e.target.value)}
-                required
                 disabled={loading}
               />
             </div>
@@ -163,7 +187,7 @@ export default function MeasurementForm({ onMeasurementAdded }) {
             <div className="space-y-2">
               <Label htmlFor="diastolic" className="flex items-center space-x-2">
                 <Heart className="h-4 w-4 text-blue-500" />
-                <span>舒張壓 (mmHg)</span>
+                <span>舒張壓 (mmHg) <span className="text-gray-500 text-sm">可選</span></span>
               </Label>
               <Input
                 id="diastolic"
@@ -171,7 +195,6 @@ export default function MeasurementForm({ onMeasurementAdded }) {
                 placeholder="80"
                 value={formData.diastolic}
                 onChange={(e) => handleChange('diastolic', e.target.value)}
-                required
                 disabled={loading}
               />
             </div>
@@ -179,7 +202,7 @@ export default function MeasurementForm({ onMeasurementAdded }) {
             <div className="space-y-2">
               <Label htmlFor="heartRate" className="flex items-center space-x-2">
                 <Activity className="h-4 w-4 text-green-500" />
-                <span>心率 (次/分)</span>
+                <span>心率 (次/分) <span className="text-gray-500 text-sm">可選</span></span>
               </Label>
               <Input
                 id="heartRate"
@@ -187,7 +210,6 @@ export default function MeasurementForm({ onMeasurementAdded }) {
                 placeholder="72"
                 value={formData.heartRate}
                 onChange={(e) => handleChange('heartRate', e.target.value)}
-                required
                 disabled={loading}
               />
             </div>
@@ -195,7 +217,7 @@ export default function MeasurementForm({ onMeasurementAdded }) {
             <div className="space-y-2">
               <Label htmlFor="temperature" className="flex items-center space-x-2">
                 <Thermometer className="h-4 w-4 text-orange-500" />
-                <span>體溫 (°C)</span>
+                <span>體溫 (°C) <span className="text-gray-500 text-sm">可選</span></span>
               </Label>
               <Input
                 id="temperature"
@@ -204,7 +226,6 @@ export default function MeasurementForm({ onMeasurementAdded }) {
                 placeholder="36.5"
                 value={formData.temperature}
                 onChange={(e) => handleChange('temperature', e.target.value)}
-                required
                 disabled={loading}
               />
             </div>
@@ -212,7 +233,7 @@ export default function MeasurementForm({ onMeasurementAdded }) {
             <div className="space-y-2">
               <Label htmlFor="oxygenSaturation" className="flex items-center space-x-2">
                 <Droplets className="h-4 w-4 text-blue-600" />
-                <span>血氧飽和度 (%)</span>
+                <span>血氧飽和度 (%) <span className="text-gray-500 text-sm">可選</span></span>
               </Label>
               <Input
                 id="oxygenSaturation"
@@ -220,19 +241,19 @@ export default function MeasurementForm({ onMeasurementAdded }) {
                 placeholder="98"
                 value={formData.oxygenSaturation}
                 onChange={(e) => handleChange('oxygenSaturation', e.target.value)}
-                required
                 disabled={loading}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="measurementTime">測量時間（可選）</Label>
+              <Label htmlFor="measurementTime">測量時間 <span className="text-red-500">*</span></Label>
               <Input
                 id="measurementTime"
                 type="datetime-local"
                 value={formData.measurementTime}
                 onChange={(e) => handleChange('measurementTime', e.target.value)}
                 disabled={loading}
+                required
               />
             </div>
           </div>

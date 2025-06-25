@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
+import { Measurement, MeasurementDocument } from '../schemas/measurement.schema';
 
 export interface UpdateUserDto {
   fullName?: string;
@@ -16,6 +17,7 @@ export interface UpdateUserDto {
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Measurement.name) private measurementModel: Model<MeasurementDocument>,
   ) {}
 
   async findAll() {
@@ -50,6 +52,19 @@ export class UsersService {
 
     if (!user) {
       throw new NotFoundException('用户不存在');
+    }
+
+    // 如果是患者，获取历史测量数据
+    if (user.role === 'patient') {
+      const historyMeasurements = await this.measurementModel
+        .find({ userId: id })
+        .sort({ createdAt: -1 }) // 按创建时间倒序排列
+        .exec();
+
+      return {
+        ...user.toObject(),
+        history_measurements: historyMeasurements
+      };
     }
 
     return user;

@@ -8,20 +8,20 @@ export class Measurement {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   userId: Types.ObjectId;
 
-  @Prop({ required: true })
-  systolic: number;
+  @Prop()
+  systolic?: number;
 
-  @Prop({ required: true })
-  diastolic: number;
+  @Prop()
+  diastolic?: number;
 
-  @Prop({ required: true })
-  heartRate: number;
+  @Prop()
+  heartRate?: number;
 
-  @Prop({ required: true })
-  temperature: number;
+  @Prop()
+  temperature?: number;
 
-  @Prop({ required: true })
-  oxygenSaturation: number;
+  @Prop()
+  oxygenSaturation?: number;
 
   @Prop()
   notes: string;
@@ -31,6 +31,9 @@ export class Measurement {
 
   @Prop({ default: false })
   isAbnormal: boolean;
+
+  @Prop({ type: [String], default: [] })
+  abnormalReasons: string[]; // 异常原因列表
 
   @Prop()
   measurementTime: Date;

@@ -39,15 +39,39 @@ export default function DiagnosisPage() {
 
   const fetchPatientData = async (patientId) => {
     try {
-      // 通过API获取患者列表，然后找到对应的患者
+      // 首先尝试直接通过用户API获取患者信息（包含历史测量数据）
+      try {
+        console.log('Fetching patient data directly from users API:', patientId)
+        const patientData = await apiService.getUserById(patientId)
+        
+        if (patientData && patientData.role === 'patient') {
+          console.log('Patient found with history_measurements:', patientData.history_measurements?.length || 0)
+          // 确保患者对象有完整的ID字段
+          const patientWithId = {
+            ...patientData,
+            id: patientData._id || patientData.id
+          }
+          setPatient(patientWithId)
+          return
+        }
+      } catch (directError) {
+        console.warn('Direct user API call failed, trying patient list:', directError.message)
+      }
+      
+      // 备用方案：通过患者列表API获取患者信息
       const patients = await apiService.getPatients()
       const patientData = patients.find(p => 
-        p._id === patientId || p.username === patientId
+        p._id === patientId || p.id === patientId || p.username === patientId
       )
       
       if (patientData) {
-        console.log('Patient found:', patientData)
-        setPatient(patientData)
+        console.log('Patient found from list:', patientData)
+        // 确保患者对象有完整的ID字段
+        const patientWithId = {
+          ...patientData,
+          id: patientData._id || patientData.id
+        }
+        setPatient(patientWithId)
       } else {
         console.error('Patient not found:', patientId)
         alert(`找不到患者 ID: ${patientId}`)
@@ -155,7 +179,7 @@ export default function DiagnosisPage() {
                 </div>
                 <div>
                   <span className="font-medium text-blue-700">患者ID：</span>
-                  <span className="text-blue-900">{patient.id}</span>
+                  <span className="text-blue-900">{patient._id || patient.id || patient.username || '未知'}</span>
                 </div>
                 <div>
                   <span className="font-medium text-blue-700">角色：</span>

@@ -24,6 +24,7 @@ import DiagnosisForm from './DiagnosisForm'
 import CovidFluAssessment from './CovidFluAssessment'
 import TestingIsolationGuidance from './TestingIsolationGuidance'
 import PatientCovidAssessments from './PatientCovidAssessments'
+import AbnormalRangeSettings from './AbnormalRangeSettings'
 import LanguageSwitcher from './LanguageSwitcher'
 import apiService from '../services/api.js'
 import i18n from '../utils/i18n'
@@ -70,16 +71,20 @@ export default function MedicalStaffDashboard() {
   const fetchData = async () => {
     try {
       // 使用真实API获取数据
-      const [measurements, diagnoses, measurementStats, diagnosisStats] = await Promise.all([
+      const [measurements, diagnoses, measurementStats, diagnosisStats, covidStats] = await Promise.all([
         apiService.getAbnormalMeasurements(),
         apiService.getAllDiagnoses(),
         apiService.getMeasurementStats(),
-        apiService.getDiagnosisStats()
+        apiService.getDiagnosisStats(),
+        apiService.getCovidAssessmentStats()
       ])
       
       console.log('Fetched data:', {
         measurements: measurements.length,
-        diagnoses: diagnoses.length
+        diagnoses: diagnoses.length,
+        measurementStats,
+        diagnosisStats,
+        covidStats
       })
       
       // 从异常测量数据中提取待处理患者
@@ -124,12 +129,30 @@ export default function MedicalStaffDashboard() {
       setPendingPatients(pendingList)
       setRecentDiagnoses(diagnoses.slice(-5))
       
+      // 处理COVID风险等级分布数据
+      const riskDistribution = {
+        low: 0,
+        medium: 0,
+        high: 0,
+        critical: 0
+      };
+      
+      if (covidStats && covidStats.riskStats) {
+        covidStats.riskStats.forEach(stat => {
+          if (stat._id === 'low') riskDistribution.low = stat.count;
+          else if (stat._id === 'medium') riskDistribution.medium = stat.count;
+          else if (stat._id === 'high') riskDistribution.high = stat.count;
+          else if (stat._id === 'very_high') riskDistribution.critical = stat.count;
+        });
+      }
+
       // 使用API返回的统计数据
       const statsData = {
         total_diagnoses: diagnosisStats.totalDiagnoses || diagnoses.length,
         pending_patients: pendingList.length,
         follow_up_required: diagnoses.filter(d => d.followUpRequired).length,
-        patients_diagnosed: new Set(diagnoses.map(d => d.patientId)).size
+        patients_diagnosed: new Set(diagnoses.map(d => d.patientId)).size,
+        risk_level_distribution: riskDistribution
       }
       
       setStats(statsData)
@@ -201,13 +224,14 @@ export default function MedicalStaffDashboard() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 gap-1">
+          <TabsList className="grid w-full grid-cols-7 gap-1">
             <TabsTrigger value="overview" className="text-xs sm:text-sm px-2 py-2">{t('dashboard.tabs.overview')}</TabsTrigger>
             <TabsTrigger value="pending" className="text-xs sm:text-sm px-2 py-2">{t('dashboard.tabs.pending')}</TabsTrigger>
             <TabsTrigger value="patients" className="text-xs sm:text-sm px-2 py-2">{t('dashboard.tabs.patient_mgmt')}</TabsTrigger>
             <TabsTrigger value="diagnosis" className="text-xs sm:text-sm px-2 py-2">{t('dashboard.tabs.diagnosis_eval')}</TabsTrigger>
             <TabsTrigger value="covid_flu" className="text-xs sm:text-sm px-2 py-2">COVID/流感</TabsTrigger>
             <TabsTrigger value="guidance" className="text-xs sm:text-sm px-2 py-2">指導建議</TabsTrigger>
+            <TabsTrigger value="settings" className="text-xs sm:text-sm px-2 py-2">异常值设置</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -290,19 +314,44 @@ export default function MedicalStaffDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>{t('dashboard.recent_diagnoses')}</CardTitle>
-                <CardDescription>{recentDiagnoses.length === 0 ? t('dashboard.no_diagnoses') : `${recentDiagnoses.length} recent diagnoses`}</CardDescription>
+                <CardDescription>{recentDiagnoses.length === 0 ? t('dashboard.no_diagnoses') : `最近 ${recentDiagnoses.length} 条诊断记录`}</CardDescription>
               </CardHeader>
               <CardContent>
                 {recentDiagnoses.length === 0 ? (
                   <p className="text-gray-500 text-center py-4">{t('dashboard.no_diagnoses')}</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {recentDiagnoses.map((diagnosis, index) => (
-                      <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                        <span>{diagnosis.patient_name || diagnosis.patient_id}</span>
-                        <Badge variant={diagnosis.risk_level === 'high' || diagnosis.risk_level === 'critical' ? 'destructive' : 'secondary'}>
-                          {diagnosis.risk_level}
-                        </Badge>
+                      <div key={diagnosis._id || index} className="flex justify-between items-start p-3 bg-gray-50 rounded-lg border">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium text-gray-900">
+                              {diagnosis.patientId?.fullName || diagnosis.patientId?.username || '未知患者'}
+                            </span>
+                            <Badge variant={diagnosis.status === 'active' ? 'default' : 'secondary'}>
+                              {diagnosis.status === 'active' ? '进行中' : 
+                               diagnosis.status === 'completed' ? '已完成' : 
+                               diagnosis.status === 'cancelled' ? '已取消' : diagnosis.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-1">
+                            <span className="font-medium">诊断:</span> {diagnosis.diagnosis}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            <span className="font-medium">治疗:</span> {diagnosis.treatment}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(diagnosis.createdAt).toLocaleString('zh-TW')}
+                          </p>
+                        </div>
+                        <div className="text-right text-sm text-gray-500 ml-4">
+                          <p>医生: {diagnosis.doctorId?.fullName || '未知'}</p>
+                          {diagnosis.followUpDate && (
+                            <p className="text-xs mt-1">
+                              复诊: {new Date(diagnosis.followUpDate).toLocaleDateString('zh-TW')}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -351,11 +400,11 @@ export default function MedicalStaffDashboard() {
                                   </Badge>
                                 </CardTitle>
                                 <CardDescription className="mt-1">
-                                  患者ID: {patient.id} | {patient.abnormal_count} 項異常測量
+                                  患者ID: {patient._id || patient.id} | {patient.abnormal_count} 項異常測量
                                 </CardDescription>
                               </div>
                               <Button 
-                                onClick={() => navigate(`/diagnosis/${patient.id}`)}
+                                onClick={() => navigate(`/diagnosis/${patient._id || patient.id}`)}
                                 size="lg"
                                 className="bg-red-600 hover:bg-red-700 text-white px-6"
                               >
@@ -503,6 +552,11 @@ export default function MedicalStaffDashboard() {
                 />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* 异常值设置 Tab */}
+          <TabsContent value="settings" className="space-y-6">
+            <AbnormalRangeSettings />
           </TabsContent>
         </Tabs>
       </main>
