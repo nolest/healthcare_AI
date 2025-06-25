@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from '../components/ui/textarea.jsx'
 import { Alert, AlertDescription } from '../components/ui/alert.jsx'
 import { ArrowLeft, Plus, Settings, AlertTriangle } from 'lucide-react'
-import mockDataStore from '../utils/mockDataStore.js'
+import apiService from '../services/api.js'
 
 export default function AbnormalDataSettingsPage() {
   const navigate = useNavigate()
@@ -62,16 +62,6 @@ export default function AbnormalDataSettingsPage() {
         { name: '中度缺氧', values: { percentage: 88 } },
         { name: '嚴重缺氧', values: { percentage: 85 } }
       ]
-    },
-    {
-      value: 'blood_glucose',
-      label: '血糖',
-      normalRange: '70-140 mg/dL',
-      abnormalExamples: [
-        { name: '高血糖', values: { mg_dl: 200 } },
-        { name: '糖尿病範圍', values: { mg_dl: 250 } },
-        { name: '低血糖', values: { mg_dl: 50 } }
-      ]
     }
   ]
 
@@ -85,8 +75,6 @@ export default function AbnormalDataSettingsPage() {
         return values.celsius > 37.3 || values.celsius < 36.0
       case 'oxygen_saturation':
         return values.percentage < 95
-      case 'blood_glucose':
-        return values.mg_dl > 140 || values.mg_dl < 70
       default:
         return false
     }
@@ -100,25 +88,33 @@ export default function AbnormalDataSettingsPage() {
 
     setLoading(true)
     try {
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}')
-      if (!currentUser.username) {
+      const currentUser = await apiService.getCurrentUser()
+      if (!currentUser) {
         throw new Error('無法獲取當前用戶信息')
       }
 
       const isAbnormal = checkAbnormalValues(selectedType, formData.values)
       
+      // 根据测量类型构建数据，适应新的API结构
       const measurementData = {
-        user_id: currentUser.username,
-        measurement_type: selectedType,
-        values: formData.values,
-        is_abnormal: isAbnormal,
-        device_id: formData.device_id || `TEST_${selectedType.toUpperCase()}`,
+        deviceId: formData.device_id || `TEST_${selectedType.toUpperCase()}`,
         location: formData.location,
-        notes: formData.notes || '測試異常數據',
-        measured_at: new Date().toISOString()
+        notes: formData.notes || '測試異常數據'
       }
 
-      mockDataStore.addMeasurement(measurementData)
+      // 根据测量类型添加相应的值
+      if (selectedType === 'blood_pressure') {
+        measurementData.systolic = formData.values.systolic
+        measurementData.diastolic = formData.values.diastolic
+      } else if (selectedType === 'heart_rate') {
+        measurementData.heartRate = formData.values.rate
+      } else if (selectedType === 'temperature') {
+        measurementData.temperature = formData.values.celsius
+      } else if (selectedType === 'oxygen_saturation') {
+        measurementData.oxygenSaturation = formData.values.percentage
+      }
+
+      await apiService.submitMeasurement(measurementData)
       
       setMessage(`✅ 已添加${isAbnormal ? '異常' : '正常'}測量數據！`)
       
@@ -149,55 +145,49 @@ export default function AbnormalDataSettingsPage() {
   const addAllAbnormalData = async () => {
     setLoading(true)
     try {
-      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}')
-      if (!currentUser.username) {
+      const currentUser = await apiService.getCurrentUser()
+      if (!currentUser) {
         throw new Error('無法獲取當前用戶信息')
       }
 
       const allAbnormalData = [
         {
-          measurement_type: 'blood_pressure',
-          values: { systolic: 180, diastolic: 110 },
+          systolic: 180,
+          diastolic: 110,
+          deviceId: 'TEST_BLOOD_PRESSURE',
+          location: '測試診斷點',
           notes: '嚴重高血壓測試數據'
         },
         {
-          measurement_type: 'heart_rate',
-          values: { rate: 120 },
+          heartRate: 120,
+          deviceId: 'TEST_HEART_RATE',
+          location: '測試診斷點',
           notes: '心動過速測試數據'
         },
         {
-          measurement_type: 'temperature',
-          values: { celsius: 39.2 },
+          temperature: 39.2,
+          deviceId: 'TEST_TEMPERATURE',
+          location: '測試診斷點',
           notes: '高燒測試數據'
         },
         {
-          measurement_type: 'oxygen_saturation',
-          values: { percentage: 85 },
+          oxygenSaturation: 85,
+          deviceId: 'TEST_OXYGEN_SATURATION',
+          location: '測試診斷點',
           notes: '嚴重缺氧測試數據'
-        },
-        {
-          measurement_type: 'blood_glucose',
-          values: { mg_dl: 250 },
-          notes: '糖尿病範圍測試數據'
         }
       ]
 
-      allAbnormalData.forEach(data => {
-        const isAbnormal = checkAbnormalValues(data.measurement_type, data.values)
-        
-        const measurementData = {
-          user_id: currentUser.username,
-          ...data,
-          is_abnormal: isAbnormal,
-          device_id: `TEST_${data.measurement_type.toUpperCase()}`,
-          location: '測試診斷點',
-          measured_at: new Date().toISOString()
+      // 使用 for...of 循环以便正确处理异步操作
+      for (const measurementData of allAbnormalData) {
+        try {
+          await apiService.submitMeasurement(measurementData)
+        } catch (error) {
+          console.error('Error adding measurement:', error)
         }
-        
-        mockDataStore.addMeasurement(measurementData)
-      })
+      }
 
-      setMessage('✅ 已添加所有5種類型的異常測量數據！')
+      setMessage('✅ 已添加所有4種類型的異常測量數據！')
       
     } catch (error) {
       console.error('Error adding all data:', error)
@@ -256,7 +246,7 @@ export default function AbnormalDataSettingsPage() {
                 className="w-full bg-orange-600 hover:bg-orange-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                添加所有5種異常數據
+                添加所有4種異常數據
               </Button>
             </CardContent>
           </Card>

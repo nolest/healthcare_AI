@@ -24,7 +24,7 @@ import CovidFluAssessment from './CovidFluAssessment'
 import SymptomTracker from './SymptomTracker'
 import TestingIsolationGuidance from './TestingIsolationGuidance'
 import LanguageSwitcher from './LanguageSwitcher'
-import mockDataStore from '../utils/mockDataStore.js'
+import apiService from '../services/api.js'
 import i18n from '../utils/i18n'
 
 export default function PatientDashboard() {
@@ -51,28 +51,15 @@ export default function PatientDashboard() {
 
   useEffect(() => {
     // 获取当前用户信息
-    const savedUser = localStorage.getItem('currentUser')
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser)
-        setUser(userData)
-      } catch (error) {
-        console.error('Error parsing saved user:', error)
-      }
+    const currentUser = apiService.getCurrentUser()
+    if (currentUser) {
+      setUser(currentUser)
     }
   }, [])
 
   useEffect(() => {
     if (user) {
       fetchData()
-      
-      // 监听数据变化
-      mockDataStore.addListener(fetchData)
-      
-      // 清理监听器
-      return () => {
-        mockDataStore.removeListener(fetchData)
-      }
     }
   }, [user])
 
@@ -80,50 +67,33 @@ export default function PatientDashboard() {
     try {
       console.log('fetchData called, user:', user)
       
-      // 使用mockDataStore统一获取数据，确保数据一致性
-      const allMeasurements = mockDataStore.getMeasurements()
-      const allDiagnoses = mockDataStore.getDiagnoses()
+      // 使用真实API获取数据
+      const [measurements, diagnoses] = await Promise.all([
+        apiService.getMyMeasurements(),
+        apiService.getMyDiagnoses()
+      ])
       
-      console.log('Total measurements in store:', allMeasurements.length)
-      console.log('All measurements:', allMeasurements)
-      
-      // 只获取当前用户的数据
-      const measurements = allMeasurements.filter(m => m.user_id === user.username)
-      const diagnoses = allDiagnoses.filter(d => d.patient_id === user.username)
-      
-      console.log('User measurements for', user.username, ':', measurements.length)
-      console.log('Filtered measurements:', measurements)
-      console.log('User diagnoses for', user.username, ':', diagnoses.length)
-      console.log('Diagnoses data:', diagnoses)
+      console.log('User measurements:', measurements.length)
+      console.log('User diagnoses:', diagnoses.length)
       
       setMeasurements(measurements)
       setDiagnoses(diagnoses)
       
       // 计算统计数据
       const totalMeasurements = measurements.length
-      const abnormalMeasurements = measurements.filter(m => m.is_abnormal).length
+      const abnormalMeasurements = measurements.filter(m => m.isAbnormal).length
       const totalDiagnoses = diagnoses.length
       
-      console.log('Statistics for', user.username, ':', { totalMeasurements, abnormalMeasurements, totalDiagnoses })
-      
-      // 获取最新测量值
-      const latestMeasurements = {}
-      measurements.forEach(m => {
-        if (!latestMeasurements[m.measurement_type] || 
-            new Date(m.measured_at) > new Date(latestMeasurements[m.measurement_type].measured_at)) {
-          latestMeasurements[m.measurement_type] = m
-        }
-      })
+      console.log('Statistics:', { totalMeasurements, abnormalMeasurements, totalDiagnoses })
       
       const newStats = {
         totalMeasurements,
         abnormalMeasurements,
         totalDiagnoses,
-        healthStatus: abnormalMeasurements === 0 ? '良好' : '需關注',
-        latestMeasurements
+        healthStatus: abnormalMeasurements === 0 ? '良好' : '需關注'
       }
       
-      console.log('Setting stats for', user.username, ':', newStats)
+      console.log('Setting stats:', newStats)
       setStats(newStats)
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -202,7 +172,7 @@ export default function PatientDashboard() {
                 <span className="text-gray-700">{user?.username || 'Loading...'}</span>
               </div>
               <Button variant="outline" onClick={() => {
-                localStorage.removeItem('currentUser')
+                apiService.logout()
                 window.location.href = '/login'
               }}>
                 <LogOut className="h-4 w-4 mr-2" />

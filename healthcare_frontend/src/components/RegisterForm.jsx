@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
 import { Label } from '@/components/ui/label.jsx'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx'
-import mockDataStore from '../utils/mockDataStore.js'
+import apiService from '../services/api.js'
 
 export default function RegisterForm({ onRegisterSuccess }) {
   const [formData, setFormData] = useState({
@@ -43,6 +43,7 @@ export default function RegisterForm({ onRegisterSuccess }) {
     // 基本驗證
     if (!formData.username.trim()) newErrors.username = '用戶名不能為空'
     if (!formData.password) newErrors.password = '密碼不能為空'
+    if (formData.password.length < 6) newErrors.password = '密碼至少需要6個字符'
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = '密碼確認不匹配'
     }
@@ -61,12 +62,6 @@ export default function RegisterForm({ onRegisterSuccess }) {
     if (formData.role === 'medical_staff') {
       if (!formData.department.trim()) newErrors.department = '科室不能為空'
       if (!formData.licenseNumber.trim()) newErrors.licenseNumber = '執照號碼不能為空'
-    }
-
-    // 檢查用戶名是否已存在
-    const existingUser = mockDataStore.findUserByUsername(formData.username)
-    if (existingUser) {
-      newErrors.username = '用戶名已存在'
     }
 
     // 電子郵件格式驗證
@@ -108,19 +103,32 @@ export default function RegisterForm({ onRegisterSuccess }) {
         userData.license_number = formData.licenseNumber
       }
 
-      // 添加用戶到系統
-      const newUser = mockDataStore.addUser(userData)
+      // 調用API註冊用戶
+      const response = await apiService.register(userData)
       
-      console.log('User registered successfully:', newUser)
-      
-      // 註冊成功回調
-      if (onRegisterSuccess) {
-        onRegisterSuccess(newUser)
+      if (response.success) {
+        console.log('User registered successfully:', response.user)
+        // 保存用户信息到本地存储
+        apiService.setCurrentUser(response.user)
+        
+        // 註冊成功回調
+        if (onRegisterSuccess) {
+          onRegisterSuccess(response.user)
+        }
+      } else {
+        setErrors({ submit: response.message || '註冊失敗' })
       }
 
     } catch (error) {
       console.error('Registration error:', error)
-      setErrors({ submit: '註冊失敗，請稍後重試' })
+      if (error.message.includes('用户名或邮箱已存在')) {
+        setErrors({ 
+          username: '用戶名已存在',
+          email: '電子郵件已存在'
+        })
+      } else {
+        setErrors({ submit: error.message || '註冊失敗，請檢查網絡連接' })
+      }
     } finally {
       setIsLoading(false)
     }

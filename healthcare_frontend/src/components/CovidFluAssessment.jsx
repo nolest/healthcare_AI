@@ -22,7 +22,7 @@ import {
   XCircle,
   Info
 } from 'lucide-react'
-import mockDataStore from '../utils/mockDataStore'
+import apiService from '../services/api.js'
 import i18n from '../utils/i18n'
 
 // COVID-19和流感症狀清單
@@ -99,17 +99,14 @@ export default function CovidFluAssessment({ user, onAssessmentComplete, onBack 
   }, [user])
 
   // 加載評估歷史記錄
-  const loadAssessmentHistory = () => {
+  const loadAssessmentHistory = async () => {
     try {
-      const storedAssessments = JSON.parse(localStorage.getItem('covid_flu_assessments') || '[]')
-      const userAssessments = storedAssessments.filter(assessment => 
-        assessment.user_id === user.username || assessment.user_id === user.id
-      )
-      setAssessmentHistory(userAssessments)
+      const assessments = await apiService.getMyCovidAssessments()
+      setAssessmentHistory(assessments)
       
       // 如果有評估記錄，設置最新的評估結果
-      if (userAssessments.length > 0) {
-        const latestAssessment = userAssessments[userAssessments.length - 1]
+      if (assessments.length > 0) {
+        const latestAssessment = assessments[assessments.length - 1]
         setAssessmentResult(latestAssessment)
       }
     } catch (error) {
@@ -244,53 +241,33 @@ export default function CovidFluAssessment({ user, onAssessmentComplete, onBack 
 
   const handleSubmitAssessment = async () => {
     setLoading(true)
-    
-    // 模擬API延遲
-    await new Promise(resolve => setTimeout(resolve, 1500))
 
     try {
       const riskScore = calculateRiskScore()
       const riskLevel = getRiskLevel(riskScore)
       const recommendations = getRecommendations(riskLevel, riskScore)
 
-      const result = {
-        id: Date.now(),
-        user_id: user.username,
-        assessment_type: assessmentType,
+      const assessmentData = {
+        assessmentType: assessmentType,
         symptoms: selectedSymptoms,
-        risk_factors: selectedRiskFactors,
+        riskFactors: selectedRiskFactors,
         temperature: parseFloat(temperature) || null,
-        symptom_onset: symptomOnset,
-        exposure_history: exposureHistory,
-        travel_history: travelHistory,
-        contact_history: contactHistory,
-        additional_notes: additionalNotes,
-        risk_score: riskScore,
-        risk_level: riskLevel,
-        recommendations: recommendations,
-        assessed_at: new Date().toISOString(),
-        created_at: new Date().toISOString()
+        symptomOnset: symptomOnset,
+        exposureHistory: exposureHistory,
+        travelHistory: travelHistory,
+        contactHistory: contactHistory,
+        additionalNotes: additionalNotes,
+        riskScore: riskScore,
+        riskLevel: riskLevel.level,
+        riskLevelLabel: riskLevel.label,
+        recommendations: recommendations
       }
 
-      // 保存評估結果到localStorage和mockDataStore
-      const storedAssessments = JSON.parse(localStorage.getItem('covid_flu_assessments') || '[]')
-      storedAssessments.push(result)
-      localStorage.setItem('covid_flu_assessments', JSON.stringify(storedAssessments))
+      // 提交評估結果到後端API
+      const result = await apiService.submitCovidAssessment(assessmentData)
+      console.log('COVID assessment submitted:', result)
       
-      // 同時保存到assessment_history鍵值
-      const assessmentHistoryData = JSON.parse(localStorage.getItem('assessment_history') || '[]')
-      assessmentHistoryData.push(result)
-      localStorage.setItem('assessment_history', JSON.stringify(assessmentHistoryData))
-      
-      // 使用mockDataStore保存數據，確保醫護人員能看到
-      try {
-        mockDataStore.saveCovidAssessment(result)
-        console.log('COVID assessment saved to mockDataStore:', result)
-      } catch (error) {
-        console.error('Error saving to mockDataStore:', error)
-      }
-      
-      // 同時更新本地狀態
+      // 更新本地狀態
       setAssessmentResult(result)
       setAssessmentHistory([...assessmentHistory, result])
       setActiveTab('result')
@@ -300,6 +277,7 @@ export default function CovidFluAssessment({ user, onAssessmentComplete, onBack 
       }
     } catch (error) {
       console.error('Assessment error:', error)
+      // 可以添加錯誤處理，比如顯示錯誤消息
     } finally {
       setLoading(false)
     }

@@ -11,6 +11,7 @@ import {
   Clock,
   Activity
 } from 'lucide-react'
+import apiService from '../services/api.js'
 
 export default function SymptomTracker({ user, assessmentHistory = [] }) {
   const [symptoms, setSymptoms] = useState([])
@@ -22,15 +23,12 @@ export default function SymptomTracker({ user, assessmentHistory = [] }) {
 
   const loadSymptomHistory = async () => {
     try {
-      // 從localStorage獲取症狀追蹤數據
-      const storedSymptoms = localStorage.getItem('symptom_tracking')
-      if (storedSymptoms) {
-        const allSymptoms = JSON.parse(storedSymptoms)
-        const userSymptoms = allSymptoms.filter(s => s.user_id === user.username)
-        setSymptoms(userSymptoms)
-      }
+      // 使用真实API获取COVID评估数据作为症状追踪数据
+      const assessments = await apiService.getMyCovidAssessments()
+      setSymptoms(assessments)
     } catch (error) {
       console.error('Error loading symptom history:', error)
+      setSymptoms([])
     } finally {
       setLoading(false)
     }

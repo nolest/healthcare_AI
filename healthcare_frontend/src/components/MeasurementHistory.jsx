@@ -4,14 +4,16 @@ import { Badge } from '@/components/ui/badge.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx'
 import { Heart, Activity, Thermometer, Droplets, RefreshCw, Calendar } from 'lucide-react'
-import mockDataStore from '../utils/mockDataStore.js'
+import apiService from '../services/api.js'
 
 export default function MeasurementHistory({ measurements: propMeasurements, onRefresh }) {
   const [measurements, setMeasurements] = useState([])
   const [filter, setFilter] = useState('all')
   const [sortBy, setSortBy] = useState('date')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  // 如果有传入的measurements属性，使用它；否则从mockDataStore获取
+  // 如果有传入的measurements属性，使用它；否则从API获取
   useEffect(() => {
     if (propMeasurements) {
       console.log('Using measurements from props:', propMeasurements.length)
@@ -22,108 +24,88 @@ export default function MeasurementHistory({ measurements: propMeasurements, onR
   }, [propMeasurements])
 
   // 加載測量數據
-  const loadMeasurements = () => {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}')
-    
-    if (!currentUser.username) {
-      console.log('No current user found')
+  const loadMeasurements = async () => {
+    if (!apiService.isAuthenticated()) {
+      console.log('User not authenticated')
       setMeasurements([])
       return
     }
     
-    // 使用mockDataStore獲取當前用戶的測量記錄
-    const userMeasurements = mockDataStore.getMeasurementsByUserId(currentUser.username)
-    console.log('Loading measurements for user:', currentUser.username, 'Found:', userMeasurements.length)
+    setLoading(true)
+    setError('')
     
-    setMeasurements(userMeasurements)
+    try {
+      const userMeasurements = await apiService.getMyMeasurements()
+      console.log('Loading measurements from API:', userMeasurements.length)
+      setMeasurements(userMeasurements)
+    } catch (error) {
+      console.error('Error loading measurements:', error)
+      setError('加載測量記錄失敗')
+      setMeasurements([])
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // 組件掛載時加載數據（仅在没有传入measurements时）
-  useEffect(() => {
-    if (!propMeasurements) {
-      loadMeasurements()
-      
-      // 監聽數據變化
-      mockDataStore.addListener(loadMeasurements)
-      
-      // 清理監聽器
-      return () => {
-        mockDataStore.removeListener(loadMeasurements)
-      }
-    }
-  }, [propMeasurements])
-
   // 刷新數據
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     if (!propMeasurements) {
-      loadMeasurements()
+      await loadMeasurements()
     }
     if (onRefresh) {
       onRefresh()
     }
   }
 
-  const getMeasurementIcon = (type) => {
-    switch (type) {
-      case 'blood_pressure':
-        return <Heart className="h-5 w-5" />
-      case 'heart_rate':
-        return <Activity className="h-5 w-5" />
-      case 'temperature':
-        return <Thermometer className="h-5 w-5" />
-      case 'oxygen_saturation':
-        return <Droplets className="h-5 w-5" />
-      default:
-        return <Activity className="h-5 w-5" />
-    }
-  }
-
-  const getMeasurementLabel = (type) => {
-    switch (type) {
-      case 'blood_pressure':
-        return '血壓'
-      case 'heart_rate':
-        return '心率'
-      case 'temperature':
-        return '體溫'
-      case 'oxygen_saturation':
-        return '血氧飽和度'
-      case 'blood_glucose':
-        return '血糖'
-      default:
-        return type
-    }
-  }
-
   const formatMeasurementValue = (measurement) => {
-    switch (measurement.measurement_type) {
-      case 'blood_pressure':
-        return `${measurement.values.systolic}/${measurement.values.diastolic} mmHg`
-      case 'heart_rate':
-        return `${measurement.values.rate} bpm`
-      case 'temperature':
-        return `${measurement.values.celsius}°C`
-      case 'oxygen_saturation':
-        return `${measurement.values.percentage}%`
-      case 'blood_glucose':
-        return `${measurement.values.mg_dl} mg/dL`
+    const values = []
+    
+    if (measurement.systolic && measurement.diastolic) {
+      values.push(`血壓: ${measurement.systolic}/${measurement.diastolic} mmHg`)
+    }
+    if (measurement.heartRate) {
+      values.push(`心率: ${measurement.heartRate} 次/分`)
+    }
+    if (measurement.temperature) {
+      values.push(`體溫: ${measurement.temperature}°C`)
+    }
+    if (measurement.oxygenSaturation) {
+      values.push(`血氧: ${measurement.oxygenSaturation}%`)
+    }
+    
+    return values.join(' | ')
+  }
+
+  const getStatusBadge = (measurement) => {
+    if (measurement.isAbnormal) {
+      return <Badge variant="destructive">異常</Badge>
+    }
+    
+    switch (measurement.status) {
+      case 'pending':
+        return <Badge variant="secondary">待處理</Badge>
+      case 'processed':
+        return <Badge variant="outline">已處理</Badge>
+      case 'reviewed':
+        return <Badge variant="default">已審核</Badge>
       default:
-        return 'N/A'
+        return <Badge variant="secondary">未知</Badge>
     }
   }
 
   const filteredMeasurements = measurements.filter(measurement => {
     if (filter === 'all') return true
-    if (filter === 'abnormal') return measurement.is_abnormal
-    return measurement.measurement_type === filter
+    if (filter === 'abnormal') return measurement.isAbnormal
+    if (filter === 'pending') return measurement.status === 'pending'
+    return true
   })
 
   const sortedMeasurements = [...filteredMeasurements].sort((a, b) => {
     if (sortBy === 'date') {
-      return new Date(b.measured_at) - new Date(a.measured_at)
+      return new Date(b.createdAt || b.measurementTime) - new Date(a.createdAt || a.measurementTime)
     }
-    if (sortBy === 'type') {
-      return a.measurement_type.localeCompare(b.measurement_type)
+    if (sortBy === 'status') {
+      return a.status.localeCompare(b.status)
     }
     return 0
   })
@@ -137,13 +119,19 @@ export default function MeasurementHistory({ measurements: propMeasurements, onR
               <CardTitle>測量歷史記錄</CardTitle>
               <CardDescription>查看您的所有測量數據</CardDescription>
             </div>
-            <Button variant="outline" onClick={handleRefresh}>
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button variant="outline" onClick={handleRefresh} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               刷新
             </Button>
           </div>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+              {error}
+            </div>
+          )}
+
           {/* 過濾和排序控制 */}
           <div className="flex space-x-4 mb-6">
             <div className="flex-1">
@@ -154,11 +142,7 @@ export default function MeasurementHistory({ measurements: propMeasurements, onR
                 <SelectContent>
                   <SelectItem value="all">全部</SelectItem>
                   <SelectItem value="abnormal">異常值</SelectItem>
-                  <SelectItem value="blood_pressure">血壓</SelectItem>
-                  <SelectItem value="heart_rate">心率</SelectItem>
-                  <SelectItem value="temperature">體溫</SelectItem>
-                  <SelectItem value="oxygen_saturation">血氧飽和度</SelectItem>
-                  <SelectItem value="blood_glucose">血糖</SelectItem>
+                  <SelectItem value="pending">待處理</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -169,57 +153,52 @@ export default function MeasurementHistory({ measurements: propMeasurements, onR
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="date">按日期</SelectItem>
-                  <SelectItem value="type">按類型</SelectItem>
+                  <SelectItem value="status">按狀態</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           {/* 測量記錄列表 */}
-          {sortedMeasurements.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8">
+              <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <p className="text-gray-500">加載中...</p>
+            </div>
+          ) : sortedMeasurements.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-500">暫無測量記錄</p>
             </div>
           ) : (
             <div className="space-y-4">
               {sortedMeasurements.map((measurement) => (
-                <Card key={measurement.id} className={`${measurement.is_abnormal ? 'border-red-200 bg-red-50' : ''}`}>
+                <Card key={measurement._id} className={`${measurement.isAbnormal ? 'border-red-200 bg-red-50' : ''}`}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-full ${measurement.is_abnormal ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                          {getMeasurementIcon(measurement.measurement_type)}
+                        <div className={`p-2 rounded-full ${measurement.isAbnormal ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                          <Heart className="h-5 w-5" />
                         </div>
-                        <div>
-                          <h3 className="font-medium">{getMeasurementLabel(measurement.measurement_type)}</h3>
-                          <p className="text-2xl font-bold">{formatMeasurementValue(measurement)}</p>
-                          <div className="flex items-center space-x-2 mt-1">
+                        <div className="flex-1">
+                          <h3 className="font-medium">生理指標測量</h3>
+                          <p className="text-sm text-gray-600 mt-1">{formatMeasurementValue(measurement)}</p>
+                          <div className="flex items-center space-x-2 mt-2">
                             <Calendar className="h-4 w-4 text-gray-400" />
                             <span className="text-sm text-gray-500">
-                              {new Date(measurement.measured_at).toLocaleString('zh-TW')}
+                              {new Date(measurement.createdAt || measurement.measurementTime).toLocaleString('zh-TW')}
                             </span>
                           </div>
+                          {measurement.notes && (
+                            <p className="text-sm text-gray-600 mt-1">
+                              <strong>備註:</strong> {measurement.notes}
+                            </p>
+                          )}
                         </div>
                       </div>
-                      <div className="text-right">
-                        {measurement.is_abnormal && (
-                          <Badge variant="destructive" className="mb-2">異常</Badge>
-                        )}
-                        {measurement.location && (
-                          <p className="text-sm text-gray-500">{measurement.location}</p>
-                        )}
-                        {measurement.device_id && (
-                          <p className="text-xs text-gray-400">設備: {measurement.device_id}</p>
-                        )}
+                      <div className="flex flex-col items-end space-y-2">
+                        {getStatusBadge(measurement)}
                       </div>
                     </div>
-                    {measurement.notes && (
-                      <div className="mt-3 pt-3 border-t">
-                        <p className="text-sm text-gray-600">
-                          <strong>備註：</strong>{measurement.notes}
-                        </p>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -230,4 +209,6 @@ export default function MeasurementHistory({ measurements: propMeasurements, onR
     </div>
   )
 }
+
+
 

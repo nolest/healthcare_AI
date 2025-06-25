@@ -1,25 +1,44 @@
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import * as mongoose from 'mongoose'
-import { NestExpressApplication } from '@nestjs/platform-express';
-import { join } from 'path';
 
 async function bootstrap() {
-  //mongoose.connect('mongodb://localhost:27017/nest-blog-api.posts')
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  app.useStaticAssets(join(__dirname, '../../healthcare_frontend/dist'))
-  //app.useStaticAssets('public');
+  const app = await NestFactory.create(AppModule);
+  
+  // 启用CORS
+  app.enableCors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:6886',
+    credentials: true,
+  });
 
+  // 全局验证管道
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }));
+
+  // API前缀
+  app.setGlobalPrefix('api');
+
+  // Swagger配置
   const config = new DocumentBuilder()
-  .setTitle('Remote Health Care System')
-  .setDescription('Remote Health Care System API description')
-  .setVersion('1.0')
-  //.addTag('cats')
-  .build();
+    .setTitle('远程医疗系统 API')
+    .setDescription('远程医疗系统后端API文档')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+    
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-docs', app, document);
 
-  await app.listen(6886);
+  const port = process.env.PORT || 7723;
+  await app.listen(port);
+  
+  console.log(`🚀 应用启动成功！`);
+  console.log(`📱 API地址: http://localhost:${port}/api`);
+  console.log(`📚 API文档: http://localhost:${port}/api-docs`);
 }
+
 bootstrap();

@@ -80,5 +80,6 @@ healthcare_frontend/
 
 - 首次運行需要執行 `npm install` 安裝依賴
 - 項目不包含 node_modules 文件夾，需要自行安裝
-- 開發服務器默認運行在 http://localhost:6886
+- 前端開發服務器運行在 http://localhost:6886
+- 後端 API 服務器運行在 http://localhost:7723
 

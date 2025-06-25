@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import DiagnosisForm from '../components/DiagnosisForm.jsx'
 import { Button } from '../components/ui/button.jsx'
 import { ArrowLeft, LogOut } from 'lucide-react'
-import mockDataStore from '../utils/mockDataStore.js'
+import apiService from '../services/api.js'
 import i18n from '../utils/i18n.js'
 
 export default function DiagnosisPage() {
@@ -15,13 +15,11 @@ export default function DiagnosisPage() {
 
   useEffect(() => {
     // 检查用户是否已登录
-    const user = localStorage.getItem('currentUser')
-    if (!user) {
+    const userData = apiService.getCurrentUser()
+    if (!userData) {
       navigate('/login')
       return
     }
-
-    const userData = JSON.parse(user)
     
     // 检查用户角色是否为医护人员
     if (userData.role !== 'medical_staff') {
@@ -33,48 +31,37 @@ export default function DiagnosisPage() {
 
     // 获取患者信息
     if (patientId) {
-      console.log('Looking for patient with ID:', patientId, typeof patientId)
-      const allUsers = mockDataStore.getUsers()
-      console.log('All users:', allUsers.map(u => ({ id: u.id, username: u.username, fullName: u.fullName, role: u.role })))
-      
-      // 尝试匹配ID，支持多种匹配方式
-      const patientData = allUsers.find(u => {
-        if (u.role !== 'patient') return false
-        
-        // 尝试多种匹配方式：
-        // 1. 直接ID匹配（字符串和数字）
-        const idMatch = u.id.toString() === patientId.toString()
-        // 2. username匹配
-        const usernameMatch = u.username === patientId
-        
-        const match = idMatch || usernameMatch
-        console.log(`Checking user ${u.fullName} (ID: ${u.id}, username: ${u.username}, role: ${u.role}):`, {
-          patientIdParam: patientId,
-          userIdString: u.id.toString(),
-          idMatch, 
-          usernameMatch, 
-          finalMatch: match
-        })
-        return match
-      })
+      fetchPatientData(patientId)
+    }
+
+    setLoading(false)
+  }, [navigate, patientId])
+
+  const fetchPatientData = async (patientId) => {
+    try {
+      // 通过API获取患者列表，然后找到对应的患者
+      const patients = await apiService.getPatients()
+      const patientData = patients.find(p => 
+        p._id === patientId || p.username === patientId
+      )
       
       if (patientData) {
         console.log('Patient found:', patientData)
         setPatient(patientData)
       } else {
         console.error('Patient not found:', patientId)
-        console.error('Available patients:', allUsers.filter(u => u.role === 'patient'))
-        alert(`找不到患者 ID: ${patientId}。可能的原因：\n1. 患者不存在\n2. ID 不匹配\n3. 用户角色不是患者`)
+        alert(`找不到患者 ID: ${patientId}`)
         navigate('/medical')
-        return
       }
+    } catch (error) {
+      console.error('Error fetching patient data:', error)
+      alert('获取患者信息失败')
+      navigate('/medical')
     }
-
-    setLoading(false)
-  }, [navigate, patientId])
+  }
 
   const handleLogout = () => {
-    localStorage.removeItem('currentUser')
+    apiService.logout()
     navigate('/login')
   }
 

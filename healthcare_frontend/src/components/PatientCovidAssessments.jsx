@@ -18,7 +18,7 @@ import {
   Search
 } from 'lucide-react'
 import { Input } from '@/components/ui/input.jsx'
-import mockDataStore from '../utils/mockDataStore'
+import apiService from '../services/api.js'
 import i18n from '../utils/i18n'
 
 export default function PatientCovidAssessments({ user, onPatientSelect }) {
@@ -36,16 +36,8 @@ export default function PatientCovidAssessments({ user, onPatientSelect }) {
     i18n.addListener(handleLanguageChange)
     loadAllCovidAssessments()
     
-    // 監聽數據變化
-    const handleDataChange = () => {
-      loadAllCovidAssessments()
-    }
-    
-    mockDataStore.addListener(handleDataChange)
-    
     return () => {
       i18n.removeListener(handleLanguageChange)
-      mockDataStore.removeListener(handleDataChange)
     }
   }, [])
 
@@ -62,20 +54,20 @@ export default function PatientCovidAssessments({ user, onPatientSelect }) {
     }
   }, [searchTerm, assessments])
 
-  const loadAllCovidAssessments = () => {
+  const loadAllCovidAssessments = async () => {
     try {
-      // 使用mockDataStore獲取COVID評估記錄
-      const covidAssessments = mockDataStore.getCovidAssessments()
-      console.log('Loaded COVID assessments from mockDataStore:', covidAssessments)
+      // 使用真实API获取COVID评估记录
+      const covidAssessments = await apiService.getAllCovidAssessments()
+      console.log('Loaded COVID assessments from API:', covidAssessments)
       
-      // 為每個評估記錄添加患者姓名
-      const assessmentsWithNames = covidAssessments.map(assessment => {
-        const user = mockDataStore.findUserByUsername(assessment.user_id)
-        return {
-          ...assessment,
-          patient_name: user ? user.fullName : assessment.user_id
-        }
-      })
+      // 评估记录已经包含患者信息
+      const assessmentsWithNames = covidAssessments.map(assessment => ({
+        ...assessment,
+        user_id: assessment.userId?._id || assessment.userId,
+        patient_name: assessment.userId?.fullName || assessment.userId?.name || assessment.userId,
+        assessment_type: assessment.assessmentType || 'covid',
+        risk_level: assessment.riskLevel || 'low'
+      }))
       
       setAssessments(assessmentsWithNames)
       setFilteredAssessments(assessmentsWithNames)

@@ -6,7 +6,7 @@ import { Input } from './ui/input.jsx'
 import { Badge } from './ui/badge.jsx'
 import { Search, User, Calendar, Phone, AlertTriangle } from 'lucide-react'
 import i18n from '../utils/i18n'
-import mockDataStore from '../utils/mockDataStore'
+import apiService from '../services/api.js'
 
 export default function PatientList({ onViewCovidAssessments }) {
   const navigate = useNavigate()
@@ -14,6 +14,7 @@ export default function PatientList({ onViewCovidAssessments }) {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+  const [error, setError] = useState('')
 
   useEffect(() => {
     // 監聽語言變化
@@ -30,61 +31,87 @@ export default function PatientList({ onViewCovidAssessments }) {
 
   useEffect(() => {
     fetchPatients()
-    
-    // 監聽數據變化
-    const handleDataChange = () => {
-      fetchPatients()
-    }
-    
-    mockDataStore.addListener(handleDataChange)
-    
-    return () => {
-      mockDataStore.removeListener(handleDataChange)
-    }
   }, [])
 
   const fetchPatients = async () => {
     try {
       setLoading(true)
+      setError('')
       
-      // 使用統一的mockDataStore獲取數據
-      const users = mockDataStore.getUsersByRole('patient')
-      const measurements = mockDataStore.getMeasurements()
-      const diagnoses = mockDataStore.getDiagnoses()
+      // 获取异常测量数据（包含患者信息）
+      const abnormalMeasurements = await apiService.getAbnormalMeasurements()
       
-      console.log('PatientList fetched data:', {
-        users: users.length,
-        measurements: measurements.length,
-        diagnoses: diagnoses.length
+      console.log('PatientList fetched abnormal measurements:', abnormalMeasurements.length)
+      
+      // 按患者分组统计
+      const patientStats = {}
+      
+      abnormalMeasurements.forEach(measurement => {
+        const patientId = measurement.userId._id
+        const patient = measurement.userId
+        
+        if (!patientStats[patientId]) {
+          patientStats[patientId] = {
+            ...patient,
+            id: patientId,
+            measurementCount: 0,
+            abnormalCount: 0,
+            pendingAbnormalCount: 0,
+            lastMeasurement: null,
+            measurements: []
+          }
+        }
+        
+        patientStats[patientId].measurements.push(measurement)
+        patientStats[patientId].measurementCount++
+        
+        if (measurement.isAbnormal) {
+          patientStats[patientId].abnormalCount++
+          
+          if (measurement.status === 'pending') {
+            patientStats[patientId].pendingAbnormalCount++
+          }
+        }
+        
+        // 更新最后测量时间
+        const measurementTime = new Date(measurement.createdAt || measurement.measurementTime)
+        if (!patientStats[patientId].lastMeasurement || 
+            measurementTime > new Date(patientStats[patientId].lastMeasurement)) {
+          patientStats[patientId].lastMeasurement = measurementTime.toISOString()
+        }
       })
       
-      // 為每個患者添加統計信息
-      const patientsWithStats = users.map(user => {
-        const userMeasurements = measurements.filter(m => m.user_id === user.username)
-        const userDiagnoses = diagnoses.filter(d => d.patient_id === user.username)
-        const abnormalMeasurements = userMeasurements.filter(m => m.is_abnormal)
-        const pendingAbnormalMeasurements = userMeasurements.filter(m => 
-          m.is_abnormal && (m.status !== 'processed')
-        )
-        
-        return {
-          ...user,
-          measurementCount: userMeasurements.length,
-          diagnosisCount: userDiagnoses.length,
-          abnormalCount: abnormalMeasurements.length,
-          pendingAbnormalCount: pendingAbnormalMeasurements.length,
-          lastMeasurement: userMeasurements.length > 0 ? 
-            userMeasurements[userMeasurements.length - 1].measured_at : null,
-          hasAbnormal: abnormalMeasurements.length > 0,
-          needsDiagnosis: pendingAbnormalMeasurements.length > 0
-        }
+      // 转换为数组并添加状态标记
+      const patientsWithStats = Object.values(patientStats).map(patient => ({
+        ...patient,
+        hasAbnormal: patient.abnormalCount > 0,
+        needsDiagnosis: patient.pendingAbnormalCount > 0
+      }))
+      
+      // 按需要诊断的患者优先排序
+      patientsWithStats.sort((a, b) => {
+        if (a.needsDiagnosis && !b.needsDiagnosis) return -1
+        if (!a.needsDiagnosis && b.needsDiagnosis) return 1
+        return b.pendingAbnormalCount - a.pendingAbnormalCount
       })
       
       setPatients(patientsWithStats)
     } catch (error) {
       console.error('Error fetching patients:', error)
+      setError('获取患者列表失败')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleProcessPatient = async (patientId) => {
+    try {
+      await apiService.processPatientMeasurements(patientId)
+      // 重新获取数据
+      await fetchPatients()
+    } catch (error) {
+      console.error('Error processing patient measurements:', error)
+      setError('处理患者测量记录失败')
     }
   }
 
@@ -113,6 +140,12 @@ export default function PatientList({ onViewCovidAssessments }) {
         <CardDescription>{t('patient.management.description')}</CardDescription>
       </CardHeader>
       <CardContent>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+
         {/* 搜索框 */}
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -128,7 +161,7 @@ export default function PatientList({ onViewCovidAssessments }) {
         {filteredPatients.length === 0 ? (
           <div className="text-center py-8">
             <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">{t('patient.no_patients')}</p>
+            <p className="text-gray-500">{searchTerm ? '未找到匹配的患者' : '暂无需要关注的患者'}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -171,22 +204,17 @@ export default function PatientList({ onViewCovidAssessments }) {
                         </div>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-gray-500" />
-                          <span className="text-gray-600">測量:</span>
-                          <span className="font-medium">{patient.measurementCount} 次</span>
+                          <span className="text-gray-600">異常測量:</span>
+                          <span className="font-medium">{patient.abnormalCount} 次</span>
                           {patient.pendingAbnormalCount > 0 && (
                             <span className="text-red-600 font-medium">
                               ({patient.pendingAbnormalCount} 待處理)
                             </span>
                           )}
-                          {patient.abnormalCount > 0 && patient.pendingAbnormalCount === 0 && (
-                            <span className="text-gray-500 font-medium">
-                              ({patient.abnormalCount} 已處理)
-                            </span>
-                          )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-gray-600">診斷:</span>
-                          <span className="font-medium">{patient.diagnosisCount} 次</span>
+                          <span className="text-gray-600">郵箱:</span>
+                          <span className="font-medium text-xs">{patient.email}</span>
                         </div>
                       </div>
                       
@@ -198,43 +226,31 @@ export default function PatientList({ onViewCovidAssessments }) {
                     </div>
                     
                     <div className="flex flex-col gap-2 ml-6">
-                      {patient.needsDiagnosis ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/medical-staff/patient/${patient.id}`)}
+                      >
+                        查看詳情
+                      </Button>
+                      
+                      {patient.needsDiagnosis && (
                         <Button
-                          onClick={() => {
-                            console.log('Navigating to diagnosis for patient:', patient.id, patient.username)
-                            navigate(`/diagnosis/${patient.id}`)
-                          }}
-                          size="lg"
-                          className="bg-red-600 hover:bg-red-700 text-white px-6"
-                        >
-                          <AlertTriangle className="h-4 w-4 mr-2" />
-                          立即診斷
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() => navigate(`/diagnosis/${patient.id}`)}
+                          variant="default"
                           size="sm"
-                          variant="outline"
+                          onClick={() => handleProcessPatient(patient.id)}
                         >
-                          查看詳情
+                          處理異常
                         </Button>
                       )}
                       
-                      <Button
-                        onClick={() => onViewCovidAssessments(patient)}
-                        size="sm"
-                        variant="ghost"
-                      >
-                        COVID評估
-                      </Button>
-                      
-                      {patient.hasAbnormal && !patient.needsDiagnosis && (
+                      {onViewCovidAssessments && (
                         <Button
-                          onClick={() => navigate(`/diagnosis/${patient.id}`)}
+                          variant="outline"
                           size="sm"
-                          variant="secondary"
+                          onClick={() => onViewCovidAssessments(patient.id)}
                         >
-                          重新診斷
+                          COVID評估
                         </Button>
                       )}
                     </div>

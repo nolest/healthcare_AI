@@ -4,5 +4,5 @@ WORKDIR /app/server
 COPY /server/package*.json /app/server
 RUN npm install
 COPY . /app
-EXPOSE 6886
+EXPOSE 7723
 CMD ["node", "dist/main.js"]

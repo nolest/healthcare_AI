@@ -25,7 +25,7 @@ import CovidFluAssessment from './CovidFluAssessment'
 import TestingIsolationGuidance from './TestingIsolationGuidance'
 import PatientCovidAssessments from './PatientCovidAssessments'
 import LanguageSwitcher from './LanguageSwitcher'
-import mockDataStore from '../utils/mockDataStore'
+import apiService from '../services/api.js'
 import i18n from '../utils/i18n'
 
 export default function MedicalStaffDashboard() {
@@ -55,109 +55,81 @@ export default function MedicalStaffDashboard() {
 
   useEffect(() => {
     // 获取当前用户信息
-    const savedUser = localStorage.getItem('currentUser')
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser)
-        setUser(userData)
-      } catch (error) {
-        console.error('Error parsing saved user:', error)
-      }
+    const currentUser = apiService.getCurrentUser()
+    if (currentUser) {
+      setUser(currentUser)
     }
   }, [])
 
   useEffect(() => {
     if (user) {
       fetchData()
-      
-      // 添加mockDataStore監聽器，當數據變化時自動刷新
-      const handleDataChange = () => {
-        console.log('Data changed, refreshing...')
-        fetchData()
-      }
-      
-      mockDataStore.addListener(handleDataChange)
-      
-      return () => {
-        mockDataStore.removeListener(handleDataChange)
-      }
     }
   }, [user])
 
   const fetchData = async () => {
     try {
-      // 直接使用mockDataStore獲取數據
-      const measurements = mockDataStore.getMeasurements()
-      const diagnoses = mockDataStore.getDiagnoses()
-      const users = mockDataStore.getUsers()
+      // 使用真实API获取数据
+      const [measurements, diagnoses, measurementStats, diagnosisStats] = await Promise.all([
+        apiService.getAbnormalMeasurements(),
+        apiService.getAllDiagnoses(),
+        apiService.getMeasurementStats(),
+        apiService.getDiagnosisStats()
+      ])
       
       console.log('Fetched data:', {
         measurements: measurements.length,
-        diagnoses: diagnoses.length,
-        users: users.length
+        diagnoses: diagnoses.length
       })
       
-      // 生成待處理患者列表（有異常測量但沒有診斷的患者）
-      const pendingList = []
-      const measurementsByUser = {}
+      // 从异常测量数据中提取待处理患者
+      const patientMap = new Map()
       
-      // 按用戶分組測量記錄
       measurements.forEach(measurement => {
-        if (!measurementsByUser[measurement.user_id]) {
-          measurementsByUser[measurement.user_id] = []
+        const patientId = measurement.userId._id
+        const patient = measurement.userId
+        
+        if (!patientMap.has(patientId)) {
+          patientMap.set(patientId, {
+            id: patientId,
+            username: patient.username,
+            name: patient.fullName,
+            fullName: patient.fullName,
+            email: patient.email,
+            phone: patient.phone,
+            measurements: [],
+            abnormal_count: 0,
+            pending_abnormal_count: 0
+          })
         }
-        measurementsByUser[measurement.user_id].push(measurement)
-      })
-      
-      // 檢查每個用戶是否有待處理的異常測量記錄
-      Object.keys(measurementsByUser).forEach(userId => {
-        const userMeasurements = measurementsByUser[userId]
-        const pendingAbnormalMeasurements = userMeasurements.filter(m => 
-          m.is_abnormal && (m.status !== 'processed')
-        )
-        const hasPendingAbnormal = pendingAbnormalMeasurements.length > 0
         
-        console.log(`User ${userId}:`, {
-          measurementCount: userMeasurements.length,
-          abnormalMeasurements: userMeasurements.filter(m => m.is_abnormal).length,
-          pendingAbnormalMeasurements: pendingAbnormalMeasurements.length,
-          hasPendingAbnormal
-        })
+        const patientData = patientMap.get(patientId)
+        patientData.measurements.push(measurement)
         
-        if (hasPendingAbnormal) {
-          const user = users.find(u => u.username === userId)
-          const latestMeasurement = userMeasurements[userMeasurements.length - 1]
-          const pendingPatient = {
-            id: userId,
-            username: userId,
-            name: user ? user.fullName : `Patient ${userId}`,
-            fullName: user ? user.fullName : `Patient ${userId}`,
-            latest_measurement: latestMeasurement,
-            abnormal_count: userMeasurements.filter(m => m.is_abnormal).length,
-            pending_abnormal_count: pendingAbnormalMeasurements.length
+        if (measurement.isAbnormal) {
+          patientData.abnormal_count++
+          if (measurement.status === 'pending') {
+            patientData.pending_abnormal_count++
           }
-          pendingList.push(pendingPatient)
-          console.log('Added pending patient:', pendingPatient)
         }
       })
       
-      console.log('Final pending patients list:', pendingList)
+      // 只保留有待处理异常记录的患者
+      const pendingList = Array.from(patientMap.values()).filter(patient => 
+        patient.pending_abnormal_count > 0
+      )
+      
+      console.log('Pending patients:', pendingList.length)
       
       setPendingPatients(pendingList)
       setRecentDiagnoses(diagnoses.slice(-5))
       
-      // 計算統計數據
+      // 使用API返回的统计数据
       const statsData = {
-        total_diagnoses: diagnoses.length,
+        total_diagnoses: diagnosisStats.totalDiagnoses || diagnoses.length,
         pending_patients: pendingList.length,
-        follow_up_required: diagnoses.filter(d => d.follow_up_required).length,
-        patients_diagnosed: new Set(diagnoses.map(d => d.patient_id)).size,
-        risk_level_distribution: {
-          low: diagnoses.filter(d => d.risk_level === 'low').length,
-          medium: diagnoses.filter(d => d.risk_level === 'medium').length,
-          high: diagnoses.filter(d => d.risk_level === 'high').length,
-          critical: diagnoses.filter(d => d.risk_level === 'critical').length
-        }
+        follow_up_required: diagnoses.filter(d => d.followUpRequired).length,
+        patients_diagnosed: new Set(diagnoses.map(d => d.patientId)).size
       }
       
       setStats(statsData)
@@ -215,7 +187,7 @@ export default function MedicalStaffDashboard() {
                 <span className="text-gray-700">{user?.username || 'Loading...'}</span>
               </div>
               <Button variant="outline" onClick={() => {
-                localStorage.removeItem('currentUser')
+                apiService.logout()
                 navigate('/login')
               }}>
                 <LogOut className="h-4 w-4 mr-2" />
@@ -240,106 +212,7 @@ export default function MedicalStaffDashboard() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            {/* 調試功能 - 僅開發環境 */}
-            {process.env.NODE_ENV === 'development' && (
-              <Card className="border-yellow-200 bg-yellow-50">
-                <CardHeader>
-                  <CardTitle className="text-yellow-800">調試功能</CardTitle>
-                  <CardDescription className="text-yellow-700">
-                    開發環境專用功能，用於測試和調試
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-4">
-                    <Button 
-                      variant="outline"
-                      onClick={() => {
-                        mockDataStore.reinitializeData()
-                        alert('數據已重置！\n\n現在系統中有4個患者用戶，但沒有預設的測量數據。\n\n請患者登錄添加測量數據，如果有異常數據，會自動出現在待處理列表中。')
-                      }}
-                      className="border-yellow-400 text-yellow-700 hover:bg-yellow-100"
-                    >
-                      重置數據
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      onClick={() => {
-                        const stats = mockDataStore.getStats()
-                        alert(`當前數據統計:\n用戶: ${stats.users}\n測量記錄: ${stats.measurements}\n診斷記錄: ${stats.diagnoses}`)
-                      }}
-                      className="border-blue-400 text-blue-700 hover:bg-blue-100"
-                    >
-                      查看數據統計
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      onClick={() => {
-                        const users = mockDataStore.getUsers()
-                        const measurements = mockDataStore.getMeasurements()
-                        const diagnoses = mockDataStore.getDiagnoses()
-                        
-                        // 查找谭咏麟用户
-                        const tanUser = users.find(u => u.fullName.includes('谭') || u.fullName.includes('譚'))
-                        
-                        if (tanUser) {
-                          const tanMeasurements = measurements.filter(m => m.user_id === tanUser.username)
-                          const tanDiagnoses = diagnoses.filter(d => d.patient_id === tanUser.username)
-                          const hasAbnormal = tanMeasurements.some(m => m.is_abnormal)
-                          
-                          alert(`谭咏麟数据分析:\n\n用户名: ${tanUser.username}\n姓名: ${tanUser.fullName}\n测量记录: ${tanMeasurements.length} 条\n异常测量: ${tanMeasurements.filter(m => m.is_abnormal).length} 条\n诊断记录: ${tanDiagnoses.length} 条\n\n有异常测量: ${hasAbnormal}\n有诊断记录: ${tanDiagnoses.length > 0}\n应该在待处理: ${hasAbnormal && tanDiagnoses.length === 0}\n\n${hasAbnormal && tanDiagnoses.length > 0 ? '原因: 已有诊断记录，不显示在待处理列表' : hasAbnormal ? '应该显示在待处理列表' : '没有异常测量记录'}`)
-                        } else {
-                          const patientUsers = users.filter(u => u.role === 'patient')
-                          alert(`未找到谭咏麟用户\n\n现有患者用户:\n${patientUsers.map(u => `- ${u.fullName} (${u.username})`).join('\n')}`)
-                        }
-                      }}
-                      className="border-green-400 text-green-700 hover:bg-green-100"
-                    >
-                                             分析谭咏麟数据
-                     </Button>
-                     <Button 
-                       variant="outline"
-                       onClick={() => {
-                         const users = mockDataStore.getUsers()
-                         const diagnoses = mockDataStore.getDiagnoses()
-                         
-                         // 查找谭咏麟用户
-                         const tanUser = users.find(u => u.fullName.includes('谭') || u.fullName.includes('譚'))
-                         
-                         if (tanUser) {
-                           const tanDiagnoses = diagnoses.filter(d => d.patient_id === tanUser.username)
-                           if (tanDiagnoses.length > 0) {
-                             if (confirm(`发现谭咏麟有 ${tanDiagnoses.length} 条诊断记录。\n\n是否清除这些诊断记录以便重新显示在待处理列表中？\n\n注意：这将删除所有相关的诊断数据。`)) {
-                               // 清除谭咏麟的诊断记录
-                               const filteredDiagnoses = diagnoses.filter(d => d.patient_id !== tanUser.username)
-                               localStorage.setItem('healthcare_diagnoses', JSON.stringify(filteredDiagnoses))
-                               
-                               // 重新加载数据
-                               fetchData()
-                               
-                               alert('谭咏麟的诊断记录已清除，现在应该会出现在待处理列表中。')
-                             }
-                           } else {
-                             alert('谭咏麟没有诊断记录。请检查是否有异常测量数据。')
-                           }
-                         } else {
-                           alert('未找到谭咏麟用户')
-                         }
-                       }}
-                       className="border-red-400 text-red-700 hover:bg-red-100"
-                     >
-                       清除谭咏麟诊断记录
-                     </Button>
-                     <Button 
-                       variant="outline"
-                       onClick={() => navigate('/abnormal-settings')}
-                       className="border-purple-400 text-purple-700 hover:bg-purple-100"
-                     >
-                       異常數據設置
-                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+
 
             {stats && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

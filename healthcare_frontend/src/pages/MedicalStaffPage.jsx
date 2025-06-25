@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import MedicalStaffDashboard from '../components/MedicalStaffDashboard.jsx'
+import apiService from '../services/api.js'
 
 export default function MedicalStaffPage() {
   const navigate = useNavigate()
@@ -8,13 +9,11 @@ export default function MedicalStaffPage() {
 
   useEffect(() => {
     // 检查用户是否已登录
-    const user = localStorage.getItem('currentUser')
-    if (!user) {
+    const userData = apiService.getCurrentUser()
+    if (!userData) {
       navigate('/login')
       return
     }
-
-    const userData = JSON.parse(user)
     
     // 检查用户角色是否为医护人员
     if (userData.role !== 'medical_staff') {

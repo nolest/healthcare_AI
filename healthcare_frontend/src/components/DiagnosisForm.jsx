@@ -9,7 +9,7 @@ import { Checkbox } from './ui/checkbox.jsx'
 import { Label } from './ui/label.jsx'
 import { Input } from './ui/input.jsx'
 import { Loader2, User, Activity, Calendar, ArrowLeft } from 'lucide-react'
-import mockDataStore from '../utils/mockDataStore'
+import apiService from '../services/api.js'
 
 const recommendationOptions = [
   '定期監測血壓',
@@ -45,43 +45,25 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
 
   const fetchPatientMeasurements = async () => {
     try {
-      // 使用統一的mockDataStore獲取測量記錄
-      const allMeasurements = mockDataStore.getMeasurements()
-      const patientIdentifier = patient.username || patient.id
+      // 使用真实API获取患者的测量记录
+      const patientMeasurements = await apiService.getUserMeasurements(patient._id || patient.id)
       
-      console.log('DiagnosisForm - Patient info:', {
-        patient_id: patient.id,
-        patient_username: patient.username,
-        patient_fullName: patient.fullName,
-        patientIdentifier
-      })
-      console.log('DiagnosisForm - All measurements:', allMeasurements.length)
-      console.log('DiagnosisForm - Sample measurements:', allMeasurements.slice(0, 3).map(m => ({
-        id: m.id,
-        user_id: m.user_id,
-        measurement_type: m.measurement_type,
-        is_abnormal: m.is_abnormal
-      })))
+      console.log('DiagnosisForm - Patient measurements:', patientMeasurements.length)
       
-      const patientMeasurements = allMeasurements
-        .filter(m => {
-          const match = m.user_id === patientIdentifier
-          console.log(`Measurement ${m.id}: user_id=${m.user_id}, patientIdentifier=${patientIdentifier}, match=${match}`)
-          return match
-        })
-        .sort((a, b) => new Date(b.measured_at) - new Date(a.measured_at))
+      // 按时间排序，最新的在前
+      const sortedMeasurements = patientMeasurements
+        .sort((a, b) => new Date(b.createdAt || b.measurementTime) - new Date(a.createdAt || a.measurementTime))
         .slice(0, 20)
       
-      console.log('DiagnosisForm - Filtered patient measurements:', patientMeasurements.length)
-      setMeasurements(patientMeasurements)
+      setMeasurements(sortedMeasurements)
       
-      // 默認選中最新的異常測量記錄，如果沒有異常則選中最新的測量記錄
-      if (patientMeasurements.length > 0) {
-        const abnormalMeasurements = patientMeasurements.filter(m => m.is_abnormal)
+      // 默认选中最新的异常测量记录，如果没有异常则选中最新的测量记录
+      if (sortedMeasurements.length > 0) {
+        const abnormalMeasurements = sortedMeasurements.filter(m => m.isAbnormal)
         if (abnormalMeasurements.length > 0) {
-          setSelectedMeasurements(abnormalMeasurements.slice(0, 3).map(m => m.id))
+          setSelectedMeasurements(abnormalMeasurements.slice(0, 3).map(m => m._id))
         } else {
-          setSelectedMeasurements([patientMeasurements[0].id])
+          setSelectedMeasurements([sortedMeasurements[0]._id])
         }
       }
     } catch (error) {
@@ -136,32 +118,37 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
     setSuccess('')
 
     try {
-      // 使用統一的mockDataStore保存診斷記錄
+      // 使用真实API保存诊断记录
       const diagnosisData = {
-        patient_id: patient.username || patient.id,
-        patient_name: patient.fullName || patient.full_name || patient.name,
-        doctor_id: 'doctor001', // 假設當前醫生ID
-        doctor_name: '陳醫師',
-        measurement_ids: selectedMeasurements,
+        patientId: patient._id || patient.id,
+        measurementIds: selectedMeasurements,
         diagnosis: formData.diagnosis,
         recommendations: formData.recommendations,
-        risk_level: formData.risk_level,
-        follow_up_required: formData.follow_up_required,
-        follow_up_date: formData.follow_up_date || null
+        riskLevel: formData.risk_level,
+        followUpRequired: formData.follow_up_required,
+        followUpDate: formData.follow_up_date || null
       }
 
       console.log('Saving diagnosis:', diagnosisData)
-      const savedDiagnosis = mockDataStore.addDiagnosis(diagnosisData)
+      const savedDiagnosis = await apiService.createDiagnosis(diagnosisData)
       console.log('Diagnosis saved:', savedDiagnosis)
       
       // 将选中的测量记录标记为已处理
-      selectedMeasurements.forEach(measurementId => {
-        mockDataStore.updateMeasurementStatus(measurementId, 'processed')
-      })
+      for (const measurementId of selectedMeasurements) {
+        try {
+          await apiService.updateMeasurementStatus(measurementId, 'processed', false)
+        } catch (error) {
+          console.error('Error updating measurement status:', error)
+        }
+      }
       
-      // 将患者的所有异常测量记录标记为已处理（如果风险等级不是紧急）
+      // 如果风险等级不是紧急，将患者的所有异常测量记录标记为已处理
       if (formData.risk_level !== 'critical') {
-        mockDataStore.markPatientMeasurementsAsProcessed(patient.username || patient.id)
+        try {
+          await apiService.processPatientMeasurements(patient._id || patient.id)
+        } catch (error) {
+          console.error('Error processing patient measurements:', error)
+        }
       }
       
       setSuccess('診斷記錄已成功保存！患者已從待處理列表中移除。')
@@ -180,37 +167,32 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
   }
 
   const formatMeasurementValue = (measurement) => {
-    switch (measurement.measurement_type) {
-      case 'blood_pressure':
-        return `${measurement.values.systolic}/${measurement.values.diastolic} mmHg`
-      case 'heart_rate':
-        return `${measurement.values.rate} bpm`
-      case 'temperature':
-        return `${measurement.values.celsius}°C`
-      case 'oxygen_saturation':
-        return `${measurement.values.percentage}%`
-      case 'blood_glucose':
-        return `${measurement.values.mg_dl} mg/dL`
-      default:
-        return 'N/A'
+    const values = []
+    
+    if (measurement.systolic && measurement.diastolic) {
+      values.push(`血壓: ${measurement.systolic}/${measurement.diastolic} mmHg`)
     }
+    if (measurement.heartRate) {
+      values.push(`心率: ${measurement.heartRate} 次/分`)
+    }
+    if (measurement.temperature) {
+      values.push(`體溫: ${measurement.temperature}°C`)
+    }
+    if (measurement.oxygenSaturation) {
+      values.push(`血氧: ${measurement.oxygenSaturation}%`)
+    }
+    
+    return values.join(' | ') || 'N/A'
   }
 
-  const getMeasurementLabel = (type) => {
-    switch (type) {
-      case 'blood_pressure':
-        return '血壓'
-      case 'heart_rate':
-        return '心率'
-      case 'temperature':
-        return '體溫'
-      case 'oxygen_saturation':
-        return '血氧飽和度'
-      case 'blood_glucose':
-        return '血糖'
-      default:
-        return type
-    }
+  const getMeasurementLabel = (measurement) => {
+    const types = []
+    if (measurement.systolic && measurement.diastolic) types.push('血壓')
+    if (measurement.heartRate) types.push('心率')
+    if (measurement.temperature) types.push('體溫')
+    if (measurement.oxygenSaturation) types.push('血氧')
+    
+    return types.join(' + ') || '健康測量'
   }
 
   return (
@@ -221,9 +203,9 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
             <div>
               <CardTitle className="flex items-center">
                 <User className="h-5 w-5 mr-2" />
-                為 {patient.fullName || patient.full_name || patient.name} 創建診斷記錄
+                為 {patient.fullName || patient.name} 創建診斷記錄
               </CardTitle>
-              <CardDescription>患者ID: {patient.username || patient.id}</CardDescription>
+              <CardDescription>患者ID: {patient._id || patient.id}</CardDescription>
             </div>
             <Button variant="outline" onClick={onCancel}>
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -245,23 +227,23 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
           ) : (
             <div className="space-y-3">
               {measurements.slice(0, 10).map((measurement) => (
-                <div key={measurement.id} className="flex items-center space-x-3 p-3 border rounded-lg">
+                <div key={measurement._id} className="flex items-center space-x-3 p-3 border rounded-lg">
                   <Checkbox
-                    id={`measurement-${measurement.id}`}
-                    checked={selectedMeasurements.includes(measurement.id)}
-                    onCheckedChange={(checked) => handleMeasurementSelect(measurement.id, checked)}
+                    id={`measurement-${measurement._id}`}
+                    checked={selectedMeasurements.includes(measurement._id)}
+                    onCheckedChange={(checked) => handleMeasurementSelect(measurement._id, checked)}
                   />
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="font-medium">{getMeasurementLabel(measurement.measurement_type)}</span>
+                        <span className="font-medium">{getMeasurementLabel(measurement)}</span>
                         <span className="ml-2 text-lg">{formatMeasurementValue(measurement)}</span>
-                        {measurement.is_abnormal && (
+                        {measurement.isAbnormal && (
                           <Badge variant="destructive" className="ml-2">異常</Badge>
                         )}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {new Date(measurement.measured_at).toLocaleString('zh-TW')}
+                        {new Date(measurement.createdAt || measurement.measurementTime).toLocaleString('zh-TW')}
                       </div>
                     </div>
                     {measurement.location && (

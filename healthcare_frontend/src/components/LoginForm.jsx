@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
 import { Label } from '@/components/ui/label.jsx'
-import mockDataStore from '../utils/mockDataStore'
+import apiService from '../services/api.js'
 
 export default function LoginForm({ onLogin }) {
   const [formData, setFormData] = useState({
@@ -10,20 +10,30 @@ export default function LoginForm({ onLogin }) {
     password: ''
   })
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setLoading(true)
 
-    console.log('Attempting login with:', formData.username)
-    const authResult = mockDataStore.authenticateUser(formData.username, formData.password)
-    
-    if (authResult.success) {
-      console.log('Login successful:', authResult.user)
-      onLogin(authResult.user)
-    } else {
-      console.log('Login failed:', authResult.message)
-      setError(authResult.message || '登錄失敗')
+    try {
+      console.log('Attempting login with:', formData.username)
+      const authResult = await apiService.login(formData)
+      
+      if (authResult.success) {
+        console.log('Login successful:', authResult.user)
+        // 保存用户信息到本地存储
+        apiService.setCurrentUser(authResult.user)
+        onLogin(authResult.user)
+      } else {
+        setError(authResult.message || '登錄失敗')
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      setError(error.message || '登錄失敗，請檢查網絡連接')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -53,6 +63,7 @@ export default function LoginForm({ onLogin }) {
             value={formData.username}
             onChange={handleChange}
             required
+            disabled={loading}
           />
         </div>
 
@@ -66,11 +77,12 @@ export default function LoginForm({ onLogin }) {
             value={formData.password}
             onChange={handleChange}
             required
+            disabled={loading}
           />
         </div>
 
-        <Button type="submit" className="w-full">
-          登錄
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? '登錄中...' : '登錄'}
         </Button>
       </form>
     </div>
