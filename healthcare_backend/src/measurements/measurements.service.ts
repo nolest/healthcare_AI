@@ -43,6 +43,7 @@ export class MeasurementsService {
   async findByUserId(userId: string) {
     return this.measurementModel
       .find({ userId })
+      .populate('userId', 'username fullName role')
       .sort({ createdAt: -1 });
   }
 

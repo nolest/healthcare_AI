@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input.jsx'
 import { Label } from '@/components/ui/label.jsx'
 import { Textarea } from '@/components/ui/textarea.jsx'
 import { Alert, AlertDescription } from '@/components/ui/alert.jsx'
-import { Loader2, Heart, Activity, Thermometer, Droplets } from 'lucide-react'
+import { Loader2, Heart, Activity, Thermometer, Droplets, Upload, X, Image } from 'lucide-react'
 import apiService from '../services/api.js'
 
 export default function MeasurementForm({ onMeasurementAdded }) {
@@ -18,6 +18,10 @@ export default function MeasurementForm({ onMeasurementAdded }) {
     notes: '',
     measurementTime: ''
   })
+
+  // 图片上传相关状态
+  const [selectedImages, setSelectedImages] = useState([])
+  const [imagePreviewUrls, setImagePreviewUrls] = useState([])
 
   // 设置默认测量时间为当前时间
   useEffect(() => {
@@ -37,6 +41,54 @@ export default function MeasurementForm({ onMeasurementAdded }) {
       ...formData,
       [field]: value
     })
+  }
+
+  // 处理图片选择
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files)
+    
+    // 检查文件数量限制
+    if (files.length > 5) {
+      setError('最多只能上传5张图片')
+      return
+    }
+
+    // 检查文件类型和大小
+    const validFiles = []
+    const validPreviewUrls = []
+    
+    for (const file of files) {
+      // 检查文件类型
+      if (!file.type.startsWith('image/')) {
+        setError('只能上传图片文件')
+        return
+      }
+      
+      // 检查文件大小 (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('图片文件大小不能超过5MB')
+        return
+      }
+      
+      validFiles.push(file)
+      validPreviewUrls.push(URL.createObjectURL(file))
+    }
+    
+    setSelectedImages(validFiles)
+    setImagePreviewUrls(validPreviewUrls)
+    setError('') // 清除错误信息
+  }
+
+  // 移除图片
+  const removeImage = (index) => {
+    const newImages = selectedImages.filter((_, i) => i !== index)
+    const newPreviewUrls = imagePreviewUrls.filter((_, i) => i !== index)
+    
+    // 释放URL对象
+    URL.revokeObjectURL(imagePreviewUrls[index])
+    
+    setSelectedImages(newImages)
+    setImagePreviewUrls(newPreviewUrls)
   }
 
   const validateForm = () => {
@@ -89,25 +141,34 @@ export default function MeasurementForm({ onMeasurementAdded }) {
         return
       }
 
-      // 準備API數據（只包含有值的字段）
-      const measurementData = {
-        notes: formData.notes,
-        measurementTime: formData.measurementTime
-      }
+      // 準備FormData用於文件上传
+      const formDataToSubmit = new FormData()
+
+      // 添加测量数据
+      formDataToSubmit.append('notes', formData.notes)
+      formDataToSubmit.append('measurementTime', formData.measurementTime)
 
       // 只添加有值的测量数据
-      if (formData.systolic) measurementData.systolic = parseFloat(formData.systolic)
-      if (formData.diastolic) measurementData.diastolic = parseFloat(formData.diastolic)
-      if (formData.heartRate) measurementData.heartRate = parseFloat(formData.heartRate)
-      if (formData.temperature) measurementData.temperature = parseFloat(formData.temperature)
-      if (formData.oxygenSaturation) measurementData.oxygenSaturation = parseFloat(formData.oxygenSaturation)
+      if (formData.systolic) formDataToSubmit.append('systolic', formData.systolic)
+      if (formData.diastolic) formDataToSubmit.append('diastolic', formData.diastolic)
+      if (formData.heartRate) formDataToSubmit.append('heartRate', formData.heartRate)
+      if (formData.temperature) formDataToSubmit.append('temperature', formData.temperature)
+      if (formData.oxygenSaturation) formDataToSubmit.append('oxygenSaturation', formData.oxygenSaturation)
+
+      // 添加图片文件
+      selectedImages.forEach((image) => {
+        formDataToSubmit.append('images', image)
+      })
 
       // 調用API提交測量數據
-      const response = await apiService.submitMeasurement(measurementData)
+      const response = await apiService.submitMeasurementWithImages(formDataToSubmit)
       console.log('Measurement submitted:', response)
 
       // 使用后端返回的异常检测结果
       let successMessage = '✅ 測量記錄已成功保存！'
+      if (selectedImages.length > 0) {
+        successMessage += `\n📷 已上传 ${selectedImages.length} 张图片`
+      }
       if (response.abnormalResult && response.abnormalResult.isAbnormal) {
         successMessage += '\n\n⚠️ 異常檢測結果：\n' + response.abnormalResult.reasons.join('\n') + '\n\n建議盡快諮詢醫護人員。'
       } else {
@@ -129,6 +190,11 @@ export default function MeasurementForm({ onMeasurementAdded }) {
         measurementTime: localISOTime
       })
       
+      // 清理图片相关状态
+      imagePreviewUrls.forEach(url => URL.revokeObjectURL(url))
+      setSelectedImages([])
+      setImagePreviewUrls([])
+      
       // 通知父組件
       if (onMeasurementAdded) {
         onMeasurementAdded()
@@ -140,8 +206,6 @@ export default function MeasurementForm({ onMeasurementAdded }) {
       setLoading(false)
     }
   }
-
-
 
   return (
     <Card className="max-w-2xl mx-auto">
@@ -268,6 +332,69 @@ export default function MeasurementForm({ onMeasurementAdded }) {
               disabled={loading}
               rows={3}
             />
+          </div>
+
+          {/* 图片上传区域 */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="flex items-center space-x-2">
+                <Image className="h-4 w-4 text-purple-500" />
+                <span>症狀圖片（可選，最多5張）</span>
+              </Label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
+                <div className="text-center">
+                  <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                  <Label htmlFor="image-upload" className="cursor-pointer">
+                    <span className="text-sm text-gray-600">
+                      點擊選擇圖片或拖拽圖片到此處
+                    </span>
+                    <Input
+                      id="image-upload"
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      disabled={loading}
+                      className="hidden"
+                    />
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    支持 JPG、PNG、GIF、WebP 格式，單個文件不超過5MB
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 图片预览 */}
+            {imagePreviewUrls.length > 0 && (
+              <div className="space-y-2">
+                <Label>已選擇的圖片預覽</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {imagePreviewUrls.map((url, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={url}
+                        alt={`預覽 ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg border"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => removeImage(index)}
+                        disabled={loading}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                      <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
+                        {selectedImages[index]?.name?.substring(0, 10)}...
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>

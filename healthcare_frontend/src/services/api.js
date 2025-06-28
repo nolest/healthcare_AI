@@ -1,7 +1,9 @@
+import { appConfig, getImageUrl, getFullImageUrl } from '../config/app.config.js';
+
 // API服务层 - 替换mockDataStore
 class ApiService {
   constructor() {
-    this.baseURL = 'http://localhost:7723/api';
+    this.baseURL = appConfig.apiUrl;
     this.token = localStorage.getItem('auth_token');
   }
 
@@ -58,8 +60,8 @@ class ApiService {
       body: JSON.stringify(credentials),
     });
     
-    if (response.success && response.token) {
-      this.setToken(response.token);
+    if (response.success && response.access_token) {
+      this.setToken(response.access_token);
     }
     
     return response;
@@ -71,8 +73,8 @@ class ApiService {
       body: JSON.stringify(userData),
     });
     
-    if (response.success && response.token) {
-      this.setToken(response.token);
+    if (response.success && response.access_token) {
+      this.setToken(response.access_token);
     }
     
     return response;
@@ -93,6 +95,38 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(measurementData),
     });
+  }
+
+  // 提交带图片的测量数据
+  async submitMeasurementWithImages(formData) {
+    const url = `${this.baseURL}/measurements`;
+    const config = {
+      method: 'POST',
+      headers: {
+        // 不设置Content-Type，让浏览器自动设置multipart/form-data
+        'Authorization': this.token ? `Bearer ${this.token}` : undefined,
+      },
+      body: formData,
+    };
+
+    // 移除undefined的header
+    if (!config.headers.Authorization) {
+      delete config.headers.Authorization;
+    }
+
+    try {
+      const response = await fetch(url, config);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+      }
+
+      return data;
+    } catch (error) {
+      console.error('API请求失败:', error);
+      throw error;
+    }
   }
 
   async createTestMeasurement() {
@@ -147,6 +181,16 @@ class ApiService {
 
   async getMeasurementStats() {
     return this.request('/measurements/stats');
+  }
+
+  // 获取测量记录的图片URL
+  getImageUrl(userId, filename) {
+    return getImageUrl(userId, filename);
+  }
+
+  // 获取完整图片URL（从相对路径）
+  getFullImageUrl(relativePath) {
+    return getFullImageUrl(relativePath);
   }
 
   // 用户管理相关API

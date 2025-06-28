@@ -57,7 +57,7 @@ export class AuthService {
         department: savedUser.department,
         license_number: savedUser.license_number,
       },
-      token,
+      access_token: token,
     };
   }
 
@@ -96,7 +96,7 @@ export class AuthService {
         department: user.department,
         license_number: user.license_number,
       },
-      token,
+      access_token: token,
     };
   }
 

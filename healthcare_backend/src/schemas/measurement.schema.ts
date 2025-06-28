@@ -26,6 +26,9 @@ export class Measurement {
   @Prop()
   notes: string;
 
+  @Prop({ type: [String], default: [] })
+  imagePaths: string[]; // 患者上传的图片路径列表
+
   @Prop({ default: 'pending', enum: ['pending', 'processed', 'reviewed'] })
   status: string;
 

@@ -10,6 +10,7 @@ import { Label } from './ui/label.jsx'
 import { Input } from './ui/input.jsx'
 import { Loader2, User, Activity, Calendar, ArrowLeft } from 'lucide-react'
 import apiService from '../services/api.js'
+import ImageViewer from './ImageViewer.jsx'
 
 const recommendationOptions = [
   '定期監測血壓',
@@ -38,6 +39,11 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [imageViewerOpen, setImageViewerOpen] = useState(false)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [currentImagePaths, setCurrentImagePaths] = useState([])
+  const [currentImageUserId, setCurrentImageUserId] = useState('')
+  const [currentImageUrls, setCurrentImageUrls] = useState(null)
 
   useEffect(() => {
     fetchPatientMeasurements()
@@ -190,6 +196,14 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
     } else {
       setSelectedMeasurements([])
     }
+  }
+
+  const openImageViewer = (imagePaths, userId, initialIndex = 0, imageUrls = null) => {
+    setCurrentImagePaths(imagePaths)
+    setCurrentImageUserId(userId)
+    setCurrentImageIndex(initialIndex)
+    setCurrentImageUrls(imageUrls) // 传递完整的URL数组
+    setImageViewerOpen(true)
   }
 
   const handleSubmit = async (e) => {
@@ -544,6 +558,58 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
                           備註: {measurement.notes}
                         </p>
                       )}
+
+                      {/* 患者症状信息 - 图片展示 */}
+                      {measurement.imagePaths && measurement.imagePaths.length > 0 && (
+                        <div className="mt-4 border-t pt-4">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                            <span className="mr-2">📷</span>
+                            患者症狀信息
+                          </h4>
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                            {measurement.imagePaths.map((imagePath, index) => {
+                              // 优先使用后端提供的完整URL，如果没有则构建URL
+                              let imageUrl;
+                              if (measurement.imageUrls && measurement.imageUrls[index]) {
+                                imageUrl = measurement.imageUrls[index];
+                              } else {
+                                // 兼容旧数据：从路径中提取用户ID和文件名
+                                const pathParts = imagePath.split('/');
+                                const filename = pathParts[pathParts.length - 1];
+                                const userId = measurement.userId?._id || measurement.userId;
+                                imageUrl = apiService.getImageUrl(userId, filename);
+                              }
+                              
+                              // 如果无法生成有效的图片URL，则不渲染此图片
+                              if (!imageUrl) {
+                                console.warn(`无法生成图片URL: imagePath=${imagePath}, userId=${measurement.userId?._id || measurement.userId}`);
+                                return null;
+                              }
+                              
+                              return (
+                                <div key={index} className="relative group">
+                                  <img
+                                    src={imageUrl}
+                                    alt={`患者症狀圖片 ${index + 1}`}
+                                    className="w-full h-20 object-cover rounded-lg border border-gray-200 cursor-pointer hover:border-blue-300 transition-colors"
+                                    onClick={() => openImageViewer(measurement.imagePaths, measurement.userId?._id || measurement.userId, index, measurement.imageUrls)}
+                                    onError={(e) => {
+                                      console.error(`图片加载失败: ${imageUrl}`);
+                                      e.target.style.display = 'none';
+                                    }}
+                                  />
+                                  <div className="absolute bottom-1 left-1 bg-black bg-opacity-60 text-white text-xs px-1 rounded">
+                                    圖片 {index + 1}
+                                  </div>
+                                </div>
+                              );
+                            }).filter(Boolean)}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            點擊圖片可查看大圖 • 共 {measurement.imagePaths.length} 張圖片
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -679,6 +745,16 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
           </form>
         </CardContent>
       </Card>
+
+      {/* 图片查看器 */}
+      <ImageViewer
+        images={currentImagePaths}
+        userId={currentImageUserId}
+        isOpen={imageViewerOpen}
+        onClose={() => setImageViewerOpen(false)}
+        initialIndex={currentImageIndex}
+        imageUrls={currentImageUrls}
+      />
     </div>
   )
 }

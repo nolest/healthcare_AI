@@ -1,4 +1,4 @@
-import { IsNumber, IsString, IsOptional, IsBoolean, IsEnum, IsDateString } from 'class-validator';
+import { IsNumber, IsString, IsOptional, IsBoolean, IsEnum, IsDateString, IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateMeasurementDto {
@@ -31,6 +31,12 @@ export class CreateMeasurementDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiProperty({ description: '图片路径列表', required: false, type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  imagePaths?: string[];
 
   @ApiProperty({ description: '测量时间', required: false })
   @IsOptional()

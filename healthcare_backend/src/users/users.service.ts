@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
 import { Measurement, MeasurementDocument } from '../schemas/measurement.schema';
+import { ImageUrlService } from '../services/image-url.service';
 
 export interface UpdateUserDto {
   fullName?: string;
@@ -13,11 +14,17 @@ export interface UpdateUserDto {
   department?: string;
 }
 
+export interface ProcessedMeasurement {
+  [key: string]: any;
+  imageUrls?: string[];
+}
+
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Measurement.name) private measurementModel: Model<MeasurementDocument>,
+    private imageUrlService: ImageUrlService,
   ) {}
 
   async findAll() {
@@ -56,14 +63,33 @@ export class UsersService {
 
     // 如果是患者，获取历史测量数据
     if (user.role === 'patient') {
+      // 确保使用正确的ObjectId类型进行查询
+      const userObjectId = new Types.ObjectId(id);
+      
       const historyMeasurements = await this.measurementModel
-        .find({ userId: id })
+        .find({ userId: userObjectId })
+        .select('systolic diastolic heartRate temperature oxygenSaturation notes imagePaths status isAbnormal abnormalReasons measurementTime createdAt')
         .sort({ createdAt: -1 }) // 按创建时间倒序排列
         .exec();
 
+      // 处理图片路径，转换为完整URL
+      const processedMeasurements: ProcessedMeasurement[] = historyMeasurements.map(measurement => {
+        const measurementObj = measurement.toObject();
+        const processed: ProcessedMeasurement = {
+          ...measurementObj,
+          _id: measurementObj._id.toString(),
+        };
+        
+        if (processed.imagePaths && processed.imagePaths.length > 0) {
+          processed.imageUrls = this.imageUrlService.getFullImageUrls(processed.imagePaths);
+        }
+        
+        return processed;
+      });
+
       return {
         ...user.toObject(),
-        history_measurements: historyMeasurements
+        history_measurements: processedMeasurements
       };
     }
 

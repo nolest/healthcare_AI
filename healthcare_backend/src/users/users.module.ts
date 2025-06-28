@@ -4,6 +4,7 @@ import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { User, UserSchema } from '../schemas/user.schema';
 import { Measurement, MeasurementSchema } from '../schemas/measurement.schema';
+import { ImageUrlService } from '../services/image-url.service';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { Measurement, MeasurementSchema } from '../schemas/measurement.schema';
     ]),
   ],
   controllers: [UsersController],
-  providers: [UsersService],
+  providers: [UsersService, ImageUrlService],
   exports: [UsersService],
 })
 export class UsersModule {} 

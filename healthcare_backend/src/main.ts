@@ -1,15 +1,23 @@
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 import { AppModule } from './app.module';
+import { appConfig } from './config/app.config';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   
   // 启用CORS
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:6886',
+    origin: appConfig.frontendUrl,
     credentials: true,
+  });
+
+  // 配置静态文件服务
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/uploads/',
   });
 
   // 全局验证管道
@@ -33,12 +41,14 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-docs', app, document);
 
-  const port = process.env.PORT || 7723;
-  await app.listen(port);
+  await app.listen(appConfig.port);
   
   console.log(`🚀 应用启动成功！`);
-  console.log(`📱 API地址: http://localhost:${port}/api`);
-  console.log(`📚 API文档: http://localhost:${port}/api-docs`);
+  console.log(`🌍 环境: ${appConfig.environment}`);
+  console.log(`📱 API地址: ${appConfig.apiUrl}/api`);
+  console.log(`📚 API文档: ${appConfig.apiUrl}/api-docs`);
+  console.log(`📷 图片访问: ${appConfig.staticUrl}/uploads/`);
+  console.log(`🖥️  前端地址: ${appConfig.frontendUrl}`);
 }
 
 bootstrap();
