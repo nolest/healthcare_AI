@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input.jsx'
 import { Label } from '@/components/ui/label.jsx'
 import { Textarea } from '@/components/ui/textarea.jsx'
 import { Alert, AlertDescription } from '@/components/ui/alert.jsx'
-import { Loader2, Heart, Activity, Thermometer, Droplets, Upload, X, Image } from 'lucide-react'
+import { Progress } from '@/components/ui/progress.jsx'
+import { Loader2, Heart, Activity, Thermometer, Droplets, Upload, X, Image, CheckCircle } from 'lucide-react'
 import apiService from '../services/api.js'
 
 export default function MeasurementForm({ onMeasurementAdded }) {
@@ -22,6 +23,8 @@ export default function MeasurementForm({ onMeasurementAdded }) {
   // 图片上传相关状态
   const [selectedImages, setSelectedImages] = useState([])
   const [imagePreviewUrls, setImagePreviewUrls] = useState([])
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [isUploading, setIsUploading] = useState(false)
 
   // 设置默认测量时间为当前时间
   useEffect(() => {
@@ -129,19 +132,25 @@ export default function MeasurementForm({ onMeasurementAdded }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    console.log('🚀 开始提交测量记录...')
     setLoading(true)
     setError('')
     setSuccess('')
 
     try {
       // 表單驗證
+      console.log('📋 验证表单数据:', formData)
       const validationErrors = validateForm()
       if (validationErrors.length > 0) {
+        console.log('❌ 表单验证失败:', validationErrors)
         setError(validationErrors.join('、'))
+        setLoading(false)
         return
       }
+      console.log('✅ 表单验证通过')
 
       // 準備FormData用於文件上传
+      console.log('📦 准备FormData...')
       const formDataToSubmit = new FormData()
 
       // 添加测量数据
@@ -156,13 +165,34 @@ export default function MeasurementForm({ onMeasurementAdded }) {
       if (formData.oxygenSaturation) formDataToSubmit.append('oxygenSaturation', formData.oxygenSaturation)
 
       // 添加图片文件
-      selectedImages.forEach((image) => {
+      console.log(`📷 添加 ${selectedImages.length} 张图片到FormData`)
+      selectedImages.forEach((image, index) => {
+        console.log(`   图片 ${index + 1}: ${image.name} (${(image.size / 1024 / 1024).toFixed(1)}MB)`)
         formDataToSubmit.append('images', image)
       })
 
-      // 調用API提交測量數據
-      const response = await apiService.submitMeasurementWithImages(formDataToSubmit)
-      console.log('Measurement submitted:', response)
+      // 检查用户认证状态
+      const isAuthenticated = apiService.isAuthenticated()
+      console.log('🔐 用户认证状态:', isAuthenticated)
+      if (!isAuthenticated) {
+        throw new Error('用户未登录，请重新登录')
+      }
+
+      // 設置上傳狀態
+      console.log('⏳ 设置上传状态...')
+      setIsUploading(true)
+      setUploadProgress(0)
+
+      // 調用API提交測量數據，帶進度回調
+      console.log('🌐 开始API调用...')
+      const response = await apiService.submitMeasurementWithImages(
+        formDataToSubmit,
+        (progress) => {
+          console.log(`📊 上传进度: ${progress}%`)
+          setUploadProgress(progress)
+        }
+      )
+      console.log('✅ 测量记录提交成功:', response)
 
       // 使用后端返回的异常检测结果
       let successMessage = '✅ 測量記錄已成功保存！'
@@ -204,6 +234,8 @@ export default function MeasurementForm({ onMeasurementAdded }) {
       setError(error.message || '保存測量記錄失敗，請檢查網絡連接')
     } finally {
       setLoading(false)
+      setIsUploading(false)
+      setUploadProgress(0)
     }
   }
 
@@ -337,16 +369,30 @@ export default function MeasurementForm({ onMeasurementAdded }) {
           {/* 图片上传区域 */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="flex items-center space-x-2">
-                <Image className="h-4 w-4 text-purple-500" />
-                <span>症狀圖片（可選，最多5張）</span>
+              <Label className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Image className="h-4 w-4 text-purple-500" />
+                  <span>症狀圖片（可選，最多5張）</span>
+                </div>
+                {selectedImages.length > 0 && (
+                  <span className="text-xs text-gray-500">
+                    已選擇 {selectedImages.length}/5 張
+                  </span>
+                )}
               </Label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
+              <div className={`border-2 border-dashed rounded-lg p-4 transition-colors ${
+                selectedImages.length >= 5 
+                  ? 'border-gray-200 bg-gray-50' 
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}>
                 <div className="text-center">
                   <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                  <Label htmlFor="image-upload" className="cursor-pointer">
+                  <Label htmlFor="image-upload" className={`cursor-pointer ${selectedImages.length >= 5 ? 'cursor-not-allowed' : ''}`}>
                     <span className="text-sm text-gray-600">
-                      點擊選擇圖片或拖拽圖片到此處
+                      {selectedImages.length >= 5 
+                        ? '已達到最大上傳數量' 
+                        : '點擊選擇圖片或拖拽圖片到此處'
+                      }
                     </span>
                     <Input
                       id="image-upload"
@@ -354,13 +400,18 @@ export default function MeasurementForm({ onMeasurementAdded }) {
                       multiple
                       accept="image/*"
                       onChange={handleImageSelect}
-                      disabled={loading}
+                      disabled={loading || isUploading || selectedImages.length >= 5}
                       className="hidden"
                     />
                   </Label>
                   <p className="text-xs text-gray-500 mt-1">
                     支持 JPG、PNG、GIF、WebP 格式，單個文件不超過5MB
                   </p>
+                  {selectedImages.length > 0 && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      💡 提示：可以一次選擇多張圖片進行上傳
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -368,40 +419,115 @@ export default function MeasurementForm({ onMeasurementAdded }) {
             {/* 图片预览 */}
             {imagePreviewUrls.length > 0 && (
               <div className="space-y-2">
-                <Label>已選擇的圖片預覽</Label>
+                <Label className="flex items-center justify-between">
+                  <span>已選擇的圖片預覽</span>
+                  <span className="text-xs text-gray-500">
+                    總大小: {(selectedImages.reduce((total, img) => total + img.size, 0) / 1024 / 1024).toFixed(1)} MB
+                  </span>
+                </Label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {imagePreviewUrls.map((url, index) => (
                     <div key={index} className="relative group">
-                      <img
-                        src={url}
-                        alt={`預覽 ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg border"
-                      />
+                      <div className="relative">
+                        <img
+                          src={url}
+                          alt={`預覽 ${index + 1}`}
+                          className={`w-full h-24 object-cover rounded-lg border transition-opacity ${
+                            isUploading ? 'opacity-75' : ''
+                          }`}
+                        />
+                        {isUploading && (
+                          <div className="absolute inset-0 bg-blue-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                            <div className="bg-white bg-opacity-90 rounded-full p-1">
+                              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
                       <Button
                         type="button"
                         variant="destructive"
                         size="sm"
                         className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={() => removeImage(index)}
-                        disabled={loading}
+                        disabled={loading || isUploading}
                       >
                         <X className="h-3 w-3" />
                       </Button>
+                      
                       <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
-                        {selectedImages[index]?.name?.substring(0, 10)}...
+                        {selectedImages[index]?.name?.substring(0, 8)}...
+                      </div>
+                      
+                      <div className="absolute bottom-1 right-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
+                        {(selectedImages[index]?.size / 1024 / 1024).toFixed(1)}MB
                       </div>
                     </div>
                   ))}
                 </div>
+                
+                {!isUploading && (
+                  <div className="flex items-center justify-between text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                    <span>
+                      📎 {selectedImages.length} 張圖片已準備上傳
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        imagePreviewUrls.forEach(url => URL.revokeObjectURL(url))
+                        setSelectedImages([])
+                        setImagePreviewUrls([])
+                      }}
+                      disabled={loading || isUploading}
+                      className="h-6 text-xs px-2"
+                    >
+                      清除全部
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? (
+          {/* 上传进度显示 */}
+          {isUploading && (
+            <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Upload className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800">
+                    {uploadProgress < 100 ? '正在上传图片...' : '处理中...'}
+                  </span>
+                </div>
+                <span className="text-sm text-blue-600 font-semibold">
+                  {uploadProgress}%
+                </span>
+              </div>
+              
+              <Progress value={uploadProgress} className="h-2" />
+              
+              {selectedImages.length > 0 && (
+                <div className="text-xs text-blue-600">
+                  正在上传 {selectedImages.length} 张图片
+                  {uploadProgress === 100 && (
+                    <span className="ml-2 inline-flex items-center">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      上传完成，正在保存记录...
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <Button type="submit" className="w-full" disabled={loading || isUploading}>
+            {loading || isUploading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                提交中...
+                {isUploading ? '上傳中...' : '提交中...'}
               </>
             ) : (
               '提交測量記錄'

@@ -1,9 +1,23 @@
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-import { Label } from '@/components/ui/label.jsx'
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx'
+import { 
+  User, 
+  Lock, 
+  Mail, 
+  Phone, 
+  Calendar, 
+  UserPlus,
+  Eye,
+  EyeOff,
+  Briefcase,
+  CreditCard,
+  AtSign,
+  UserCheck,
+  KeyRound
+} from 'lucide-react'
 import apiService from '../services/api.js'
 
 export default function RegisterForm({ onRegisterSuccess }) {
@@ -22,6 +36,8 @@ export default function RegisterForm({ onRegisterSuccess }) {
   })
   const [errors, setErrors] = useState({})
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -41,7 +57,12 @@ export default function RegisterForm({ onRegisterSuccess }) {
     const newErrors = {}
 
     // 基本驗證
-    if (!formData.username.trim()) newErrors.username = '用戶名不能為空'
+    if (!formData.username.trim()) newErrors.username = '登錄賬號不能為空'
+    // 验证用户名只包含英文和数字
+    const usernameRegex = /^[a-zA-Z0-9]+$/
+    if (formData.username && !usernameRegex.test(formData.username)) {
+      newErrors.username = '登錄賬號只能包含英文字母和數字'
+    }
     if (!formData.password) newErrors.password = '密碼不能為空'
     if (formData.password.length < 6) newErrors.password = '密碼至少需要6個字符'
     if (formData.password !== formData.confirmPassword) {
@@ -135,185 +156,303 @@ export default function RegisterForm({ onRegisterSuccess }) {
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold text-center">用戶註冊</CardTitle>
-        <CardDescription className="text-center">
-          創建新的醫療系統賬戶
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* 基本信息 */}
-          <div className="space-y-2">
-            <Label htmlFor="username">用戶名</Label>
-            <Input
-              id="username"
-              type="text"
-              placeholder="請輸入用戶名"
-              value={formData.username}
-              onChange={(e) => handleInputChange('username', e.target.value)}
-              className={errors.username ? 'border-red-500' : ''}
-            />
-            {errors.username && <p className="text-sm text-red-500">{errors.username}</p>}
+    <div className="space-y-4">
+      {(errors.submit) && (
+        <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 text-red-700 px-4 py-3 rounded-2xl shadow-inner">
+          <div className="flex items-center">
+            <div className="w-5 h-5 rounded-full bg-red-200 flex items-center justify-center mr-3">
+              <span className="text-red-600 text-xs">!</span>
+            </div>
+            <span className="text-sm">{errors.submit}</span>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-3">
+        {/* 第一行：登录账号和真实姓名 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* 登录账号 */}
+          <div>
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl shadow-sm">
+                <AtSign className="h-5 w-5 text-blue-600" />
+              </div>
+              <Input
+                id="username"
+                type="text"
+                placeholder="登錄賬號（英文數字組合）"
+                value={formData.username}
+                onChange={(e) => handleInputChange('username', e.target.value)}
+                className={`flex-1 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.username ? 'ring-2 ring-red-500/50' : ''}`}
+              />
+            </div>
+            {errors.username && <p className="text-xs text-red-500 mt-1 ml-14">{errors.username}</p>}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">密碼</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="請輸入密碼"
-              value={formData.password}
-              onChange={(e) => handleInputChange('password', e.target.value)}
-              className={errors.password ? 'border-red-500' : ''}
-            />
-            {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
+          {/* 真实姓名 */}
+          <div>
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl shadow-sm">
+                <UserCheck className="h-5 w-5 text-blue-600" />
+              </div>
+              <Input
+                id="fullName"
+                type="text"
+                placeholder="請輸入真實姓名"
+                value={formData.fullName}
+                onChange={(e) => handleInputChange('fullName', e.target.value)}
+                className={`flex-1 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.fullName ? 'ring-2 ring-red-500/50' : ''}`}
+              />
+            </div>
+            {errors.fullName && <p className="text-xs text-red-500 mt-1 ml-14">{errors.fullName}</p>}
+          </div>
+        </div>
+
+        {/* 第二行：邮箱和电话 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* 邮箱 */}
+          <div>
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl shadow-sm">
+                <Mail className="h-5 w-5 text-blue-600" />
+              </div>
+              <Input
+                id="email"
+                type="email"
+                placeholder="請輸入電子郵件"
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                className={`flex-1 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.email ? 'ring-2 ring-red-500/50' : ''}`}
+              />
+            </div>
+            {errors.email && <p className="text-xs text-red-500 mt-1 ml-14">{errors.email}</p>}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">確認密碼</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="請再次輸入密碼"
-              value={formData.confirmPassword}
-              onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-              className={errors.confirmPassword ? 'border-red-500' : ''}
-            />
-            {errors.confirmPassword && <p className="text-sm text-red-500">{errors.confirmPassword}</p>}
+          {/* 电话 */}
+          <div>
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl shadow-sm">
+                <Phone className="h-5 w-5 text-blue-600" />
+              </div>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="請輸入電話號碼"
+                value={formData.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                className={`flex-1 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.phone ? 'ring-2 ring-red-500/50' : ''}`}
+              />
+            </div>
+            {errors.phone && <p className="text-xs text-red-500 mt-1 ml-14">{errors.phone}</p>}
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="fullName">姓名</Label>
-            <Input
-              id="fullName"
-              type="text"
-              placeholder="請輸入真實姓名"
-              value={formData.fullName}
-              onChange={(e) => handleInputChange('fullName', e.target.value)}
-              className={errors.fullName ? 'border-red-500' : ''}
-            />
-            {errors.fullName && <p className="text-sm text-red-500">{errors.fullName}</p>}
+        {/* 第三行：密码区域 - 特殊布局，确保密码字段相邻 */}
+        <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* 密码 */}
+            <div>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl shadow-sm">
+                  <Lock className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="relative flex-1">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="請輸入密碼"
+                    value={formData.password}
+                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    className={`w-full pr-12 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.password ? 'ring-2 ring-red-500/50' : ''}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center hover:text-gray-600 transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              {errors.password && <p className="text-xs text-red-500 mt-1 ml-14">{errors.password}</p>}
+            </div>
+
+            {/* 确认密码 */}
+            <div>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl shadow-sm">
+                  <KeyRound className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="relative flex-1">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="請再次輸入密碼"
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                    className={`w-full pr-12 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.confirmPassword ? 'ring-2 ring-red-500/50' : ''}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center hover:text-gray-600 transition-colors"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    ) : (
+                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              {errors.confirmPassword && <p className="text-xs text-red-500 mt-1 ml-14">{errors.confirmPassword}</p>}
+            </div>
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">電子郵件</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="請輸入電子郵件"
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              className={errors.email ? 'border-red-500' : ''}
-            />
-            {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+        {/* 角色选择 - 单列全宽 */}
+        <div className="grid grid-cols-1 gap-3">
+          <div>
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl shadow-sm">
+                <Briefcase className="h-5 w-5 text-blue-600" />
+              </div>
+              <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
+                <SelectTrigger className={`flex-1 h-12 w-auto bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 px-4 py-3 ${errors.role ? 'ring-2 ring-red-500/50' : ''}`}>
+                  <SelectValue placeholder="請選擇用戶角色" />
+                </SelectTrigger>
+                <SelectContent className="border-0 bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden min-w-[200px] p-2">
+                  <SelectItem value="patient" className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-xl transition-all duration-200 cursor-pointer py-2.5 pl-3 pr-8 my-1 relative">
+                    患者
+                  </SelectItem>
+                  <SelectItem value="medical_staff" className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-xl transition-all duration-200 cursor-pointer py-2.5 pl-3 pr-8 my-1 relative">
+                    醫護人員
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {errors.role && <p className="text-xs text-red-500 mt-1 ml-14">{errors.role}</p>}
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone">電話號碼</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="請輸入電話號碼"
-              value={formData.phone}
-              onChange={(e) => handleInputChange('phone', e.target.value)}
-              className={errors.phone ? 'border-red-500' : ''}
-            />
-            {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="role">用戶角色</Label>
-            <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
-              <SelectTrigger className={errors.role ? 'border-red-500' : ''}>
-                <SelectValue placeholder="請選擇用戶角色" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="patient">患者</SelectItem>
-                <SelectItem value="medical_staff">醫護人員</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.role && <p className="text-sm text-red-500">{errors.role}</p>}
-          </div>
-
-          {/* 患者特定字段 */}
-          {formData.role === 'patient' && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="birthDate">出生日期</Label>
+        {/* 患者特定字段 */}
+        {formData.role === 'patient' && (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl shadow-sm">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                </div>
                 <Input
                   id="birthDate"
                   type="date"
                   value={formData.birthDate}
                   onChange={(e) => handleInputChange('birthDate', e.target.value)}
-                  className={errors.birthDate ? 'border-red-500' : ''}
+                  className={`flex-1 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.birthDate ? 'ring-2 ring-red-500/50' : ''}`}
                 />
-                {errors.birthDate && <p className="text-sm text-red-500">{errors.birthDate}</p>}
               </div>
+              {errors.birthDate && <p className="text-xs text-red-500 mt-1 ml-14">{errors.birthDate}</p>}
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="gender">性別</Label>
+            <div>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl shadow-sm">
+                  <User className="h-5 w-5 text-blue-600" />
+                </div>
                 <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
-                  <SelectTrigger className={errors.gender ? 'border-red-500' : ''}>
+                  <SelectTrigger className={`flex-1 h-12 w-auto bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 px-4 py-3 ${errors.gender ? 'ring-2 ring-red-500/50' : ''}`}>
                     <SelectValue placeholder="請選擇性別" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">男</SelectItem>
-                    <SelectItem value="female">女</SelectItem>
-                    <SelectItem value="other">其他</SelectItem>
+                  <SelectContent className="border-0 bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden min-w-[120px] p-2">
+                    <SelectItem value="male" className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-xl transition-all duration-200 cursor-pointer py-2.5 pl-3 pr-8 my-1 relative">
+                      男
+                    </SelectItem>
+                    <SelectItem value="female" className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-xl transition-all duration-200 cursor-pointer py-2.5 pl-3 pr-8 my-1 relative">
+                      女
+                    </SelectItem>
+                    <SelectItem value="other" className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-xl transition-all duration-200 cursor-pointer py-2.5 pl-3 pr-8 my-1 relative">
+                      其他
+                    </SelectItem>
                   </SelectContent>
                 </Select>
-                {errors.gender && <p className="text-sm text-red-500">{errors.gender}</p>}
               </div>
-            </>
-          )}
+              {errors.gender && <p className="text-xs text-red-500 mt-1 ml-14">{errors.gender}</p>}
+            </div>
+          </div>
+        )}
 
-          {/* 醫護人員特定字段 */}
-          {formData.role === 'medical_staff' && (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="department">科室</Label>
+        {/* 医护人员特定字段 - 响应式两列布局 */}
+        {formData.role === 'medical_staff' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl shadow-sm">
+                  <Briefcase className="h-5 w-5 text-blue-600" />
+                </div>
                 <Input
                   id="department"
                   type="text"
                   placeholder="請輸入科室"
                   value={formData.department}
                   onChange={(e) => handleInputChange('department', e.target.value)}
-                  className={errors.department ? 'border-red-500' : ''}
+                  className={`flex-1 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.department ? 'ring-2 ring-red-500/50' : ''}`}
                 />
-                {errors.department && <p className="text-sm text-red-500">{errors.department}</p>}
               </div>
+              {errors.department && <p className="text-xs text-red-500 mt-1 ml-14">{errors.department}</p>}
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="licenseNumber">執照號碼</Label>
+            <div>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl shadow-sm">
+                  <CreditCard className="h-5 w-5 text-blue-600" />
+                </div>
                 <Input
                   id="licenseNumber"
                   type="text"
                   placeholder="請輸入執照號碼"
                   value={formData.licenseNumber}
                   onChange={(e) => handleInputChange('licenseNumber', e.target.value)}
-                  className={errors.licenseNumber ? 'border-red-500' : ''}
+                  className={`flex-1 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.licenseNumber ? 'ring-2 ring-red-500/50' : ''}`}
                 />
-                {errors.licenseNumber && <p className="text-sm text-red-500">{errors.licenseNumber}</p>}
               </div>
-            </>
-          )}
+              {errors.licenseNumber && <p className="text-xs text-red-500 mt-1 ml-14">{errors.licenseNumber}</p>}
+            </div>
+          </div>
+        )}
 
-          {errors.submit && (
-            <div className="text-sm text-red-500 text-center">{errors.submit}</div>
-          )}
-
+        {/* 注册按钮 */}
+        <div className="pt-2">
           <Button 
             type="submit" 
-            className="w-full"
             disabled={isLoading}
+            className="w-full h-12 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white font-semibold rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border-0"
           >
-            {isLoading ? '註冊中...' : '註冊'}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+          <div className="flex items-center justify-center">
+            {isLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                註冊中...
+              </>
+            ) : (
+              <>
+                <UserPlus className="w-4 h-4 mr-2" />
+                創建賬戶
+              </>
+            )}
+          </div>
+                  </Button>
+        </div>
+
+        {/* 提示文本 */}
+        <div className="text-center text-xs text-gray-500 mt-3">
+          <p>註冊即表示您同意我們的服務條款和隱私政策</p>
+        </div>
+      </form>
+    </div>
   )
 }
 

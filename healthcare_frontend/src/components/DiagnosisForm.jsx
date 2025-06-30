@@ -44,10 +44,22 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
   const [currentImagePaths, setCurrentImagePaths] = useState([])
   const [currentImageUserId, setCurrentImageUserId] = useState('')
   const [currentImageUrls, setCurrentImageUrls] = useState(null)
+  const [abnormalRanges, setAbnormalRanges] = useState([])
 
   useEffect(() => {
     fetchPatientMeasurements()
+    fetchAbnormalRanges()
   }, [patient])
+
+  const fetchAbnormalRanges = async () => {
+    try {
+      const ranges = await apiService.getAbnormalRanges()
+      setAbnormalRanges(ranges)
+      console.log('DiagnosisForm - Fetched abnormal ranges:', ranges)
+    } catch (error) {
+      console.error('Error fetching abnormal ranges:', error)
+    }
+  }
 
   const fetchPatientMeasurements = async () => {
     try {
@@ -298,90 +310,125 @@ export default function DiagnosisForm({ patient, onDiagnosisAdded, onCancel }) {
     return types.join(' + ') || '健康測量'
   }
 
+  // 根据全局异常值范围检查单个测量值是否异常
+  const checkValueIsAbnormal = (measurementType, fieldName, value) => {
+    if (!abnormalRanges || !abnormalRanges.length || value === undefined || value === null) {
+      return false
+    }
+
+    const range = abnormalRanges.find(r => r.measurementType === measurementType)
+    if (!range || !range.normalRange) {
+      return false
+    }
+
+    const normalRange = range.normalRange[fieldName]
+    if (!normalRange || normalRange.min === undefined || normalRange.max === undefined) {
+      return false
+    }
+
+    return value < normalRange.min || value > normalRange.max
+  }
+
   const renderDetailedMeasurementValues = (measurement) => {
     const measurementItems = [
       {
         label: '收縮壓',
         value: measurement.systolic,
         unit: 'mmHg',
-        normalRange: '90-140'
+        measurementType: 'blood_pressure',
+        fieldName: 'systolic',
+        getNormalRange: () => {
+          const range = abnormalRanges.find(r => r.measurementType === 'blood_pressure')
+          return range?.normalRange?.systolic ? `${range.normalRange.systolic.min}-${range.normalRange.systolic.max}` : '90-140'
+        }
       },
       {
         label: '舒張壓',
         value: measurement.diastolic,
         unit: 'mmHg',
-        normalRange: '60-90'
+        measurementType: 'blood_pressure',
+        fieldName: 'diastolic',
+        getNormalRange: () => {
+          const range = abnormalRanges.find(r => r.measurementType === 'blood_pressure')
+          return range?.normalRange?.diastolic ? `${range.normalRange.diastolic.min}-${range.normalRange.diastolic.max}` : '60-90'
+        }
       },
       {
         label: '心率',
         value: measurement.heartRate,
         unit: '次/分',
-        normalRange: '60-100'
+        measurementType: 'heart_rate',
+        fieldName: 'heartRate',
+        getNormalRange: () => {
+          const range = abnormalRanges.find(r => r.measurementType === 'heart_rate')
+          return range?.normalRange?.heartRate ? `${range.normalRange.heartRate.min}-${range.normalRange.heartRate.max}` : '60-100'
+        }
       },
       {
         label: '體溫',
         value: measurement.temperature,
         unit: '°C',
-        normalRange: '36.1-37.2'
+        measurementType: 'temperature',
+        fieldName: 'temperature',
+        getNormalRange: () => {
+          const range = abnormalRanges.find(r => r.measurementType === 'temperature')
+          return range?.normalRange?.temperature ? `${range.normalRange.temperature.min}-${range.normalRange.temperature.max}` : '36.1-37.2'
+        }
       },
       {
         label: '血氧',
         value: measurement.oxygenSaturation,
         unit: '%',
-        normalRange: '95-100'
+        measurementType: 'oxygen_saturation',
+        fieldName: 'oxygenSaturation',
+        getNormalRange: () => {
+          const range = abnormalRanges.find(r => r.measurementType === 'oxygen_saturation')
+          return range?.normalRange?.oxygenSaturation ? `${range.normalRange.oxygenSaturation.min}-${range.normalRange.oxygenSaturation.max}` : '95-100'
+        }
       },
       {
         label: '血糖',
         value: measurement.bloodSugar,
         unit: 'mg/dL',
-        normalRange: '70-140'
+        measurementType: 'blood_glucose',
+        fieldName: 'bloodGlucose',
+        getNormalRange: () => {
+          const range = abnormalRanges.find(r => r.measurementType === 'blood_glucose')
+          return range?.normalRange?.bloodGlucose ? `${range.normalRange.bloodGlucose.min}-${range.normalRange.bloodGlucose.max}` : '70-140'
+        }
       }
     ]
 
     return measurementItems.map((item, index) => {
       const hasValue = item.value !== undefined && item.value !== null
       
-      // 检查是否异常 - 基于异常原因或值范围
-      let isAbnormal = false
-      if (hasValue && measurement.abnormalReasons && measurement.abnormalReasons.length > 0) {
-        // 检查异常原因中是否包含该项目
-        const reasonText = measurement.abnormalReasons.join(' ').toLowerCase()
-        isAbnormal = reasonText.includes(item.label.toLowerCase()) ||
-                    reasonText.includes('收縮壓') && item.label === '收縮壓' ||
-                    reasonText.includes('舒張壓') && item.label === '舒張壓' ||
-                    reasonText.includes('心率') && item.label === '心率' ||
-                    reasonText.includes('體溫') && item.label === '體溫' ||
-                    reasonText.includes('血氧') && item.label === '血氧' ||
-                    reasonText.includes('血糖') && item.label === '血糖' ||
-                    reasonText.includes('systolic') && item.label === '收縮壓' ||
-                    reasonText.includes('diastolic') && item.label === '舒張壓' ||
-                    reasonText.includes('heart') && item.label === '心率' ||
-                    reasonText.includes('temperature') && item.label === '體溫' ||
-                    reasonText.includes('oxygen') && item.label === '血氧' ||
-                    reasonText.includes('sugar') && item.label === '血糖'
-      }
-
-              return (
-          <div key={index} className="flex items-center justify-between py-1 px-2 rounded hover:bg-gray-50">
-            <span className="text-gray-700 font-medium min-w-[60px]">{item.label}：</span>
-            <div className="flex items-center space-x-2">
-              {hasValue ? (
-                <>
-                  <span className={`font-semibold ${isAbnormal ? 'text-red-600' : 'text-green-600'}`}>
-                    {item.value} {item.unit}
-                  </span>
-                  {isAbnormal ? (
-                    <Badge variant="destructive" className="text-xs">異常</Badge>
-                  ) : (
-                    <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">正常</Badge>
-                  )}
-                </>
-              ) : (
-                <span className="text-gray-400 italic">未測量</span>
-              )}
-            </div>
+      // 使用全局异常值范围检查是否异常
+      const isAbnormal = hasValue && checkValueIsAbnormal(item.measurementType, item.fieldName, item.value)
+      
+      return (
+        <div key={index} className="flex items-center justify-between py-1 px-2 rounded hover:bg-gray-50">
+          <span className="text-gray-700 font-medium min-w-[60px]">{item.label}：</span>
+          <div className="flex items-center space-x-2">
+            {hasValue ? (
+              <>
+                <span className={`font-semibold ${isAbnormal ? 'text-red-600' : 'text-green-600'}`}>
+                  {item.value} {item.unit}
+                </span>
+                {isAbnormal ? (
+                  <Badge variant="destructive" className="text-xs">異常</Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">正常</Badge>
+                )}
+                <span className="text-xs text-gray-500">
+                  (正常: {item.getNormalRange()})
+                </span>
+              </>
+            ) : (
+              <span className="text-gray-400 italic">未測量</span>
+            )}
           </div>
-        )
+        </div>
+      )
     })
   }
 

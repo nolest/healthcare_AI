@@ -5,23 +5,37 @@ import { CovidAssessment, CovidAssessmentDocument } from '../schemas/covid-asses
 import { User, UserDocument } from '../schemas/user.schema';
 
 export interface CreateCovidAssessmentDto {
+  assessmentType: string; // 'covid' or 'flu'
   symptoms: string[];
-  exposureHistory: boolean;
-  travelHistory: boolean;
-  contactHistory: boolean;
-  vaccinationStatus: string;
-  testResults?: string;
-  notes?: string;
+  riskFactors?: string[];
+  temperature?: number;
+  symptomOnset?: string;
+  exposureHistory?: string;
+  travelHistory?: string;
+  contactHistory?: string;
+  additionalNotes?: string;
+  riskScore?: number;
+  riskLevel?: string;
+  riskLevelLabel?: string;
+  recommendations?: any;
+  severity?: string;
 }
 
 export interface UpdateCovidAssessmentDto {
+  assessmentType?: string;
   symptoms?: string[];
-  severity?: string;
+  riskFactors?: string[];
+  temperature?: number;
+  symptomOnset?: string;
+  exposureHistory?: string;
+  travelHistory?: string;
+  contactHistory?: string;
+  additionalNotes?: string;
+  riskScore?: number;
   riskLevel?: string;
-  recommendations?: string[];
-  exposureHistory?: boolean;
-  travelHistory?: boolean;
-  contactHistory?: boolean;
+  riskLevelLabel?: string;
+  recommendations?: any;
+  severity?: string;
   vaccinationStatus?: string;
   testResults?: string;
   notes?: string;
@@ -35,15 +49,21 @@ export class CovidAssessmentsService {
   ) {}
 
   async create(userId: string, createCovidAssessmentDto: CreateCovidAssessmentDto) {
-    // 基于症状和风险因素计算严重程度和风险等级
-    const assessment = this.calculateAssessment(createCovidAssessmentDto);
+    // 如果没有提供风险评分和等级，则计算
+    let assessmentData = { ...createCovidAssessmentDto };
+    if (!assessmentData.riskScore || !assessmentData.riskLevel) {
+      const assessment = this.calculateAssessment(assessmentData);
+      assessmentData.riskScore = assessment.riskScore;
+      assessmentData.riskLevel = assessment.riskLevel;
+      assessmentData.severity = assessment.severity;
+      if (!assessmentData.recommendations) {
+        assessmentData.recommendations = assessment.recommendations;
+      }
+    }
     
     const covidAssessment = new this.covidAssessmentModel({
       userId,
-      ...createCovidAssessmentDto,
-      severity: assessment.severity,
-      riskLevel: assessment.riskLevel,
-      recommendations: assessment.recommendations,
+      ...assessmentData,
     });
 
     const savedAssessment = await covidAssessment.save();
@@ -178,53 +198,137 @@ export class CovidAssessmentsService {
   }
 
   private calculateAssessment(data: any) {
-    const { symptoms, exposureHistory, contactHistory, vaccinationStatus } = data;
+    const { 
+      symptoms = [], 
+      riskFactors = [], 
+      temperature, 
+      exposureHistory, 
+      assessmentType = 'covid' 
+    } = data;
     
+    let riskScore = 0;
     let severity = 'mild';
     let riskLevel = 'low';
-    const recommendations = [];
 
-    // 基于症状计算严重程度
-    const highRiskSymptoms = ['发热', '呼吸困难', '胸痛', '意识模糊'];
-    const moderateSymptoms = ['咳嗽', '乏力', '肌肉疼痛', '头痛'];
+    // 症状评分 - 基于前端的评分逻辑
+    const covidSymptoms = {
+      'fever': 3, 'cough': 3, 'shortness_breath': 3, 'loss_taste_smell': 3,
+      'fatigue': 2, 'body_aches': 2, 'headache': 2, 'sore_throat': 2,
+      'runny_nose': 1, 'nausea': 1, 'diarrhea': 1
+    };
     
-    const hasHighRiskSymptoms = symptoms.some(s => highRiskSymptoms.includes(s));
-    const hasModerateSymptoms = symptoms.some(s => moderateSymptoms.includes(s));
+    const fluSymptoms = {
+      'fever': 3, 'cough': 3, 'body_aches': 3, 'fatigue': 3,
+      'headache': 2, 'sore_throat': 2, 'runny_nose': 2, 'chills': 2,
+      'nausea': 1, 'diarrhea': 1
+    };
+
+    const symptomScores = assessmentType === 'covid' ? covidSymptoms : fluSymptoms;
     
-    if (hasHighRiskSymptoms) {
+    symptoms.forEach(symptom => {
+      riskScore += symptomScores[symptom] || 0;
+    });
+
+    // 风险因子评分
+    const riskFactorWeights = {
+      'age_65_plus': 3, 'chronic_lung': 3, 'heart_disease': 3,
+      'diabetes': 2, 'obesity': 2, 'immunocompromised': 3,
+      'pregnancy': 2, 'smoking': 2, 'kidney_disease': 2, 'liver_disease': 2
+    };
+
+    riskFactors.forEach(factor => {
+      riskScore += riskFactorWeights[factor] || 0;
+    });
+
+    // 体温评分
+    if (temperature) {
+      if (temperature >= 39) riskScore += 3;
+      else if (temperature >= 38) riskScore += 2;
+      else if (temperature >= 37.5) riskScore += 1;
+    }
+
+    // 接触史评分
+    if (exposureHistory === 'confirmed') riskScore += 4;
+    else if (exposureHistory === 'suspected') riskScore += 2;
+    else if (exposureHistory === 'community') riskScore += 1;
+
+    // 确定风险等级
+    if (riskScore >= 12) {
+      riskLevel = 'very_high';
       severity = 'severe';
+    } else if (riskScore >= 8) {
       riskLevel = 'high';
-      recommendations.push('立即就医');
-      recommendations.push('居家隔离');
-    } else if (hasModerateSymptoms) {
-      severity = 'moderate';
+      severity = 'severe';
+    } else if (riskScore >= 5) {
       riskLevel = 'medium';
-      recommendations.push('密切观察症状');
-      recommendations.push('居家休息');
+      severity = 'moderate';
+    } else if (riskScore >= 2) {
+      riskLevel = 'low';
+      severity = 'mild';
+    } else {
+      riskLevel = 'very_low';
+      severity = 'mild';
     }
 
-    // 基于接触史调整风险等级
-    if (exposureHistory || contactHistory) {
-      if (riskLevel === 'low') riskLevel = 'medium';
-      else if (riskLevel === 'medium') riskLevel = 'high';
-      recommendations.push('进行COVID-19检测');
-      recommendations.push('避免与他人接触');
-    }
-
-    // 基于疫苗接种状态调整建议
-    if (vaccinationStatus === 'unvaccinated') {
-      recommendations.push('建议接种COVID-19疫苗');
-    }
-
-    // 通用建议
-    recommendations.push('佩戴口罩');
-    recommendations.push('勤洗手');
-    recommendations.push('保持社交距离');
+    // 生成建议
+    const recommendations = this.generateRecommendations(riskLevel, assessmentType);
 
     return {
+      riskScore,
       severity,
       riskLevel,
-      recommendations: [...new Set(recommendations)] // 去重
+      recommendations
     };
+  }
+
+  private generateRecommendations(riskLevel: string, assessmentType: string) {
+    const recommendations = {
+      testing: [],
+      isolation: [],
+      monitoring: [],
+      medical: [],
+      prevention: []
+    };
+
+    switch (riskLevel) {
+      case 'very_high':
+        recommendations.testing.push('立即进行PCR检测');
+        recommendations.testing.push('考虑快速抗原检测作为补充');
+        recommendations.isolation.push('立即开始隔离，直到获得阴性检测结果');
+        recommendations.isolation.push('隔离期间避免与他人接触');
+        recommendations.monitoring.push('密切监测症状变化');
+        recommendations.monitoring.push('每日测量体温');
+        recommendations.medical.push('立即联系医疗机构');
+        recommendations.medical.push('如出现呼吸困难，立即就医');
+        break;
+
+      case 'high':
+        recommendations.testing.push('建议在24小时内进行检测');
+        recommendations.testing.push('可考虑快速抗原检测');
+        recommendations.isolation.push('开始预防性隔离');
+        recommendations.isolation.push('避免与高风险人群接触');
+        recommendations.monitoring.push('监测症状发展');
+        recommendations.monitoring.push('记录体温变化');
+        recommendations.medical.push('联系医疗提供者咨询');
+        break;
+
+      case 'medium':
+        recommendations.testing.push('考虑进行检测');
+        recommendations.isolation.push('减少外出和社交活动');
+        recommendations.monitoring.push('观察症状变化');
+        recommendations.prevention.push('佩戴口罩');
+        recommendations.prevention.push('勤洗手');
+        break;
+
+      case 'low':
+      case 'very_low':
+        recommendations.monitoring.push('继续观察症状');
+        recommendations.prevention.push('保持良好卫生习惯');
+        recommendations.prevention.push('充足休息');
+        recommendations.prevention.push('多喝水');
+        break;
+    }
+
+    return recommendations;
   }
 } 

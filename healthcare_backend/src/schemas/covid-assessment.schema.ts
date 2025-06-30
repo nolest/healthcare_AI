@@ -8,26 +8,48 @@ export class CovidAssessment {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   userId: Types.ObjectId;
 
+  @Prop({ required: true, default: 'covid' })
+  assessmentType: string; // 'covid' or 'flu'
+
   @Prop({ required: true })
   symptoms: string[];
 
+  @Prop()
+  riskFactors: string[];
+
+  @Prop()
+  temperature: number;
+
+  @Prop()
+  symptomOnset: string;
+
+  @Prop()
+  exposureHistory: string;
+
+  @Prop()
+  travelHistory: string;
+
+  @Prop()
+  contactHistory: string;
+
+  @Prop()
+  additionalNotes: string;
+
   @Prop({ required: true })
-  severity: string;
+  riskScore: number;
 
   @Prop({ required: true })
   riskLevel: string;
 
-  @Prop({ required: true })
-  recommendations: string[];
-
   @Prop()
-  exposureHistory: boolean;
+  riskLevelLabel: string;
 
-  @Prop()
-  travelHistory: boolean;
+  @Prop({ type: Object })
+  recommendations: any;
 
+  // 保留旧字段以兼容性
   @Prop()
-  contactHistory: boolean;
+  severity: string;
 
   @Prop()
   vaccinationStatus: string;

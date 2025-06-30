@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx'
@@ -28,6 +29,7 @@ import apiService from '../services/api.js'
 import i18n from '../utils/i18n'
 
 export default function PatientDashboard() {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('overview')
   const [measurements, setMeasurements] = useState([])
   const [diagnoses, setDiagnoses] = useState([])
@@ -277,6 +279,36 @@ export default function PatientDashboard() {
               </CardContent>
             </Card>
 
+            {/* COVID/流感评估快速入口 */}
+            <Card className="border-blue-200 bg-blue-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-blue-700">
+                  <Shield className="h-6 w-6" />
+                  COVID/流感健康评估
+                </CardTitle>
+                <CardDescription className="text-blue-600">
+                  定期进行症状评估，获得专业的健康指导和风险分析
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm text-blue-700 font-medium">快速症状评估</p>
+                    <p className="text-xs text-blue-600">
+                      基于WHO和CDC指导原则的专业评估工具
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={() => navigate('/patient/covid-assessment')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    開始評估
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* 最新诊断 */}
             {diagnoses.length > 0 && (
               <Card>
@@ -437,15 +469,31 @@ export default function PatientDashboard() {
           </TabsContent>
 
           <TabsContent value="covid_flu" className="space-y-6">
-            <CovidFluAssessment 
-              user={user}
-              onAssessmentComplete={(result) => {
-                // 评估完成后的处理
-                console.log('COVID/流感评估完成:', result)
-                // 可以触发数据刷新或其他操作
-                fetchData()
-              }}
-            />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-6 w-6 text-blue-600" />
+                  COVID/流感健康评估
+                </CardTitle>
+                <CardDescription>
+                  专业的症状评估和风险分析，提供个人化的健康建议
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center space-y-4">
+                  <p className="text-gray-600">
+                    点击下方按钮进入专门的COVID/流感评估页面，获得更好的评估体验。
+                  </p>
+                  <Button 
+                    onClick={() => navigate('/patient/covid-assessment')}
+                    className="w-full max-w-md"
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    开始COVID/流感评估
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="tracking" className="space-y-6">

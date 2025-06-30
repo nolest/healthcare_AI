@@ -517,17 +517,22 @@ export default function MedicalStaffDashboard() {
                   COVID-19 和流感管理
                 </CardTitle>
                 <CardDescription>
-                  查看患者COVID-19和流感評估結果，提供專業診斷和建議
+                  专业的疫情监控与管理平台，查看患者评估结果和统计数据
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <PatientCovidAssessments 
-                  user={user}
-                  onPatientSelect={(patient) => {
-                    setSelectedPatient(patient)
-                    setActiveTab('diagnosis')
-                  }}
-                />
+                <div className="text-center space-y-4">
+                  <p className="text-gray-600">
+                    点击下方按钮进入专门的COVID/流感管理中心，获得更全面的管理功能。
+                  </p>
+                  <Button 
+                    onClick={() => navigate('/medical/covid-management')}
+                    className="w-full max-w-md"
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    进入COVID/流感管理中心
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

@@ -98,35 +98,69 @@ class ApiService {
   }
 
   // 提交带图片的测量数据
-  async submitMeasurementWithImages(formData) {
+  async submitMeasurementWithImages(formData, onProgress = null) {
     const url = `${this.baseURL}/measurements`;
-    const config = {
-      method: 'POST',
-      headers: {
-        // 不设置Content-Type，让浏览器自动设置multipart/form-data
-        'Authorization': this.token ? `Bearer ${this.token}` : undefined,
-      },
-      body: formData,
-    };
+    console.log('🌐 API: 开始提交测量数据到:', url)
+    console.log('🔐 API: 认证token存在:', !!this.token)
 
-    // 移除undefined的header
-    if (!config.headers.Authorization) {
-      delete config.headers.Authorization;
-    }
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
 
-    try {
-      const response = await fetch(url, config);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+      // 设置上传进度监听
+      if (onProgress) {
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            onProgress(percentComplete);
+          }
+        });
       }
 
-      return data;
-    } catch (error) {
-      console.error('API请求失败:', error);
-      throw error;
-    }
+      xhr.addEventListener('load', () => {
+        console.log('📡 API: 收到响应, status:', xhr.status)
+        console.log('📄 API: 响应内容:', xhr.responseText)
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            console.log('✅ API: 请求成功')
+            resolve(data);
+          } else {
+            console.log('❌ API: 请求失败, status:', xhr.status)
+            reject(new Error(data.message || `HTTP error! status: ${xhr.status}`));
+          }
+        } catch (error) {
+          console.log('❌ API: 响应解析失败:', error)
+          reject(new Error('响应解析失败'));
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        console.log('❌ API: 网络请求失败')
+        reject(new Error('网络请求失败'));
+      });
+
+      xhr.addEventListener('timeout', () => {
+        console.log('❌ API: 请求超时')
+        reject(new Error('请求超时'));
+      });
+
+      xhr.open('POST', url);
+      console.log('🔧 API: 设置请求头和超时时间')
+      
+      // 设置认证头
+      if (this.token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${this.token}`);
+        console.log('🔐 API: 已设置认证头')
+      } else {
+        console.log('⚠️ API: 没有认证token')
+      }
+
+      // 设置超时时间（30秒）
+      xhr.timeout = 30000;
+
+      console.log('🚀 API: 开始发送请求...')
+      xhr.send(formData);
+    });
   }
 
   async createTestMeasurement() {

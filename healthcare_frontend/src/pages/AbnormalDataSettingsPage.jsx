@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card.jsx'
@@ -21,6 +21,25 @@ export default function AbnormalDataSettingsPage() {
   })
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [currentUser, setCurrentUser] = useState(null)
+
+  useEffect(() => {
+    // 检查用户是否已登录和权限
+    const userData = apiService.getCurrentUser()
+    if (!userData) {
+      navigate('/login')
+      return
+    }
+    
+    // 只允许医护人员访问此测试工具
+    if (userData.role !== 'medical_staff') {
+      alert('此功能仅限医护人员使用')
+      navigate('/login')
+      return
+    }
+
+    setCurrentUser(userData)
+  }, [navigate])
 
   const measurementTypes = [
     {
@@ -198,6 +217,18 @@ export default function AbnormalDataSettingsPage() {
   }
 
   const selectedTypeInfo = measurementTypes.find(t => t.value === selectedType)
+
+  // 权限检查中，显示加载状态
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">檢查權限中...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
