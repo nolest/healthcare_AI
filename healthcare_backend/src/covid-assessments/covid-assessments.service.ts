@@ -5,7 +5,7 @@ import { CovidAssessment, CovidAssessmentDocument } from '../schemas/covid-asses
 import { User, UserDocument } from '../schemas/user.schema';
 
 export interface CreateCovidAssessmentDto {
-  assessmentType: string; // 'covid' or 'flu'
+  assessmentType?: string; // 'covid' or 'flu' - 可选，由服务器智能判断
   symptoms: string[];
   riskFactors?: string[];
   temperature?: number;
@@ -19,6 +19,7 @@ export interface CreateCovidAssessmentDto {
   riskLevelLabel?: string;
   recommendations?: any;
   severity?: string;
+  imagePaths?: string[]; // 图片路径数组
 }
 
 export interface UpdateCovidAssessmentDto {
@@ -49,8 +50,15 @@ export class CovidAssessmentsService {
   ) {}
 
   async create(userId: string, createCovidAssessmentDto: CreateCovidAssessmentDto) {
+    // 智能判断疾病类型
+    const predictedType = this.predictDiseaseType(createCovidAssessmentDto.symptoms || []);
+    
     // 如果没有提供风险评分和等级，则计算
-    let assessmentData = { ...createCovidAssessmentDto };
+    let assessmentData = { 
+      ...createCovidAssessmentDto, 
+      assessmentType: predictedType // 使用AI预测的类型
+    };
+    
     if (!assessmentData.riskScore || !assessmentData.riskLevel) {
       const assessment = this.calculateAssessment(assessmentData);
       assessmentData.riskScore = assessment.riskScore;
@@ -195,6 +203,70 @@ export class CovidAssessmentsService {
       severityStats,
       recentTrend: recentAssessments,
     };
+  }
+
+  // 智能预测疾病类型
+  private predictDiseaseType(symptoms: string[]): string {
+    // COVID-19特征症状
+    const covidIndicators = [
+      'loss_taste_smell', // 味觉嗅觉丧失 - COVID-19特有
+      'shortness_breath', // 呼吸困难 - COVID-19常见
+    ];
+    
+    // 流感特征症状
+    const fluIndicators = [
+      'chills', // 寒颤 - 流感特有
+      'body_aches', // 肌肉疼痛 - 流感更常见
+    ];
+    
+    // 计算COVID-19和流感的指示度
+    let covidScore = 0;
+    let fluScore = 0;
+    
+    symptoms.forEach(symptom => {
+      if (covidIndicators.includes(symptom)) {
+        covidScore += 3; // COVID特征症状权重更高
+      } else if (fluIndicators.includes(symptom)) {
+        fluScore += 3; // 流感特征症状权重更高
+      } else {
+        // 通用症状，根据症状特点分配权重
+        switch (symptom) {
+          case 'fever':
+            covidScore += 1;
+            fluScore += 2; // 流感发烧更常见
+            break;
+          case 'cough':
+            covidScore += 2; // COVID咳嗽更持久
+            fluScore += 1;
+            break;
+          case 'fatigue':
+            covidScore += 1;
+            fluScore += 2; // 流感疲劳更突然
+            break;
+          case 'headache':
+            fluScore += 2; // 流感头痛更常见
+            covidScore += 1;
+            break;
+          case 'sore_throat':
+          case 'runny_nose':
+          case 'nausea':
+          case 'diarrhea':
+            covidScore += 1;
+            fluScore += 1;
+            break;
+        }
+      }
+    });
+    
+    // 根据得分判断类型
+    if (covidScore > fluScore) {
+      return 'covid';
+    } else if (fluScore > covidScore) {
+      return 'flu';
+    } else {
+      // 如果得分相等，默认为COVID（更谨慎的做法）
+      return 'covid';
+    }
   }
 
   private calculateAssessment(data: any) {

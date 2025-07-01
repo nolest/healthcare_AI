@@ -8,19 +8,16 @@ import {
   Activity, 
   Thermometer, 
   Droplets, 
-  LogOut, 
-  User, 
   Calendar,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
   Shield,
-  ArrowLeft,
   Plus,
   FileText,
   Stethoscope
 } from 'lucide-react'
-import LanguageSwitcher from '../components/LanguageSwitcher.jsx'
+import PatientHeader from '../components/ui/PatientHeader.jsx'
 import apiService from '../services/api.js'
 import i18n from '../utils/i18n'
 
@@ -150,38 +147,13 @@ export default function PatientOverviewPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/patient')}
-                className="mr-4"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                返回菜單
-              </Button>
-              <Heart className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">健康概覽</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <LanguageSwitcher />
-              <div className="flex items-center">
-                <User className="h-5 w-5 text-gray-400 mr-2" />
-                <span className="text-gray-700">{user?.username || 'Loading...'}</span>
-              </div>
-              <Button variant="outline" onClick={() => {
-                apiService.logout()
-                window.location.href = '/login'
-              }}>
-                <LogOut className="h-4 w-4 mr-2" />
-                登出
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PatientHeader 
+        title="健康概覽"
+        subtitle="查看您的健康狀態總覽"
+        icon={Heart}
+        showBackButton={true}
+        user={user}
+      />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

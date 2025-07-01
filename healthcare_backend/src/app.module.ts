@@ -7,6 +7,8 @@ import { AuthModule } from './auth/auth.module';
 import { MeasurementsModule } from './measurements/measurements.module';
 import { DiagnosesModule } from './diagnoses/diagnoses.module';
 import { CovidAssessmentsModule } from './covid-assessments/covid-assessments.module';
+import { CovidDiagnosesModule } from './covid-diagnoses/covid-diagnoses.module';
+import { DiagnosisReportsModule } from './diagnosis-reports/diagnosis-reports.module';
 import { UsersModule } from './users/users.module';
 import { AbnormalRangesModule } from './abnormal-ranges/abnormal-ranges.module';
 import { databaseConfig } from './config/database.config';
@@ -21,6 +23,8 @@ import { databaseConfig } from './config/database.config';
     MeasurementsModule,
     DiagnosesModule,
     CovidAssessmentsModule,
+    CovidDiagnosesModule,
+    DiagnosisReportsModule,
     UsersModule,
     AbnormalRangesModule,
   ],

@@ -8,7 +8,7 @@ import { CreateMeasurementDto, UpdateMeasurementStatusDto } from '../dto/measure
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { multerConfig } from '../config/multer.config';
+import { createMulterConfig } from '../config/multer.config';
 
 @ApiTags('测量数据')
 @Controller('measurements')
@@ -18,7 +18,7 @@ export class MeasurementsController {
   constructor(private readonly measurementsService: MeasurementsService) {}
 
   @Post()
-  @UseInterceptors(FilesInterceptor('images', 5, multerConfig))
+  @UseInterceptors(FilesInterceptor('images', 5, createMulterConfig('measurement')))
   @ApiOperation({ summary: '提交测量数据' })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({ status: 201, description: '提交成功' })
@@ -61,15 +61,16 @@ export class MeasurementsController {
     }
   }
 
-  @Get('images/:userId/:filename')
+  @Get('images/:businessType/:userId/:filename')
   @ApiOperation({ summary: '获取患者上传的图片' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async getImage(
+    @Param('businessType') businessType: string,
     @Param('userId') userId: string,
     @Param('filename') filename: string,
     @Res() res: Response
   ) {
-    const imagePath = join(process.cwd(), 'uploads', 'pic', userId, filename);
+    const imagePath = join(process.cwd(), 'uploads', 'pic', businessType, userId, filename);
     return res.sendFile(imagePath);
   }
 

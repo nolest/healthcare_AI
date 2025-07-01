@@ -59,6 +59,9 @@ export class CovidAssessment {
 
   @Prop()
   notes: string;
+
+  @Prop({ type: [String], default: [] })
+  imagePaths: string[];
 }
 
 export const CovidAssessmentSchema = SchemaFactory.createForClass(CovidAssessment); 

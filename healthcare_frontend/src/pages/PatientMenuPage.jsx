@@ -8,12 +8,10 @@ import {
   FileText, 
   Shield, 
   TrendingUp,
-  User,
-  LogOut,
   Plus,
   AlertCircle
 } from 'lucide-react'
-import LanguageSwitcher from '../components/LanguageSwitcher.jsx'
+import PatientHeader from '../components/ui/PatientHeader.jsx'
 import apiService from '../services/api.js'
 
 export default function PatientMenuPage() {
@@ -41,14 +39,14 @@ export default function PatientMenuPage() {
 
   const fetchUnreadDiagnoses = async () => {
     try {
-      const diagnoses = await apiService.getMyDiagnoses()
-      // 计算24小时内的新诊断数量
-      const now = new Date()
-      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-      const unread = diagnoses.filter(d => new Date(d.created_at) > oneDayAgo).length
-      setUnreadDiagnoses(unread)
+      const currentUserId = apiService.getCurrentUser()?.userId
+      if (currentUserId) {
+        const unreadCount = await apiService.getUnreadDiagnosisReportsCount(currentUserId)
+        setUnreadDiagnoses(unreadCount)
+      }
     } catch (error) {
-      console.error('Error fetching diagnoses:', error)
+      console.error('Error fetching unread diagnosis reports:', error)
+      setUnreadDiagnoses(0)
     }
   }
 
@@ -87,7 +85,7 @@ export default function PatientMenuPage() {
       color: 'text-orange-600',
       bgColor: 'bg-orange-50 hover:bg-orange-100',
       borderColor: 'border-orange-200',
-      path: '/patient/diagnoses',
+      path: '/patient/diagnosis-reports',
       badge: unreadDiagnoses > 0 ? unreadDiagnoses : null
     },
     {
@@ -122,54 +120,13 @@ export default function PatientMenuPage() {
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-white/20 shadow-lg shadow-blue-500/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg shadow-blue-500/25 mr-3">
-                <Heart className="h-8 w-8 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">患者中心</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              {/* 语言设置 - 优化样式 */}
-              <div className="h-11 bg-gradient-to-br from-white/70 to-white/50 backdrop-blur-md rounded-2xl shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 transition-all duration-300 overflow-hidden flex items-center">
-                <LanguageSwitcher />
-              </div>
-              
-              {/* 用户信息 - 添加点击事件 */}
-              <div 
-                className="h-11 flex items-center bg-gradient-to-br from-white/70 to-white/50 backdrop-blur-md rounded-2xl px-4 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 cursor-pointer transition-all duration-300 hover:scale-[1.02] group"
-                onClick={() => {
-                  if (window.location.pathname === '/patient') {
-                    window.location.reload()
-                  } else {
-                    navigate('/patient')
-                  }
-                }}
-              >
-                <div className="p-1.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl mr-3 group-hover:scale-105 transition-transform duration-300">
-                  <User className="h-4 w-4 text-white" />
-                </div>
-                <span className="text-gray-700 font-medium group-hover:text-blue-700 transition-colors duration-300">{currentUser?.username}</span>
-              </div>
-              
-              {/* 登出按钮 - 弱化视觉效果 */}
-              <Button 
-                variant="ghost" 
-                className="h-11 bg-white/40 backdrop-blur-sm border-0 hover:bg-white/60 text-gray-600 hover:text-gray-800 shadow-md hover:shadow-lg transition-all duration-300 rounded-2xl px-4"
-                onClick={() => {
-                  apiService.logout()
-                  window.location.href = '/login'
-                }}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                <span className="text-sm">登出</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PatientHeader 
+        title="患者中心"
+        subtitle=""
+        icon={Heart}
+        showBackButton={false}
+        user={currentUser}
+      />
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">

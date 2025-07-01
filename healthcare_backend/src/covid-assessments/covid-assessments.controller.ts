@@ -1,9 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, Request } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Body, Patch, Param, UseGuards, Request, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { CovidAssessmentsService, CreateCovidAssessmentDto, UpdateCovidAssessmentDto } from './covid-assessments.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { createMulterConfig } from '../config/multer.config';
 
 @ApiTags('COVID评估')
 @Controller('covid-assessments')
@@ -13,10 +15,52 @@ export class CovidAssessmentsController {
   constructor(private readonly covidAssessmentsService: CovidAssessmentsService) {}
 
   @Post()
+  @UseInterceptors(FilesInterceptor('images', 5, createMulterConfig('covid')))
   @ApiOperation({ summary: '创建COVID评估' })
+  @ApiConsumes('multipart/form-data')
   @ApiResponse({ status: 201, description: '创建成功' })
-  async create(@Request() req, @Body() createCovidAssessmentDto: CreateCovidAssessmentDto) {
-    return this.covidAssessmentsService.create(req.user._id, createCovidAssessmentDto);
+  async create(
+    @Request() req, 
+    @Body() createCovidAssessmentDto: any, // 使用any类型以便手动处理数据转换
+    @UploadedFiles() files: Express.Multer.File[]
+  ) {
+    try {
+      // 处理上传的图片路径
+      const imagePaths = files ? files.map(file => {
+        // 返回相对于uploads目录的路径
+        const relativePath = file.path.replace(process.cwd(), '').replace(/\\/g, '/');
+        return relativePath.startsWith('/') ? relativePath : '/' + relativePath;
+      }) : [];
+
+      // 手动转换数据类型（multipart/form-data中所有数据都是字符串）
+      const assessmentData: CreateCovidAssessmentDto = {
+        symptoms: createCovidAssessmentDto.symptoms ? JSON.parse(createCovidAssessmentDto.symptoms) : [],
+        riskFactors: createCovidAssessmentDto.riskFactors ? JSON.parse(createCovidAssessmentDto.riskFactors) : [],
+        temperature: createCovidAssessmentDto.temperature ? parseFloat(createCovidAssessmentDto.temperature) : undefined,
+        symptomOnset: createCovidAssessmentDto.symptomOnset || '',
+        exposureHistory: createCovidAssessmentDto.exposureHistory || '',
+        travelHistory: createCovidAssessmentDto.travelHistory || '',
+        contactHistory: createCovidAssessmentDto.contactHistory || '',
+        additionalNotes: createCovidAssessmentDto.additionalNotes || '',
+        riskScore: createCovidAssessmentDto.riskScore ? parseInt(createCovidAssessmentDto.riskScore) : 0,
+        riskLevel: createCovidAssessmentDto.riskLevel || '',
+        riskLevelLabel: createCovidAssessmentDto.riskLevelLabel || '',
+        recommendations: createCovidAssessmentDto.recommendations ? JSON.parse(createCovidAssessmentDto.recommendations) : {},
+        imagePaths
+      };
+
+      // 过滤掉undefined值
+      Object.keys(assessmentData).forEach(key => {
+        if (assessmentData[key] === undefined) {
+          delete assessmentData[key];
+        }
+      });
+
+      return this.covidAssessmentsService.create(req.user._id, assessmentData);
+    } catch (error) {
+      console.error('创建COVID评估记录时出错:', error);
+      throw error;
+    }
   }
 
   @Get()

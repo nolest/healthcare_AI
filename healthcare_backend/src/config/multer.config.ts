@@ -4,15 +4,16 @@ import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { generateUniformFilename } from '../utils/filename.utils';
 
-export const multerConfig: MulterOptions = {
+// 创建通用的multer配置工厂函数
+export const createMulterConfig = (businessType: 'measurement' | 'covid' = 'measurement'): MulterOptions => ({
   storage: diskStorage({
     destination: (req, file, cb) => {
       try {
-        // 根据用户ID创建文件夹，如果无法获取用户ID则使用临时目录
+        // 根据用户ID和业务类型创建文件夹
         const userId = (req as any).user?._id || (req as any).user?.id || 'temp';
-        const uploadPath = join(process.cwd(), 'uploads', 'pic', String(userId));
+        const uploadPath = join(process.cwd(), 'uploads', 'pic', businessType, String(userId));
         
-        console.log('Upload destination:', uploadPath);
+        console.log(`Upload destination (${businessType}):`, uploadPath);
         console.log('User from request:', (req as any).user);
         
         // 如果文件夹不存在则创建
@@ -61,4 +62,7 @@ export const multerConfig: MulterOptions = {
     fileSize: 5 * 1024 * 1024, // 5MB 限制
     files: 5, // 最多5个文件
   },
-}; 
+});
+
+// 向后兼容的默认配置（用于measurement）
+export const multerConfig: MulterOptions = createMulterConfig('measurement'); 

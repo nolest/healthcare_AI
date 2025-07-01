@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input.jsx'
 import { Label } from '@/components/ui/label.jsx'
 import { Textarea } from '@/components/ui/textarea.jsx'
 import { Alert, AlertDescription } from '@/components/ui/alert.jsx'
-import { Progress } from '@/components/ui/progress.jsx'
-import { Loader2, Heart, Activity, Thermometer, Droplets, Upload, X, Image, CheckCircle } from 'lucide-react'
+import { Loader2, Heart, Activity, Thermometer, Droplets, CheckCircle } from 'lucide-react'
+import ImageUpload from './ui/ImageUpload.jsx'
 import apiService from '../services/api.js'
 
 export default function MeasurementForm({ onMeasurementAdded }) {
@@ -22,7 +22,6 @@ export default function MeasurementForm({ onMeasurementAdded }) {
 
   // 图片上传相关状态
   const [selectedImages, setSelectedImages] = useState([])
-  const [imagePreviewUrls, setImagePreviewUrls] = useState([])
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
 
@@ -46,52 +45,10 @@ export default function MeasurementForm({ onMeasurementAdded }) {
     })
   }
 
-  // 处理图片选择
-  const handleImageSelect = (e) => {
-    const files = Array.from(e.target.files)
-    
-    // 检查文件数量限制
-    if (files.length > 5) {
-      setError('最多只能上传5张图片')
-      return
-    }
-
-    // 检查文件类型和大小
-    const validFiles = []
-    const validPreviewUrls = []
-    
-    for (const file of files) {
-      // 检查文件类型
-      if (!file.type.startsWith('image/')) {
-        setError('只能上传图片文件')
-        return
-      }
-      
-      // 检查文件大小 (5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('图片文件大小不能超过5MB')
-        return
-      }
-      
-      validFiles.push(file)
-      validPreviewUrls.push(URL.createObjectURL(file))
-    }
-    
-    setSelectedImages(validFiles)
-    setImagePreviewUrls(validPreviewUrls)
+  // 处理图片变更
+  const handleImagesChange = (images, previewUrls) => {
+    setSelectedImages(images)
     setError('') // 清除错误信息
-  }
-
-  // 移除图片
-  const removeImage = (index) => {
-    const newImages = selectedImages.filter((_, i) => i !== index)
-    const newPreviewUrls = imagePreviewUrls.filter((_, i) => i !== index)
-    
-    // 释放URL对象
-    URL.revokeObjectURL(imagePreviewUrls[index])
-    
-    setSelectedImages(newImages)
-    setImagePreviewUrls(newPreviewUrls)
   }
 
   const validateForm = () => {
@@ -240,302 +197,215 @@ export default function MeasurementForm({ onMeasurementAdded }) {
   }
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <Heart className="h-5 w-5 text-red-500" />
-          <span>生理指標測量</span>
-        </CardTitle>
-        <CardDescription>
-          請輸入您的生理指標測量數據（至少填寫一項）
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          {success && (
-            <Alert className={success.includes('⚠️') ? 'border-orange-200 bg-orange-50' : 'border-green-200 bg-green-50'}>
-              <AlertDescription className="whitespace-pre-line">{success}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="systolic" className="flex items-center space-x-2">
-                <Heart className="h-4 w-4 text-red-500" />
-                <span>收縮壓 (mmHg) <span className="text-gray-500 text-sm">可選</span></span>
-              </Label>
-              <Input
-                id="systolic"
-                type="number"
-                placeholder="120"
-                value={formData.systolic}
-                onChange={(e) => handleChange('systolic', e.target.value)}
-                disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="diastolic" className="flex items-center space-x-2">
-                <Heart className="h-4 w-4 text-blue-500" />
-                <span>舒張壓 (mmHg) <span className="text-gray-500 text-sm">可選</span></span>
-              </Label>
-              <Input
-                id="diastolic"
-                type="number"
-                placeholder="80"
-                value={formData.diastolic}
-                onChange={(e) => handleChange('diastolic', e.target.value)}
-                disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="heartRate" className="flex items-center space-x-2">
-                <Activity className="h-4 w-4 text-green-500" />
-                <span>心率 (次/分) <span className="text-gray-500 text-sm">可選</span></span>
-              </Label>
-              <Input
-                id="heartRate"
-                type="number"
-                placeholder="72"
-                value={formData.heartRate}
-                onChange={(e) => handleChange('heartRate', e.target.value)}
-                disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="temperature" className="flex items-center space-x-2">
-                <Thermometer className="h-4 w-4 text-orange-500" />
-                <span>體溫 (°C) <span className="text-gray-500 text-sm">可選</span></span>
-              </Label>
-              <Input
-                id="temperature"
-                type="number"
-                step="0.1"
-                placeholder="36.5"
-                value={formData.temperature}
-                onChange={(e) => handleChange('temperature', e.target.value)}
-                disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="oxygenSaturation" className="flex items-center space-x-2">
-                <Droplets className="h-4 w-4 text-blue-600" />
-                <span>血氧飽和度 (%) <span className="text-gray-500 text-sm">可選</span></span>
-              </Label>
-              <Input
-                id="oxygenSaturation"
-                type="number"
-                placeholder="98"
-                value={formData.oxygenSaturation}
-                onChange={(e) => handleChange('oxygenSaturation', e.target.value)}
-                disabled={loading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="measurementTime">測量時間 <span className="text-red-500">*</span></Label>
-              <Input
-                id="measurementTime"
-                type="datetime-local"
-                value={formData.measurementTime}
-                onChange={(e) => handleChange('measurementTime', e.target.value)}
-                disabled={loading}
-                required
-              />
-            </div>
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-gradient-to-br from-white/90 via-white/85 to-white/90 backdrop-blur-md rounded-3xl shadow-2xl shadow-green-500/20 border-0 p-6 relative overflow-hidden">
+        {/* 装饰性背景元素 */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-green-200/20 to-transparent rounded-full blur-2xl"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-emerald-200/20 to-transparent rounded-full blur-2xl"></div>
+        
+        <div className="relative z-10">
+          <div className="text-center mb-6">
+            <h3 className="text-lg font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
+              生理指標測量
+            </h3>
+            <p className="text-gray-700/80 text-sm">
+              請輸入您的生理指標測量數據（至少填寫一項）
+            </p>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">備註（可選）</Label>
-            <Textarea
-              id="notes"
-              placeholder="記錄任何相關的症狀或特殊情況..."
-              value={formData.notes}
-              onChange={(e) => handleChange('notes', e.target.value)}
-              disabled={loading}
-              rows={3}
-            />
-          </div>
-
-          {/* 图片上传区域 */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Image className="h-4 w-4 text-purple-500" />
-                  <span>症狀圖片（可選，最多5張）</span>
-                </div>
-                {selectedImages.length > 0 && (
-                  <span className="text-xs text-gray-500">
-                    已選擇 {selectedImages.length}/5 張
-                  </span>
-                )}
-              </Label>
-              <div className={`border-2 border-dashed rounded-lg p-4 transition-colors ${
-                selectedImages.length >= 5 
-                  ? 'border-gray-200 bg-gray-50' 
-                  : 'border-gray-300 hover:border-gray-400'
-              }`}>
-                <div className="text-center">
-                  <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                  <Label htmlFor="image-upload" className={`cursor-pointer ${selectedImages.length >= 5 ? 'cursor-not-allowed' : ''}`}>
-                    <span className="text-sm text-gray-600">
-                      {selectedImages.length >= 5 
-                        ? '已達到最大上傳數量' 
-                        : '點擊選擇圖片或拖拽圖片到此處'
-                      }
-                    </span>
-                    <Input
-                      id="image-upload"
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={handleImageSelect}
-                      disabled={loading || isUploading || selectedImages.length >= 5}
-                      className="hidden"
-                    />
-                  </Label>
-                  <p className="text-xs text-gray-500 mt-1">
-                    支持 JPG、PNG、GIF、WebP 格式，單個文件不超過5MB
-                  </p>
-                  {selectedImages.length > 0 && (
-                    <p className="text-xs text-blue-600 mt-1">
-                      💡 提示：可以一次選擇多張圖片進行上傳
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* 图片预览 */}
-            {imagePreviewUrls.length > 0 && (
-              <div className="space-y-2">
-                <Label className="flex items-center justify-between">
-                  <span>已選擇的圖片預覽</span>
-                  <span className="text-xs text-gray-500">
-                    總大小: {(selectedImages.reduce((total, img) => total + img.size, 0) / 1024 / 1024).toFixed(1)} MB
-                  </span>
-                </Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {imagePreviewUrls.map((url, index) => (
-                    <div key={index} className="relative group">
-                      <div className="relative">
-                        <img
-                          src={url}
-                          alt={`預覽 ${index + 1}`}
-                          className={`w-full h-24 object-cover rounded-lg border transition-opacity ${
-                            isUploading ? 'opacity-75' : ''
-                          }`}
-                        />
-                        {isUploading && (
-                          <div className="absolute inset-0 bg-blue-500 bg-opacity-20 rounded-lg flex items-center justify-center">
-                            <div className="bg-white bg-opacity-90 rounded-full p-1">
-                              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => removeImage(index)}
-                        disabled={loading || isUploading}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                      
-                      <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
-                        {selectedImages[index]?.name?.substring(0, 8)}...
-                      </div>
-                      
-                      <div className="absolute bottom-1 right-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
-                        {(selectedImages[index]?.size / 1024 / 1024).toFixed(1)}MB
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                {!isUploading && (
-                  <div className="flex items-center justify-between text-xs text-gray-500 bg-gray-50 p-2 rounded">
-                    <span>
-                      📎 {selectedImages.length} 張圖片已準備上傳
-                    </span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        imagePreviewUrls.forEach(url => URL.revokeObjectURL(url))
-                        setSelectedImages([])
-                        setImagePreviewUrls([])
-                      }}
-                      disabled={loading || isUploading}
-                      className="h-6 text-xs px-2"
-                    >
-                      清除全部
-                    </Button>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-gradient-to-r from-red-50/80 to-red-100/80 border-0 text-red-700 px-4 py-3 rounded-2xl shadow-inner backdrop-blur-sm">
+                <div className="flex items-center">
+                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mr-3 shadow-sm">
+                    <span className="text-white text-xs font-bold">!</span>
                   </div>
-                )}
+                  <span className="text-sm">{error}</span>
+                </div>
               </div>
             )}
-          </div>
-
-          {/* 上传进度显示 */}
-          {isUploading && (
-            <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Upload className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800">
-                    {uploadProgress < 100 ? '正在上传图片...' : '处理中...'}
-                  </span>
+            
+            {success && (
+              <div className={`${success.includes('⚠️') ? 'bg-gradient-to-r from-orange-50/80 to-orange-100/80 text-orange-700' : 'bg-gradient-to-r from-green-50/80 to-green-100/80 text-green-700'} border-0 px-4 py-3 rounded-2xl shadow-inner backdrop-blur-sm`}>
+                <div className="flex items-center">
+                  <div className={`w-5 h-5 rounded-full ${success.includes('⚠️') ? 'bg-gradient-to-br from-orange-500 to-orange-600' : 'bg-gradient-to-br from-green-500 to-green-600'} flex items-center justify-center mr-3 shadow-sm`}>
+                    <span className="text-white text-xs font-bold">{success.includes('⚠️') ? '!' : '✓'}</span>
+                  </div>
+                  <div className="text-sm whitespace-pre-line flex-1">{success}</div>
                 </div>
-                <span className="text-sm text-blue-600 font-semibold">
-                  {uploadProgress}%
-                </span>
               </div>
-              
-              <Progress value={uploadProgress} className="h-2" />
-              
-              {selectedImages.length > 0 && (
-                <div className="text-xs text-blue-600">
-                  正在上传 {selectedImages.length} 张图片
-                  {uploadProgress === 100 && (
-                    <span className="ml-2 inline-flex items-center">
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                      上传完成，正在保存记录...
-                    </span>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl shadow-sm">
+                  <Heart className="h-5 w-5 text-red-500" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <Label htmlFor="systolic" className="text-sm font-medium text-gray-700">
+                    收縮壓 (mmHg) <span className="text-gray-400 text-xs">可選</span>
+                  </Label>
+                  <Input
+                    id="systolic"
+                    type="number"
+                    placeholder="120"
+                    value={formData.systolic}
+                    onChange={(e) => handleChange('systolic', e.target.value)}
+                    disabled={loading}
+                    className="h-11 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-xl shadow-sm">
+                  <Heart className="h-5 w-5 text-blue-500" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <Label htmlFor="diastolic" className="text-sm font-medium text-gray-700">
+                    舒張壓 (mmHg) <span className="text-gray-400 text-xs">可選</span>
+                  </Label>
+                  <Input
+                    id="diastolic"
+                    type="number"
+                    placeholder="80"
+                    value={formData.diastolic}
+                    onChange={(e) => handleChange('diastolic', e.target.value)}
+                    disabled={loading}
+                    className="h-11 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl shadow-sm">
+                  <Activity className="h-5 w-5 text-green-500" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <Label htmlFor="heartRate" className="text-sm font-medium text-gray-700">
+                    心率 (次/分) <span className="text-gray-400 text-xs">可選</span>
+                  </Label>
+                  <Input
+                    id="heartRate"
+                    type="number"
+                    placeholder="72"
+                    value={formData.heartRate}
+                    onChange={(e) => handleChange('heartRate', e.target.value)}
+                    disabled={loading}
+                    className="h-11 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl shadow-sm">
+                  <Thermometer className="h-5 w-5 text-orange-500" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <Label htmlFor="temperature" className="text-sm font-medium text-gray-700">
+                    體溫 (°C) <span className="text-gray-400 text-xs">可選</span>
+                  </Label>
+                  <Input
+                    id="temperature"
+                    type="number"
+                    step="0.1"
+                    placeholder="36.5"
+                    value={formData.temperature}
+                    onChange={(e) => handleChange('temperature', e.target.value)}
+                    disabled={loading}
+                    className="h-11 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl shadow-sm">
+                  <Droplets className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <Label htmlFor="oxygenSaturation" className="text-sm font-medium text-gray-700">
+                    血氧飽和度 (%) <span className="text-gray-400 text-xs">可選</span>
+                  </Label>
+                  <Input
+                    id="oxygenSaturation"
+                    type="number"
+                    placeholder="98"
+                    value={formData.oxygenSaturation}
+                    onChange={(e) => handleChange('oxygenSaturation', e.target.value)}
+                    disabled={loading}
+                    className="h-11 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-xl shadow-sm">
+                  <CheckCircle className="h-5 w-5 text-purple-500" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <Label htmlFor="measurementTime" className="text-sm font-medium text-gray-700">
+                    測量時間 <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="measurementTime"
+                    type="datetime-local"
+                    value={formData.measurementTime}
+                    onChange={(e) => handleChange('measurementTime', e.target.value)}
+                    disabled={loading}
+                    required
+                    className="h-11 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="notes" className="text-sm font-medium text-gray-700">備註（可選）</Label>
+              <Textarea
+                id="notes"
+                placeholder="記錄任何相關的症狀或特殊情況..."
+                value={formData.notes}
+                onChange={(e) => handleChange('notes', e.target.value)}
+                disabled={loading}
+                rows={3}
+                className="bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 resize-none"
+              />
+            </div>
+
+            {/* 图片上传区域 */}
+            <ImageUpload
+              selectedImages={selectedImages}
+              onImagesChange={handleImagesChange}
+              disabled={loading}
+              uploading={isUploading}
+              uploadProgress={uploadProgress}
+              accentColor="green"
+            />
+
+            <div className="pt-2">
+              <Button 
+                type="submit" 
+                disabled={loading || isUploading}
+                className="w-full h-12 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 text-white font-semibold rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border-0"
+              >
+                <div className="flex items-center justify-center">
+                  {loading || isUploading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
+                      {isUploading ? '上傳中...' : '提交中...'}
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      提交測量記錄
+                    </>
                   )}
                 </div>
-              )}
+              </Button>
             </div>
-          )}
-
-          <Button type="submit" className="w-full" disabled={loading || isUploading}>
-            {loading || isUploading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isUploading ? '上傳中...' : '提交中...'}
-              </>
-            ) : (
-              '提交測量記錄'
-            )}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+          </form>
+        </div>
+      </div>
+    </div>
   )
 }
 

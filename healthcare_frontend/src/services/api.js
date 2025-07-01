@@ -1,4 +1,4 @@
-import { appConfig, getImageUrl, getFullImageUrl } from '../config/app.config.js';
+import { appConfig } from '../config/app.config.js';
 
 // API服务层 - 替换mockDataStore
 class ApiService {
@@ -218,17 +218,31 @@ class ApiService {
   }
 
   // 获取测量记录的图片URL
-  getImageUrl(userId, filename) {
-    return getImageUrl(userId, filename);
+  getImageUrl(userId, filename, businessType = 'measurement') {
+    return `${this.baseURL}/measurements/images/${businessType}/${userId}/${filename}`;
   }
 
   // 获取完整图片URL（从相对路径）
   getFullImageUrl(relativePath) {
-    return getFullImageUrl(relativePath);
+    if (!relativePath) return '';
+    
+    // 如果已经是完整URL，直接返回
+    if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+      return relativePath;
+    }
+    
+    // 确保路径以 / 开头
+    const normalizedPath = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
+    
+    return `${this.baseURL}${normalizedPath}`;
   }
 
   // 用户管理相关API
   async getUsers() {
+    return this.request('/users');
+  }
+
+  async getAllUsers() {
     return this.request('/users');
   }
 
@@ -244,11 +258,81 @@ class ApiService {
     return this.request(`/users/${userId}`);
   }
 
+  async getPatientMeasurements(patientId) {
+    return this.request(`/measurements/user/${patientId}`);
+  }
+
   // COVID评估相关API
   async submitCovidAssessment(assessmentData) {
     return this.request('/covid-assessments', {
       method: 'POST',
       body: JSON.stringify(assessmentData),
+    });
+  }
+
+  // 提交带图片的COVID评估数据
+  async submitCovidAssessmentWithImages(formData, onProgress = null) {
+    const url = `${this.baseURL}/covid-assessments`;
+    console.log('🌐 API: 开始提交COVID评估数据到:', url)
+    console.log('🔐 API: 认证token存在:', !!this.token)
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      // 设置上传进度监听
+      if (onProgress) {
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            onProgress(percentComplete);
+          }
+        });
+      }
+
+      xhr.addEventListener('load', () => {
+        console.log('📡 API: 收到响应, status:', xhr.status)
+        console.log('📄 API: 响应内容:', xhr.responseText)
+        try {
+          const data = JSON.parse(xhr.responseText);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            console.log('✅ API: 请求成功')
+            resolve(data);
+          } else {
+            console.log('❌ API: 请求失败, status:', xhr.status)
+            reject(new Error(data.message || `HTTP error! status: ${xhr.status}`));
+          }
+        } catch (error) {
+          console.log('❌ API: 响应解析失败:', error)
+          reject(new Error('响应解析失败'));
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        console.log('❌ API: 网络请求失败')
+        reject(new Error('网络请求失败'));
+      });
+
+      xhr.addEventListener('timeout', () => {
+        console.log('❌ API: 请求超时')
+        reject(new Error('请求超时'));
+      });
+
+      xhr.open('POST', url);
+      console.log('🔧 API: 设置请求头和超时时间')
+      
+      // 设置认证头
+      if (this.token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${this.token}`);
+        console.log('🔐 API: 已设置认证头')
+      } else {
+        console.log('⚠️ API: 没有认证token')
+      }
+
+      // 设置超时时间（30秒）
+      xhr.timeout = 30000;
+
+      console.log('🚀 API: 开始发送请求...')
+      xhr.send(formData);
     });
   }
 
@@ -318,6 +402,59 @@ class ApiService {
     return this.request('/diagnoses/stats');
   }
 
+  // COVID诊断相关API
+  async createCovidDiagnosis(diagnosisData) {
+    return this.request('/covid-diagnoses', {
+      method: 'POST',
+      body: JSON.stringify(diagnosisData),
+    });
+  }
+
+  async getMyCovidDiagnoses() {
+    return this.request('/covid-diagnoses/my-diagnoses');
+  }
+
+  async getAllCovidDiagnoses() {
+    return this.request('/covid-diagnoses');
+  }
+
+  async getPendingCovidDiagnoses() {
+    return this.request('/covid-diagnoses/pending');
+  }
+
+  async getPatientCovidDiagnoses(patientId) {
+    return this.request(`/covid-diagnoses/patient/${patientId}`);
+  }
+
+  async getCovidDiagnosisByAssessment(assessmentId) {
+    return this.request(`/covid-diagnoses/by-assessment/${assessmentId}`);
+  }
+
+  async getCovidDiagnosisById(id) {
+    return this.request(`/covid-diagnoses/${id}`);
+  }
+
+  async updateCovidDiagnosis(id, updateData) {
+    return this.request(`/covid-diagnoses/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updateData),
+    });
+  }
+
+  async deleteCovidDiagnosis(id) {
+    return this.request(`/covid-diagnoses/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getCovidDiagnosisStats() {
+    return this.request('/covid-diagnoses/statistics');
+  }
+
+  async getCovidAssessmentsNeedingDiagnosis() {
+    return this.request('/covid-diagnoses/assessments-needing-diagnosis');
+  }
+
   // 检查token是否有效
   isAuthenticated() {
     return !!this.token;
@@ -369,6 +506,69 @@ class ApiService {
     return this.request(`/abnormal-ranges/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // ===== 诊断报告 =====
+  async createDiagnosisReport(reportData) {
+    return this.request('/diagnosis-reports', {
+      method: 'POST',
+      body: JSON.stringify(reportData),
+    });
+  }
+
+  async getAllDiagnosisReports() {
+    return this.request('/diagnosis-reports');
+  }
+
+  async getPatientDiagnosisReports(patientId) {
+    return this.request(`/diagnosis-reports/patient/${patientId}`);
+  }
+
+  async getDoctorDiagnosisReports(doctorId) {
+    return this.request(`/diagnosis-reports/doctor/${doctorId}`);
+  }
+
+  async getUnreadDiagnosisReports(patientId) {
+    return this.request(`/diagnosis-reports/patient/${patientId}/unread`);
+  }
+
+  async getUnreadDiagnosisReportsCount(patientId) {
+    return this.request(`/diagnosis-reports/patient/${patientId}/unread-count`);
+  }
+
+  async getPendingDiagnosisReports() {
+    return this.request('/diagnosis-reports/pending');
+  }
+
+  async getDiagnosisReportDetail(reportId) {
+    return this.request(`/diagnosis-reports/${reportId}`);
+  }
+
+  async markDiagnosisReportAsRead(reportId) {
+    return this.request(`/diagnosis-reports/${reportId}/mark-read`, {
+      method: 'PATCH',
+    });
+  }
+
+  async updateDiagnosisReport(reportId, updateData) {
+    return this.request(`/diagnosis-reports/${reportId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updateData),
+    });
+  }
+
+  async deleteDiagnosisReport(reportId) {
+    return this.request(`/diagnosis-reports/${reportId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getDataNeedingDiagnosis() {
+    return this.request('/diagnosis-reports/data-needing-diagnosis');
+  }
+
+  async getDiagnosisReportStatistics() {
+    return this.request('/diagnosis-reports/statistics');
   }
 }
 
