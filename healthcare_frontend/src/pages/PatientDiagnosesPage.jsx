@@ -137,7 +137,7 @@ export default function PatientDiagnosesPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         {diagnoses.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">

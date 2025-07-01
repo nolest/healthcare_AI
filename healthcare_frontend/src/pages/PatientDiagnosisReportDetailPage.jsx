@@ -281,7 +281,7 @@ export default function PatientDiagnosisReportDetailPage() {
       />
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 pt-24">
         {/* 报告概览 */}
         <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl shadow-blue-500/10 mb-8">
           <CardHeader>

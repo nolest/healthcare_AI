@@ -49,7 +49,7 @@ export default function PatientMeasurementPage() {
       />
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 pt-24">
         {/* 功能区域 */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">

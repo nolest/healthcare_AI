@@ -5,6 +5,7 @@ import PatientMenuPage from '../pages/PatientMenuPage.jsx'
 import PatientOverviewPage from '../pages/PatientOverviewPage.jsx'
 import PatientMeasurementPage from '../pages/PatientMeasurementPage.jsx'
 import PatientMeasurementHistoryPage from '../pages/PatientMeasurementHistoryPage.jsx'
+import PatientMeasurementResultPage from '../pages/PatientMeasurementResultPage.jsx'
 import PatientDiagnosesPage from '../pages/PatientDiagnosesPage.jsx'
 import PatientSymptomPage from '../pages/PatientSymptomPage.jsx'
 import MedicalStaffPage from '../pages/MedicalStaffPage.jsx'
@@ -21,6 +22,7 @@ import PatientDiagnosisReportDetailPage from '../pages/PatientDiagnosisReportDet
 import NotFoundPage from '../pages/NotFoundPage.jsx'
 import MedicalGuidancePage from '../pages/MedicalGuidancePage.jsx'
 import MedicalDiagnosisPage from '../pages/MedicalDiagnosisPage.jsx'
+import MedicalDiagnosisFormPage from '../pages/MedicalDiagnosisFormPage.jsx'
 import PatientDetailPage from '../pages/PatientDetailPage.jsx'
 
 export default function AppRouter() {
@@ -40,6 +42,7 @@ export default function AppRouter() {
         <Route path="/patient" element={<PatientMenuPage />} />
         <Route path="/patient/overview" element={<PatientOverviewPage />} />
         <Route path="/patient/measurement" element={<PatientMeasurementPage />} />
+        <Route path="/patient/measurement/result" element={<PatientMeasurementResultPage />} />
         <Route path="/patient/measurement/history" element={<PatientMeasurementHistoryPage />} />
         <Route path="/patient/diagnoses" element={<PatientDiagnosesPage />} />
         <Route path="/patient/diagnosis-reports" element={<PatientDiagnosisReportsPage />} />
@@ -57,6 +60,7 @@ export default function AppRouter() {
         <Route path="/medical/statistics" element={<MedicalStatisticsPage />} />
         <Route path="/medical/guidance" element={<MedicalGuidancePage />} />
         <Route path="/medical/diagnosis" element={<MedicalDiagnosisPage />} />
+        <Route path="/medical/diagnosis/form" element={<MedicalDiagnosisFormPage />} />
         <Route path="/medical/abnormal-settings" element={<AbnormalDataSettingsPage />} />
         
         {/* 诊断页面 */}

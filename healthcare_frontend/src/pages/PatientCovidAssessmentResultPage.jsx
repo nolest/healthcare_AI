@@ -171,7 +171,7 @@ export default function PatientCovidAssessmentResultPage() {
       />
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 pt-24">
         
         {/* 成功提示 */}
         <Alert className="mb-8 border-0 bg-gradient-to-br from-green-50/80 to-emerald-50/80 rounded-2xl shadow-lg">

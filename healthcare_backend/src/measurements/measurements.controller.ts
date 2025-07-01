@@ -54,7 +54,12 @@ export class MeasurementsController {
         }
       });
 
-      return this.measurementsService.create(req.user._id, measurementData);
+      const result = await this.measurementsService.create(req.user._id, measurementData);
+      return {
+        success: true,
+        data: result,
+        message: '测量数据提交成功'
+      };
     } catch (error) {
       console.error('创建测量记录时出错:', error);
       throw error;
@@ -80,14 +85,24 @@ export class MeasurementsController {
   @ApiOperation({ summary: '获取所有测量数据（医护人员）' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async findAll() {
-    return this.measurementsService.findAll();
+    const measurements = await this.measurementsService.findAll();
+    return {
+      success: true,
+      data: measurements,
+      count: measurements.length
+    };
   }
 
   @Get('my')
   @ApiOperation({ summary: '获取我的测量数据' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async findMy(@Request() req) {
-    return this.measurementsService.findByUserId(req.user._id);
+    const measurements = await this.measurementsService.findByUserId(req.user._id);
+    return {
+      success: true,
+      data: measurements,
+      count: measurements.length
+    };
   }
 
   @Get('abnormal')
@@ -96,14 +111,24 @@ export class MeasurementsController {
   @ApiOperation({ summary: '获取异常测量数据（医护人员）' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async findAbnormal() {
-    return this.measurementsService.findAbnormalMeasurements();
+    const abnormalMeasurements = await this.measurementsService.findAbnormalMeasurements();
+    return {
+      success: true,
+      data: abnormalMeasurements,
+      count: abnormalMeasurements.length
+    };
   }
 
   @Get('abnormal/my')
   @ApiOperation({ summary: '获取我的异常测量数据' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async findMyAbnormal(@Request() req) {
-    return this.measurementsService.findAbnormalByUserId(req.user._id);
+    const abnormalMeasurements = await this.measurementsService.findAbnormalByUserId(req.user._id);
+    return {
+      success: true,
+      data: abnormalMeasurements,
+      count: abnormalMeasurements.length
+    };
   }
 
   @Get('user/:userId')
@@ -112,7 +137,12 @@ export class MeasurementsController {
   @ApiOperation({ summary: '获取指定用户的测量数据（医护人员）' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async findByUserId(@Param('userId') userId: string) {
-    return this.measurementsService.findByUserId(userId);
+    const measurements = await this.measurementsService.findByUserId(userId);
+    return {
+      success: true,
+      data: measurements,
+      count: measurements.length
+    };
   }
 
   @Patch(':id/status')
@@ -125,7 +155,12 @@ export class MeasurementsController {
     @Body() updateStatusDto: UpdateMeasurementStatusDto,
     @Request() req
   ) {
-    return this.measurementsService.updateStatus(id, updateStatusDto, req.user._id, req.user.role);
+    const result = await this.measurementsService.updateStatus(id, updateStatusDto, req.user._id, req.user.role);
+    return {
+      success: true,
+      data: result,
+      message: '测量记录状态更新成功'
+    };
   }
 
   @Patch('patient/:patientId/process')
@@ -134,7 +169,12 @@ export class MeasurementsController {
   @ApiOperation({ summary: '批量处理患者测量记录（医护人员）' })
   @ApiResponse({ status: 200, description: '处理成功' })
   async processPatientMeasurements(@Param('patientId') patientId: string, @Request() req) {
-    return this.measurementsService.markPatientMeasurementsAsProcessed(patientId, req.user._id, req.user.role);
+    const result = await this.measurementsService.markPatientMeasurementsAsProcessed(patientId, req.user._id, req.user.role);
+    return {
+      success: true,
+      data: result,
+      message: '患者测量记录批量处理成功'
+    };
   }
 
   @Get('stats')
@@ -143,6 +183,10 @@ export class MeasurementsController {
   @ApiOperation({ summary: '获取测量数据统计（医护人员）' })
   @ApiResponse({ status: 200, description: '获取成功' })
   async getStats() {
-    return this.measurementsService.getStats();
+    const stats = await this.measurementsService.getStats();
+    return {
+      success: true,
+      data: stats
+    };
   }
 } 

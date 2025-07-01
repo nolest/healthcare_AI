@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Input } from '@/components/ui/input.jsx'
@@ -10,6 +11,7 @@ import ImageUpload from './ui/ImageUpload.jsx'
 import apiService from '../services/api.js'
 
 export default function MeasurementForm({ onMeasurementAdded }) {
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     systolic: '',
     diastolic: '',
@@ -22,6 +24,7 @@ export default function MeasurementForm({ onMeasurementAdded }) {
 
   // 图片上传相关状态
   const [selectedImages, setSelectedImages] = useState([])
+  const [imagePreviewUrls, setImagePreviewUrls] = useState([])
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
 
@@ -36,7 +39,6 @@ export default function MeasurementForm({ onMeasurementAdded }) {
   }, [])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
 
   const handleChange = (field, value) => {
     setFormData({
@@ -48,6 +50,7 @@ export default function MeasurementForm({ onMeasurementAdded }) {
   // 处理图片变更
   const handleImagesChange = (images, previewUrls) => {
     setSelectedImages(images)
+    setImagePreviewUrls(previewUrls)
     setError('') // 清除错误信息
   }
 
@@ -92,7 +95,6 @@ export default function MeasurementForm({ onMeasurementAdded }) {
     console.log('🚀 开始提交测量记录...')
     setLoading(true)
     setError('')
-    setSuccess('')
 
     try {
       // 表單驗證
@@ -151,32 +153,6 @@ export default function MeasurementForm({ onMeasurementAdded }) {
       )
       console.log('✅ 测量记录提交成功:', response)
 
-      // 使用后端返回的异常检测结果
-      let successMessage = '✅ 測量記錄已成功保存！'
-      if (selectedImages.length > 0) {
-        successMessage += `\n📷 已上传 ${selectedImages.length} 张图片`
-      }
-      if (response.abnormalResult && response.abnormalResult.isAbnormal) {
-        successMessage += '\n\n⚠️ 異常檢測結果：\n' + response.abnormalResult.reasons.join('\n') + '\n\n建議盡快諮詢醫護人員。'
-      } else {
-        successMessage += '\n\n✅ 所有測量值均在正常範圍內。'
-      }
-      
-      setSuccess(successMessage)
-      
-      // 重置表單（保留当前时间）
-      const now = new Date()
-      const localISOTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
-      setFormData({
-        systolic: '',
-        diastolic: '',
-        heartRate: '',
-        temperature: '',
-        oxygenSaturation: '',
-        notes: '',
-        measurementTime: localISOTime
-      })
-      
       // 清理图片相关状态
       imagePreviewUrls.forEach(url => URL.revokeObjectURL(url))
       setSelectedImages([])
@@ -186,6 +162,27 @@ export default function MeasurementForm({ onMeasurementAdded }) {
       if (onMeasurementAdded) {
         onMeasurementAdded()
       }
+
+      // 准备结果数据并跳转到结果页面
+      const resultData = {
+        measurementData: {
+          systolic: formData.systolic,
+          diastolic: formData.diastolic,
+          heartRate: formData.heartRate,
+          temperature: formData.temperature,
+          oxygenSaturation: formData.oxygenSaturation,
+          notes: formData.notes,
+          measurementTime: formData.measurementTime
+        },
+        abnormalResult: response.data.abnormalResult,
+        imageCount: selectedImages.length
+      }
+
+      // 跳转到结果页面
+      navigate('/patient/measurement/result', {
+        state: { resultData }
+      })
+
     } catch (error) {
       console.error('Submit error:', error)
       setError(error.message || '保存測量記錄失敗，請檢查網絡連接')
@@ -220,17 +217,6 @@ export default function MeasurementForm({ onMeasurementAdded }) {
                     <span className="text-white text-xs font-bold">!</span>
                   </div>
                   <span className="text-sm">{error}</span>
-                </div>
-              </div>
-            )}
-            
-            {success && (
-              <div className={`${success.includes('⚠️') ? 'bg-gradient-to-r from-orange-50/80 to-orange-100/80 text-orange-700' : 'bg-gradient-to-r from-green-50/80 to-green-100/80 text-green-700'} border-0 px-4 py-3 rounded-2xl shadow-inner backdrop-blur-sm`}>
-                <div className="flex items-center">
-                  <div className={`w-5 h-5 rounded-full ${success.includes('⚠️') ? 'bg-gradient-to-br from-orange-500 to-orange-600' : 'bg-gradient-to-br from-green-500 to-green-600'} flex items-center justify-center mr-3 shadow-sm`}>
-                    <span className="text-white text-xs font-bold">{success.includes('⚠️') ? '!' : '✓'}</span>
-                  </div>
-                  <div className="text-sm whitespace-pre-line flex-1">{success}</div>
                 </div>
               </div>
             )}
