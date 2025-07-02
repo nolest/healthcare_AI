@@ -1224,13 +1224,15 @@ export default function CovidDiagnosisFormPage() {
 
       {/* 确认对话框 */}
       <ConfirmDialog
-        isOpen={confirmDialogOpen}
-        onClose={cancelNavigation}
+        open={confirmDialogOpen}
+        onOpenChange={setConfirmDialogOpen}
+        onCancel={cancelNavigation}
         onConfirm={confirmNavigation}
         title="確認離開"
         description="您有未保存的診斷內容，確定要離開嗎？"
         confirmText="確定離開"
         cancelText="繼續編輯"
+        type="warning"
       />
     </div>
   )

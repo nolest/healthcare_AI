@@ -19,6 +19,7 @@ export interface CreateCovidAssessmentDto {
   riskLevelLabel?: string;
   recommendations?: any;
   severity?: string;
+  status?: string; // 评估状态：'pending', 'processed', 'reviewed'
   imagePaths?: string[]; // 图片路径数组
 }
 
@@ -37,6 +38,7 @@ export interface UpdateCovidAssessmentDto {
   riskLevelLabel?: string;
   recommendations?: any;
   severity?: string;
+  status?: string; // 评估状态：'pending', 'processed', 'reviewed'
   vaccinationStatus?: string;
   testResults?: string;
   notes?: string;
@@ -56,7 +58,8 @@ export class CovidAssessmentsService {
     // 如果没有提供风险评分和等级，则计算
     let assessmentData = { 
       ...createCovidAssessmentDto, 
-      assessmentType: predictedType // 使用AI预测的类型
+      assessmentType: predictedType, // 使用AI预测的类型
+      status: 'pending' // 显式设置状态为待处理
     };
     
     if (!assessmentData.riskScore || !assessmentData.riskLevel) {
@@ -164,80 +167,89 @@ export class CovidAssessmentsService {
   }
 
   async getStats() {
-    const totalAssessments = await this.covidAssessmentModel.countDocuments();
-    
-    // 按状态统计 - 用于管理页面
-    // 修复：待处理包括没有status字段、status为null或status为'pending'的记录
-    const pending = await this.covidAssessmentModel.countDocuments({ 
-      $or: [
-        { status: { $exists: false } },
-        { status: null },
-        { status: 'pending' }
-      ]
-    });
-    const processed = await this.covidAssessmentModel.countDocuments({ 
-      status: { $in: ['processed', 'reviewed'] } 
-    });
-    
-    // 按风险等级统计
-    const riskStats = await this.covidAssessmentModel.aggregate([
-      {
-        $group: {
-          _id: '$riskLevel',
-          count: { $sum: 1 }
+    try {
+      const totalAssessments = await this.covidAssessmentModel.countDocuments();
+      
+      // 按状态统计 - 用于管理页面
+      // 简化查询，避免复杂的$or操作
+      const allDocs = await this.covidAssessmentModel.find({}, 'status').exec();
+      const pending = allDocs.filter(doc => !doc.status || doc.status === 'pending').length;
+      const processed = allDocs.filter(doc => doc.status === 'processed' || doc.status === 'reviewed').length;
+      
+      // 按风险等级统计
+      const riskStats = await this.covidAssessmentModel.aggregate([
+        {
+          $group: {
+            _id: '$riskLevel',
+            count: { $sum: 1 }
+          }
         }
-      }
-    ]);
+      ]);
 
-    // 按严重程度统计
-    const severityStats = await this.covidAssessmentModel.aggregate([
-      {
-        $group: {
-          _id: '$severity',
-          count: { $sum: 1 }
+      // 按严重程度统计
+      const severityStats = await this.covidAssessmentModel.aggregate([
+        {
+          $group: {
+            _id: '$severity',
+            count: { $sum: 1 }
+          }
         }
-      }
-    ]);
+      ]);
 
-    // 最近7天的评估趋势
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    const recentAssessments = await this.covidAssessmentModel.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: sevenDaysAgo }
+      // 最近7天的评估趋势
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const recentAssessments = await this.covidAssessmentModel.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: sevenDaysAgo }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        {
+          $sort: { _id: 1 }
         }
-      },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { _id: 1 }
-      }
-    ]);
+      ]);
 
-    // 高风险患者数量
-    const highRiskCount = await this.covidAssessmentModel.countDocuments({
-      riskLevel: { $in: ['high', 'very_high'] }
-    });
+      // 高风险患者数量
+      const highRiskCount = await this.covidAssessmentModel.countDocuments({
+        riskLevel: { $in: ['high', 'very_high'] }
+      });
 
-    return {
-      total: totalAssessments,
-      totalAssessments,
-      pending,
-      processed,
-      processingRate: totalAssessments > 0 ? Math.round((processed / totalAssessments) * 100) : 0,
-      highRiskCount,
-      riskStats,
-      severityStats,
-      recentTrend: recentAssessments,
-    };
+      return {
+        total: totalAssessments,
+        totalAssessments,
+        pending,
+        processed,
+        processingRate: totalAssessments > 0 ? Math.round((processed / totalAssessments) * 100) : 0,
+        highRiskCount,
+        riskStats,
+        severityStats,
+        recentTrend: recentAssessments,
+      };
+    } catch (error) {
+      console.error('获取COVID评估统计数据时出错:', error);
+      // 返回默认数据
+      return {
+        total: 0,
+        totalAssessments: 0,
+        pending: 0,
+        processed: 0,
+        processingRate: 0,
+        highRiskCount: 0,
+        riskStats: [],
+        severityStats: [],
+        recentTrend: [],
+      };
+    }
   }
 
   async updateStatus(id: string, status: string) {
