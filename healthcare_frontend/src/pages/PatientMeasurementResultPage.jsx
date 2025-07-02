@@ -23,6 +23,9 @@ export default function PatientMeasurementResultPage() {
   const [resultData, setResultData] = useState(null)
 
   useEffect(() => {
+    // 页面加载时滚动到顶部
+    window.scrollTo(0, 0)
+    
     // 从路由状态获取结果数据
     if (location.state && location.state.resultData) {
       setResultData(location.state.resultData)
@@ -247,7 +250,7 @@ export default function PatientMeasurementResultPage() {
           </Card>
 
           {/* 返回按钮 */}
-          <div className="text-center">
+          <div className="text-center pt-8 pb-16">
             <Button
               onClick={handleBackToPatient}
               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"

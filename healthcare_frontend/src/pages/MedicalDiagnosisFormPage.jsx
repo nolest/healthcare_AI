@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { 
   FileText, 
@@ -30,6 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../components/ui/badge.jsx'
 import { Alert, AlertDescription } from '../components/ui/alert.jsx'
 import { Separator } from '../components/ui/separator.jsx'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog.jsx'
 import ImageViewer from '../components/ImageViewer.jsx'
 import apiService from '../services/api.js'
 
@@ -51,19 +52,58 @@ export default function MedicalDiagnosisFormPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [currentUserId, setCurrentUserId] = useState(null)
   
+  // 确认弹窗状态
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
+  const [pendingNavigation, setPendingNavigation] = useState(null)
+  
   // 诊断表单数据
-  const [diagnosisForm, setDiagnosisForm] = useState({
-    diagnosis: '',
-    riskLevel: '',
-    recommendations: {
-      medications: '',
-      lifestyle: '',
-      followUp: '',
-      nextCheckup: ''
-    },
-    notes: '',
-    treatmentPlan: ''
-  })
+  const [diagnosis, setDiagnosis] = useState('')
+  const [riskLevel, setRiskLevel] = useState('')
+  const [medications, setMedications] = useState('')
+  const [lifestyle, setLifestyle] = useState('')
+  const [followUp, setFollowUp] = useState('')
+  const [notes, setNotes] = useState('')
+  const [treatmentPlan, setTreatmentPlan] = useState('')
+
+  // 用于动态高度调整的refs
+  const diagnosisFormRef = useRef(null)
+  const historyCardRef = useRef(null)
+
+  // 动态调整高度的useEffect
+  useEffect(() => {
+    const adjustHeight = () => {
+      if (diagnosisFormRef.current && historyCardRef.current) {
+        const rect = diagnosisFormRef.current.getBoundingClientRect()
+        const height = rect.height
+        historyCardRef.current.style.height = `${height}px`
+      }
+    }
+
+    // 延迟执行以确保DOM完全渲染
+    const timer = setTimeout(adjustHeight, 100)
+
+    // 监听窗口大小变化
+    window.addEventListener('resize', adjustHeight)
+    
+    // 使用MutationObserver监听DOM变化
+    const observer = new MutationObserver(() => {
+      setTimeout(adjustHeight, 50)
+    })
+    
+    if (diagnosisFormRef.current) {
+      observer.observe(diagnosisFormRef.current, {
+        childList: true,
+        subtree: true,
+        attributes: true
+      })
+    }
+
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('resize', adjustHeight)
+      observer.disconnect()
+    }
+  }, [measurementData, patientInfo, diagnosis, riskLevel, medications, lifestyle, followUp, notes, message])
 
   useEffect(() => {
     // 检查用户是否已登录
@@ -188,6 +228,58 @@ export default function MedicalDiagnosisFormPage() {
     setImageViewerOpen(true)
   }
 
+  // 检查表单是否有数据
+  const hasFormData = () => {
+    return diagnosis.trim() || riskLevel || medications.trim() || lifestyle.trim() || followUp.trim() || notes.trim()
+  }
+
+  // 处理查看详情
+  const handleViewDetails = (recordId) => {
+    // 检查是否有表单数据
+    if (hasFormData()) {
+      // 有数据，显示确认弹窗
+      setPendingNavigation(recordId)
+      setConfirmDialogOpen(true)
+    } else {
+      // 没有数据，直接导航
+      navigateToDetails(recordId)
+    }
+  }
+
+  // 导航到详情页面
+  const navigateToDetails = (recordId) => {
+    // 滚动到顶部
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    // 导航到详情页面
+    navigate(`/medical/diagnosis/form?mid=${recordId}`)
+  }
+
+  // 确认导航
+  const confirmNavigation = () => {
+    if (pendingNavigation) {
+      // 清空表单数据
+      setDiagnosis('')
+      setRiskLevel('')
+      setMedications('')
+      setLifestyle('')
+      setFollowUp('')
+      setNotes('')
+      setTreatmentPlan('')
+      setMessage('')
+      
+      // 导航到详情页面
+      navigateToDetails(pendingNavigation)
+    }
+    setConfirmDialogOpen(false)
+    setPendingNavigation(null)
+  }
+
+  // 取消导航
+  const cancelNavigation = () => {
+    setConfirmDialogOpen(false)
+    setPendingNavigation(null)
+  }
+
   // 获取测量记录的趋势图标
   const getTrendIcon = (current, previous) => {
     if (!previous) return <Minus className="h-4 w-4 text-gray-400" />
@@ -241,19 +333,34 @@ export default function MedicalDiagnosisFormPage() {
 
   // 获取时间差显示
   const getTimeAgo = (timestamp) => {
-    const now = new Date()
-    const time = new Date(timestamp)
-    const diffMs = now - time
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-    const diffDays = Math.floor(diffHours / 24)
+    if (!timestamp) return '未知时间'
     
-    if (diffDays > 0) {
-      return `${diffDays}天前`
-    } else if (diffHours > 0) {
-      return `${diffHours}小時前`
-    } else {
+    try {
+      const now = new Date()
+      const time = new Date(timestamp)
+      
+      // 检查时间是否有效
+      if (isNaN(time.getTime())) {
+        return '未知时间'
+      }
+      
+      const diffMs = now - time
       const diffMinutes = Math.floor(diffMs / (1000 * 60))
-      return `${diffMinutes}分鐘前`
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+      const diffDays = Math.floor(diffHours / 24)
+      
+      if (diffDays > 0) {
+        return `${diffDays}天前`
+      } else if (diffHours > 0) {
+        return `${diffHours}小時前`
+      } else if (diffMinutes > 0) {
+        return `${diffMinutes}分鐘前`
+      } else {
+        return '剛剛'
+      }
+    } catch (error) {
+      console.error('時間計算錯誤:', error, 'timestamp:', timestamp)
+      return '未知時間'
     }
   }
 
@@ -279,15 +386,15 @@ export default function MedicalDiagnosisFormPage() {
   const getMeasurementTypeIcon = (type) => {
     switch (type) {
       case 'blood_pressure':
-        return <Activity className="h-5 w-5 text-red-600" />
+        return <Activity className="h-4 w-4 text-white" />
       case 'heart_rate':
-        return <Heart className="h-5 w-5 text-pink-600" />
+        return <Heart className="h-4 w-4 text-white" />
       case 'temperature':
-        return <Thermometer className="h-5 w-5 text-orange-600" />
+        return <Thermometer className="h-4 w-4 text-white" />
       case 'oxygen_saturation':
-        return <Droplets className="h-5 w-5 text-blue-600" />
+        return <Droplets className="h-4 w-4 text-white" />
       default:
-        return <Activity className="h-5 w-5 text-gray-600" />
+        return <Activity className="h-4 w-4 text-white" />
     }
   }
 
@@ -342,23 +449,37 @@ export default function MedicalDiagnosisFormPage() {
 
   const formatDate = (dateString) => {
     if (!dateString) return '未知時間'
-    const date = new Date(dateString)
-    return date.toLocaleString('zh-TW', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    
+    try {
+      const date = new Date(dateString)
+      
+      // 检查时间是否有效
+      if (isNaN(date.getTime())) {
+        return '未知時間'
+      }
+      
+      // 格式化为 HH:MM:SS MM/DD/YYYY
+      const hours = date.getHours().toString().padStart(2, '0')
+      const minutes = date.getMinutes().toString().padStart(2, '0')
+      const seconds = date.getSeconds().toString().padStart(2, '0')
+      const month = (date.getMonth() + 1).toString().padStart(2, '0')
+      const day = date.getDate().toString().padStart(2, '0')
+      const year = date.getFullYear()
+      
+      return `${hours}:${minutes}:${seconds} ${month}/${day}/${year}`
+    } catch (error) {
+      console.error('日期格式化錯誤:', error, 'dateString:', dateString)
+      return '未知時間'
+    }
   }
 
   const handleSubmitDiagnosis = async () => {
-    if (!diagnosisForm.diagnosis.trim()) {
+    if (!diagnosis.trim()) {
       setMessage('請輸入診斷結果')
       return
     }
 
-    if (!diagnosisForm.riskLevel) {
+    if (!riskLevel) {
       setMessage('請選擇風險等級')
       return
     }
@@ -369,11 +490,16 @@ export default function MedicalDiagnosisFormPage() {
       const diagnosisData = {
         patientId: measurementData.userId,
         measurementId: measurementData._id,
-        diagnosis: diagnosisForm.diagnosis,
-        riskLevel: diagnosisForm.riskLevel,
-        recommendations: diagnosisForm.recommendations,
-        notes: diagnosisForm.notes,
-        treatmentPlan: diagnosisForm.treatmentPlan,
+        diagnosis: diagnosis,
+        riskLevel: riskLevel,
+        recommendations: {
+          medications: medications,
+          lifestyle: lifestyle,
+          followUp: followUp,
+          nextCheckup: ''
+        },
+        notes: notes,
+        treatmentPlan: treatmentPlan,
         doctorId: currentUser._id,
         doctorName: currentUser.fullName || currentUser.username
       }
@@ -436,91 +562,82 @@ export default function MedicalDiagnosisFormPage() {
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24 relative z-10">
         
-        {/* 患者和测量信息 */}
+        {/* 患者异常测量信息 */}
         <div className="mb-8">
-          <Card className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-2xl shadow-blue-500/10">
+          <Card className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-2xl shadow-red-500/10">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
-                <User className="h-5 w-5 text-blue-600" />
+                <AlertTriangle className="h-5 w-5 text-red-600" />
                 患者異常測量信息
               </CardTitle>
               <CardDescription className="text-gray-600">
-                請基於以下異常測量數據提供專業診斷建議
+                {patientInfo?.fullName || patientInfo?.username || '未知患者'} - {getMeasurementTypeLabel(measurementType)}異常
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* 患者信息 */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-gray-800 flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    患者信息
-                  </h4>
-                  <div className="bg-blue-50/70 rounded-xl p-4 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">姓名:</span>
-                      <span className="font-medium">{patientInfo?.fullName || patientInfo?.username || '未知患者'}</span>
+              <div className="space-y-6">
+                {/* 患者基本信息 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <User className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">患者姓名</p>
+                      <p className="font-medium text-gray-800">{patientInfo?.fullName || patientInfo?.username || '未知患者'}</p>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">患者ID:</span>
-                      <span className="font-mono text-sm">{(typeof measurementData.userId === 'string' ? measurementData.userId : measurementData.userId?._id || '').slice(-8)}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="text-sm text-gray-600">患者ID</p>
+                      <p className="font-medium text-gray-800">{patientInfo?.username || '未知'}</p>
                     </div>
-                    {patientInfo?.gender && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">性別:</span>
-                        <Badge variant="outline">
-                          {patientInfo.gender === 'male' ? '男' : patientInfo.gender === 'female' ? '女' : '未知'}
-                        </Badge>
-                      </div>
-                    )}
-                    {patientInfo?.age && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">年齡:</span>
-                        <Badge variant="outline">{patientInfo.age}歲</Badge>
-                      </div>
-                    )}
                   </div>
                 </div>
 
                 {/* 异常测量数据 */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                <div className="p-4 bg-gradient-to-r from-red-50 to-pink-50 rounded-lg">
+                  <div className="flex items-center gap-3 mb-4">
                     {getMeasurementTypeIcon(measurementType)}
-                    異常測量數據
-                  </h4>
-                  <div className="bg-red-50/70 rounded-xl p-4 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">測量類型:</span>
-                      <Badge className="bg-red-100 text-red-700 border-red-200">
-                        {getMeasurementTypeLabel(measurementType)}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">異常值:</span>
+                    <div>
+                      <h3 className="font-semibold text-gray-800">{getMeasurementTypeLabel(measurementType)}異常</h3>
                       <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-200">
                         {getMeasurementValue(measurementData)}
                       </Badge>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">異常原因:</span>
-                      <span className="text-red-600 font-medium">{getAbnormalReason(measurementData)}</span>
-                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {/* 显示详细的异常原因列表 */}
+                    {measurementData.abnormalReasons && measurementData.abnormalReasons.length > 0 && (
+                      <div className="space-y-2">
+                        <span className="text-gray-600 text-sm font-medium">異常原因:</span>
+                        <div className="space-y-2">
+                          {measurementData.abnormalReasons.map((reason, index) => (
+                            <div key={index} className="flex items-start gap-3 p-3 bg-gradient-to-r from-red-50 to-pink-50 rounded-lg shadow-sm">
+                              <div className="w-2 h-2 bg-gradient-to-r from-red-400 to-pink-400 rounded-full mt-2 flex-shrink-0"></div>
+                              <span className="text-red-700 text-sm font-medium">{reason}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">測量時間:</span>
                       <div className="flex items-center gap-1 text-sm">
                         <Calendar className="h-3 w-3" />
-                        {formatDate(measurementData.timestamp)}
+                        {formatDate(measurementData.createdAt || measurementData.timestamp)}
                       </div>
                     </div>
                     {measurementData.notes && (
-                      <div className="pt-2 border-t border-red-200">
+                      <div className="pt-2 border-t border-red-200/50">
                         <span className="text-gray-600 text-sm">備註: {measurementData.notes}</span>
                       </div>
                     )}
                     
                     {/* 测量图片 */}
                     {measurementData.images && measurementData.images.length > 0 && (
-                      <div className="pt-3 border-t border-red-200">
+                      <div className="pt-3 border-t border-red-200/50">
                         <div className="flex items-center gap-2 mb-2">
                           <Image className="h-4 w-4 text-gray-600" />
                           <span className="text-gray-600 text-sm font-medium">測量圖片 ({measurementData.images.length}張)</span>
@@ -549,103 +666,106 @@ export default function MedicalDiagnosisFormPage() {
           </Card>
         </div>
 
-        {/* 患者历史测量记录时间轴 */}
-        <div className="mb-8">
-          <Card className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-2xl shadow-purple-500/10">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
-                <History className="h-5 w-5 text-purple-600" />
-                患者測量歷史記錄
-              </CardTitle>
-              <CardDescription className="text-gray-600">
-                顯示該患者的歷史測量數據，幫助診斷判斷
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {historyLoading ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-                  <p className="mt-4 text-gray-600">載入歷史記錄中...</p>
-                </div>
-              ) : patientHistory.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <History className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">暫無歷史記錄</h3>
-                  <p>該患者暫無其他測量記錄</p>
-                </div>
-              ) : (
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {patientHistory.map((record, index) => {
-                    const isCurrentRecord = record._id === measurementData._id
-                    const isAbnormal = isAbnormalMeasurement(record)
-                    const previousRecord = patientHistory[index + 1]
-                    
-                    return (
-                      <div key={record._id} className={`relative flex items-start space-x-4 p-4 rounded-xl transition-all ${
-                        isCurrentRecord 
-                          ? 'bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 shadow-lg' 
-                          : isAbnormal 
-                            ? 'bg-orange-50/70 border border-orange-200' 
-                            : 'bg-green-50/70 border border-green-200'
-                      }`}>
-                        {/* 时间轴线条 */}
-                        {index < patientHistory.length - 1 && (
-                          <div className="absolute left-6 top-12 w-px h-8 bg-gradient-to-b from-gray-300 to-transparent"></div>
-                        )}
-                        
-                        {/* 时间轴点 */}
-                        <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+        {/* 左右分栏布局：患者历史记录 + 诊断表单 */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start">
+          {/* 患者历史测量记录 - 左侧 */}
+          <div>
+            <Card 
+              ref={historyCardRef}
+              className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-2xl shadow-purple-500/10 flex flex-col"
+            >
+              <CardHeader className="pb-4 flex-shrink-0">
+                <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
+                  <History className="h-5 w-5 text-purple-600" />
+                  患者測量歷史記錄
+                  {patientHistory.length > 0 && (
+                    <Badge variant="outline" className="ml-2 bg-purple-50 text-purple-700 border-purple-200">
+                      共 {patientHistory.length} 條記錄
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  顯示該患者的歷史測量數據，幫助診斷判斷
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col min-h-0">
+                {historyLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">載入歷史記錄中...</p>
+                  </div>
+                ) : patientHistory.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <History className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">暫無歷史記錄</h3>
+                    <p>該患者暫無其他測量記錄</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 overflow-y-auto pr-2 pl-1 flex-1">
+                    {patientHistory.map((record, index) => {
+                      const isCurrentRecord = record._id === measurementData._id
+                      const isAbnormal = isAbnormalMeasurement(record)
+                      
+                      return (
+                        <div key={record._id} className={`p-3 rounded-lg transition-all ${
                           isCurrentRecord 
-                            ? 'bg-gradient-to-br from-red-500 to-pink-500 text-white shadow-lg' 
+                            ? 'bg-gradient-to-r from-red-50 to-pink-50 shadow-md' 
                             : isAbnormal 
-                              ? 'bg-gradient-to-br from-orange-400 to-red-400 text-white' 
-                              : 'bg-gradient-to-br from-green-400 to-emerald-400 text-white'
-                        }`}>
-                          {getMeasurementTypeIcon(getMeasurementType(record))}
-                        </div>
-                        
-                        {/* 记录内容 */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-2">
+                              ? 'bg-gradient-to-r from-orange-50 to-red-50 shadow-sm' 
+                              : 'bg-gradient-to-r from-green-50 to-emerald-50 shadow-sm'
+                        }`} style={{ border: 'none' }}>
+                          <div className="flex items-start justify-between mb-2">
                             <div className="flex items-center gap-2">
-                              <h4 className={`font-semibold ${isCurrentRecord ? 'text-red-700' : 'text-gray-800'}`}>
-                                {getMeasurementTypeLabel(getMeasurementType(record))}
-                              </h4>
-                              {isCurrentRecord && (
-                                <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">
-                                  當前異常記錄
-                                </Badge>
-                              )}
-                              {isAbnormal && !isCurrentRecord && (
-                                <Badge variant="destructive" className="bg-orange-100 text-orange-700 border-orange-200 text-xs">
-                                  異常
-                                </Badge>
-                              )}
-                              {getTrendIcon(record, previousRecord)}
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                isCurrentRecord 
+                                  ? 'bg-gradient-to-br from-red-600 to-red-700 text-white shadow-sm' 
+                                  : isAbnormal 
+                                    ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-sm' 
+                                    : 'bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-sm'
+                              }`}>
+                                {getMeasurementTypeIcon(getMeasurementType(record))}
+                              </div>
+                              <div>
+                                <h4 className={`font-medium text-sm ${isCurrentRecord ? 'text-red-700' : 'text-gray-800'}`}>
+                                  {getMeasurementTypeLabel(getMeasurementType(record))}
+                                </h4>
+                                <div className="flex items-center gap-1 mt-1">
+                                  {isCurrentRecord && (
+                                    <Badge className="bg-red-100 text-red-700 text-xs px-1.5 py-0.5">
+                                      當前記錄
+                                    </Badge>
+                                  )}
+                                  {isAbnormal && !isCurrentRecord && (
+                                    <Badge variant="destructive" className="bg-orange-100 text-orange-700 text-xs px-1.5 py-0.5">
+                                      異常
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                             <div className="text-right">
-                              <div className="text-sm text-gray-600 flex items-center gap-1">
+                              <div className="text-xs text-gray-600 flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                {getTimeAgo(record.timestamp)}
+                                {getTimeAgo(record.createdAt || record.timestamp)}
                               </div>
-                              <div className="text-xs text-gray-500">
-                                {formatDate(record.timestamp)}
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                {formatDate(record.createdAt || record.timestamp)}
                               </div>
                             </div>
                           </div>
                           
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <Badge variant={isAbnormal ? "destructive" : "secondary"} className={
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <Badge variant={isAbnormal ? "destructive" : "secondary"} className={`text-xs px-2 py-1 ${
                                 isAbnormal 
                                   ? "bg-red-100 text-red-700 border-red-200" 
                                   : "bg-green-100 text-green-700 border-green-200"
-                              }>
+                              }`}>
                                 {getMeasurementValue(record)}
                               </Badge>
                               
                               {record.notes && (
-                                <span className="text-sm text-gray-600 truncate">
+                                <span className="text-xs text-gray-600 truncate max-w-32">
                                   📝 {record.notes}
                                 </span>
                               )}
@@ -654,207 +774,191 @@ export default function MedicalDiagnosisFormPage() {
                             {/* 图片缩略图 */}
                             {record.images && record.images.length > 0 && (
                               <div className="flex items-center gap-1">
-                                <Image className="h-4 w-4 text-gray-500" />
+                                <Image className="h-3 w-3 text-gray-500" />
                                 <span className="text-xs text-gray-500">{record.images.length}張</span>
-                                <div className="flex gap-1 ml-2">
-                                  {record.images.slice(0, 3).map((image, imgIndex) => (
+                                <div className="flex gap-1 ml-1">
+                                  {record.images.slice(0, 2).map((image, imgIndex) => (
                                     <img
                                       key={imgIndex}
                                       src={apiService.getImageUrl(currentUserId || (typeof record.userId === 'string' ? record.userId : record.userId?._id), image.split('/').pop(), 'measurement')}
                                       alt={`縮略圖 ${imgIndex + 1}`}
-                                      className="w-8 h-8 object-cover rounded border cursor-pointer hover:border-blue-400 transition-colors"
+                                      className="w-6 h-6 object-cover rounded border cursor-pointer hover:border-blue-400 transition-colors"
                                       onClick={() => openImageViewer(record.images, imgIndex, currentUserId || (typeof record.userId === 'string' ? record.userId : record.userId?._id))}
                                     />
                                   ))}
-                                  {record.images.length > 3 && (
-                                    <div className="w-8 h-8 bg-gray-100 rounded border flex items-center justify-center text-xs text-gray-600">
-                                      +{record.images.length - 3}
+                                  {record.images.length > 2 && (
+                                    <div className="w-6 h-6 bg-gray-100 rounded border flex items-center justify-center text-xs text-gray-600">
+                                      +{record.images.length - 2}
                                     </div>
                                   )}
                                 </div>
                               </div>
                             )}
                           </div>
+                          
+                          {/* 跳转按钮 */}
+                          <div className="flex justify-end">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={`text-xs px-2 py-1 h-7 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner hover:shadow-md transition-all duration-300 ${
+                                isCurrentRecord 
+                                  ? 'text-red-600 hover:bg-red-50/80' 
+                                  : 'text-gray-600 hover:bg-gray-50/80'
+                              }`}
+                              onClick={() => handleViewDetails(record._id)}
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              {isCurrentRecord ? '當前記錄' : '查看詳情'}
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 诊断表单 - 右侧 */}
+          <div>
+            <Card 
+              ref={diagnosisFormRef}
+              className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-2xl shadow-green-500/10"
+            >
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
+                  <Stethoscope className="h-5 w-5 text-green-600" />
+                  診斷評估表單
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  請提供專業的診斷結果和治療建議
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                
+                {/* 诊断结果 */}
+                <div className="space-y-2">
+                  <Label htmlFor="diagnosis" className="text-sm font-medium text-gray-700">診斷結果 *</Label>
+                  <Textarea
+                    id="diagnosis"
+                    value={diagnosis}
+                    onChange={(e) => setDiagnosis(e.target.value)}
+                    placeholder="請輸入詳細的診斷結果和分析..."
+                    className="min-h-[120px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
+                    required
+                  />
                 </div>
-              )}
-            </CardContent>
-          </Card>
+
+                {/* 风险等级 */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">
+                    風險等級 <span className="text-red-500">*</span>
+                  </Label>
+                  <Select value={riskLevel} onValueChange={(value) => setRiskLevel(value)}>
+                    <SelectTrigger className="bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300">
+                      <SelectValue placeholder="選擇風險等級" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">低風險</SelectItem>
+                      <SelectItem value="medium">中風險</SelectItem>
+                      <SelectItem value="high">高風險</SelectItem>
+                      <SelectItem value="critical">緊急</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 治疗建议 */}
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="medications" className="text-sm font-medium text-gray-700">用藥建議</Label>
+                    <Textarea
+                      id="medications"
+                      value={medications}
+                      onChange={(e) => setMedications(e.target.value)}
+                      placeholder="請輸入推薦的藥物治療方案..."
+                      className="min-h-[80px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="lifestyle" className="text-sm font-medium text-gray-700">生活方式建議</Label>
+                    <Textarea
+                      id="lifestyle"
+                      value={lifestyle}
+                      onChange={(e) => setLifestyle(e.target.value)}
+                      placeholder="請輸入生活方式調整建議..."
+                      className="min-h-[80px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
+                    />
+                  </div>
+                </div>
+
+                {/* 复查建议 */}
+                <div className="space-y-2">
+                  <Label htmlFor="followUp" className="text-sm font-medium text-gray-700">復查建議</Label>
+                  <Textarea
+                    id="followUp"
+                    value={followUp}
+                    onChange={(e) => setFollowUp(e.target.value)}
+                    placeholder="請輸入復查時間和注意事項..."
+                    className="min-h-[80px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
+                  />
+                </div>
+
+                {/* 其他备注 */}
+                <div className="space-y-2">
+                  <Label htmlFor="notes" className="text-sm font-medium text-gray-700">其他備註</Label>
+                  <Textarea
+                    id="notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="請輸入其他需要注意的事項..."
+                    className="min-h-[80px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
+                  />
+                </div>
+
+                {/* 提交按钮 */}
+                <div className="flex gap-4 pt-4 border-t border-gray-200">
+                  <Button
+                    onClick={handleSubmitDiagnosis}
+                    disabled={loading}
+                    className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        提交中...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        提交診斷報告
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/medical/diagnosis')}
+                    className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    返回列表
+                  </Button>
+                </div>
+
+                {/* 消息提示 */}
+                {message && (
+                  <Alert className={`mt-4 ${message.includes('✅') ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                    <AlertDescription className={message.includes('✅') ? 'text-green-700' : 'text-red-700'}>
+                      {message}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
-
-        {/* 诊断表单 */}
-        <Card className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-2xl shadow-green-500/10">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
-              <Stethoscope className="h-5 w-5 text-green-600" />
-              診斷評估表單
-            </CardTitle>
-            <CardDescription className="text-gray-600">
-              請提供專業的診斷結果和治療建議
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            
-            {/* 诊断结果 */}
-            <div className="space-y-2">
-              <Label htmlFor="diagnosis" className="text-sm font-medium text-gray-700">
-                診斷結果 <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="diagnosis"
-                placeholder="請輸入詳細的診斷結果..."
-                className="bg-white/70 border-green-200 focus:border-green-400 focus:ring-green-400/20"
-                rows={4}
-                value={diagnosisForm.diagnosis}
-                onChange={(e) => setDiagnosisForm(prev => ({ ...prev, diagnosis: e.target.value }))}
-              />
-            </div>
-
-            {/* 风险等级 */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">
-                風險等級 <span className="text-red-500">*</span>
-              </Label>
-              <Select value={diagnosisForm.riskLevel} onValueChange={(value) => setDiagnosisForm(prev => ({ ...prev, riskLevel: value }))}>
-                <SelectTrigger className="bg-white/70 border-green-200 focus:border-green-400">
-                  <SelectValue placeholder="選擇風險等級" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">低風險</SelectItem>
-                  <SelectItem value="medium">中風險</SelectItem>
-                  <SelectItem value="high">高風險</SelectItem>
-                  <SelectItem value="critical">緊急</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* 治疗建议 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="medications" className="text-sm font-medium text-gray-700">用藥建議</Label>
-                <Textarea
-                  id="medications"
-                  placeholder="請輸入用藥建議..."
-                  className="bg-white/70 border-green-200 focus:border-green-400 focus:ring-green-400/20"
-                  rows={3}
-                  value={diagnosisForm.recommendations.medications}
-                  onChange={(e) => setDiagnosisForm(prev => ({ 
-                    ...prev, 
-                    recommendations: { ...prev.recommendations, medications: e.target.value }
-                  }))}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="lifestyle" className="text-sm font-medium text-gray-700">生活方式建議</Label>
-                <Textarea
-                  id="lifestyle"
-                  placeholder="請輸入生活方式建議..."
-                  className="bg-white/70 border-green-200 focus:border-green-400 focus:ring-green-400/20"
-                  rows={3}
-                  value={diagnosisForm.recommendations.lifestyle}
-                  onChange={(e) => setDiagnosisForm(prev => ({ 
-                    ...prev, 
-                    recommendations: { ...prev.recommendations, lifestyle: e.target.value }
-                  }))}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="followUp" className="text-sm font-medium text-gray-700">隨訪建議</Label>
-                <Textarea
-                  id="followUp"
-                  placeholder="請輸入隨訪建議..."
-                  className="bg-white/70 border-green-200 focus:border-green-400 focus:ring-green-400/20"
-                  rows={3}
-                  value={diagnosisForm.recommendations.followUp}
-                  onChange={(e) => setDiagnosisForm(prev => ({ 
-                    ...prev, 
-                    recommendations: { ...prev.recommendations, followUp: e.target.value }
-                  }))}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="nextCheckup" className="text-sm font-medium text-gray-700">下次檢查時間</Label>
-                <Input
-                  id="nextCheckup"
-                  type="date"
-                  className="bg-white/70 border-green-200 focus:border-green-400 focus:ring-green-400/20"
-                  value={diagnosisForm.recommendations.nextCheckup}
-                  onChange={(e) => setDiagnosisForm(prev => ({ 
-                    ...prev, 
-                    recommendations: { ...prev.recommendations, nextCheckup: e.target.value }
-                  }))}
-                />
-              </div>
-            </div>
-
-            {/* 治疗方案 */}
-            <div className="space-y-2">
-              <Label htmlFor="treatmentPlan" className="text-sm font-medium text-gray-700">治療方案</Label>
-              <Textarea
-                id="treatmentPlan"
-                placeholder="請輸入詳細的治療方案..."
-                className="bg-white/70 border-green-200 focus:border-green-400 focus:ring-green-400/20"
-                rows={4}
-                value={diagnosisForm.treatmentPlan}
-                onChange={(e) => setDiagnosisForm(prev => ({ ...prev, treatmentPlan: e.target.value }))}
-              />
-            </div>
-
-            {/* 备注 */}
-            <div className="space-y-2">
-              <Label htmlFor="notes" className="text-sm font-medium text-gray-700">備註</Label>
-              <Textarea
-                id="notes"
-                placeholder="請輸入其他備註信息..."
-                className="bg-white/70 border-green-200 focus:border-green-400 focus:ring-green-400/20"
-                rows={3}
-                value={diagnosisForm.notes}
-                onChange={(e) => setDiagnosisForm(prev => ({ ...prev, notes: e.target.value }))}
-              />
-            </div>
-
-            {/* 提交按钮 */}
-            <div className="flex gap-4 pt-4">
-              <Button
-                onClick={handleSubmitDiagnosis}
-                disabled={loading}
-                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white h-12"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {loading ? '提交中...' : '提交診斷報告'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate('/medical/diagnosis')}
-                className="border-green-200 hover:bg-green-50"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                返回列表
-              </Button>
-            </div>
-
-            {/* 状态消息 */}
-            {message && (
-              <Alert className={`${
-                message.includes('✅') 
-                  ? 'bg-gradient-to-br from-green-50/90 to-green-100/70 border-green-200 shadow-green-500/10' 
-                  : 'bg-gradient-to-br from-red-50/90 to-red-100/70 border-red-200 shadow-red-500/10'
-              } backdrop-blur-lg shadow-lg`}>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription className={message.includes('✅') ? 'text-green-800' : 'text-red-800'}>
-                  {message}
-                </AlertDescription>
-              </Alert>
-            )}
-
-          </CardContent>
-        </Card>
       </main>
       
       {/* 图片查看器 */}
@@ -865,6 +969,22 @@ export default function MedicalDiagnosisFormPage() {
         onClose={() => setImageViewerOpen(false)}
         initialIndex={currentImageIndex}
       />
+
+      {/* 确认弹窗 */}
+      <Dialog open={confirmDialogOpen} onOpenChange={cancelNavigation}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>確認導航</DialogTitle>
+            <DialogDescription>
+              您確定要導航到詳情頁面嗎？
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 flex justify-end gap-4">
+            <Button variant="outline" onClick={cancelNavigation}>取消</Button>
+            <Button variant="default" onClick={confirmNavigation}>確認</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
-} 
+}

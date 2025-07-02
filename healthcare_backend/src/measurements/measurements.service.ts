@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Measurement, MeasurementDocument } from '../schemas/measurement.schema';
 import { CreateMeasurementDto, UpdateMeasurementStatusDto } from '../dto/measurement.dto';
 import { AbnormalRangesService } from '../abnormal-ranges/abnormal-ranges.service';
@@ -42,7 +42,7 @@ export class MeasurementsService {
 
   async findByUserId(userId: string) {
     return this.measurementModel
-      .find({ userId })
+      .find({ userId: new Types.ObjectId(userId) })
       .populate('userId', 'username fullName role')
       .sort({ createdAt: -1 });
   }
@@ -56,7 +56,7 @@ export class MeasurementsService {
 
   async findAbnormalByUserId(userId: string) {
     return this.measurementModel
-      .find({ userId, isAbnormal: true })
+      .find({ userId: new Types.ObjectId(userId), isAbnormal: true })
       .sort({ createdAt: -1 });
   }
 
