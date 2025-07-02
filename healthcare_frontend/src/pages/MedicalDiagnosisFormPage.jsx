@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { 
   FileText, 
@@ -32,7 +32,9 @@ import { Alert, AlertDescription } from '../components/ui/alert.jsx'
 import { Separator } from '../components/ui/separator.jsx'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog.jsx'
 import ImageViewer from '../components/ImageViewer.jsx'
+import ImagePreview from '../components/ui/ImagePreview.jsx'
 import apiService from '../services/api.js'
+import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 
 export default function MedicalDiagnosisFormPage() {
   const navigate = useNavigate()
@@ -52,6 +54,11 @@ export default function MedicalDiagnosisFormPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [currentUserId, setCurrentUserId] = useState(null)
   
+  // 新图片预览组件状态
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false)
+  const [previewImages, setPreviewImages] = useState([])
+  const [previewInitialIndex, setPreviewInitialIndex] = useState(0)
+  
   // 确认弹窗状态
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [pendingNavigation, setPendingNavigation] = useState(null)
@@ -64,6 +71,12 @@ export default function MedicalDiagnosisFormPage() {
   const [followUp, setFollowUp] = useState('')
   const [notes, setNotes] = useState('')
   const [treatmentPlan, setTreatmentPlan] = useState('')
+  
+  // 只读状态 - 当查看已处理的记录时为true
+  const [isReadOnly, setIsReadOnly] = useState(false)
+  
+  // 从URL参数获取hasread状态
+  const hasRead = searchParams.get('hasread')
 
   // 用于动态高度调整的refs
   const diagnosisFormRef = useRef(null)
@@ -121,8 +134,24 @@ export default function MedicalDiagnosisFormPage() {
 
     setCurrentUser(userData)
 
-    // 从URL参数获取测量记录ID
+    // 从URL参数获取测量记录ID和只读状态
     const measurementId = searchParams.get('mid')
+    const hasReadParam = searchParams.get('hasread')
+    
+    console.log('初始化参数:', { measurementId, hasReadParam })
+    
+    // 根据hasread参数设置初始只读状态
+    if (hasReadParam === '1') {
+      setIsReadOnly(true)
+      console.log('根据hasread=1参数设置为只读模式')
+    } else if (hasReadParam === '0') {
+      setIsReadOnly(false)
+      console.log('根据hasread=0参数设置为编辑模式')
+    } else {
+      // 如果没有hasread参数，默认为编辑模式
+      setIsReadOnly(false)
+      console.log('没有hasread参数，默认设置为编辑模式')
+    }
     
     if (measurementId) {
       // 通过ID获取测量记录
@@ -146,32 +175,104 @@ export default function MedicalDiagnosisFormPage() {
   // 通过ID加载测量记录
   const loadMeasurementById = async (measurementId) => {
     setLoading(true)
+    const hasReadParam = new URLSearchParams(window.location.search).get('hasread')
+    console.log('loadMeasurementById: 参数检查', { measurementId, hasReadParam })
+    
     try {
       console.log('loadMeasurementById: 正在获取测量记录, measurementId:', measurementId)
-      // 获取所有异常测量记录，然后找到指定的记录
-      const response = await apiService.getAbnormalMeasurements()
-      if (response.success && response.data) {
-        const measurement = response.data.find(m => m._id === measurementId)
-        if (measurement) {
+      
+      // 首先尝试获取所有异常测量记录
+      let measurement = null
+      try {
+        const response = await apiService.getAbnormalMeasurements()
+        console.log('loadMeasurementById: 异常测量记录API响应:', response)
+        
+        if (response.success && response.data) {
+          measurement = response.data.find(m => m._id === measurementId)
+          console.log('loadMeasurementById: 在异常记录中查找结果:', measurement ? '找到' : '未找到')
+        }
+      } catch (error) {
+        console.error('loadMeasurementById: 获取异常测量记录失败:', error)
+      }
+      
+      // 如果在异常记录中没找到，尝试获取所有测量记录
+      if (!measurement) {
+        try {
+          console.log('loadMeasurementById: 在异常记录中未找到，尝试获取所有测量记录')
+          const allMeasurementsResponse = await apiService.getAllMeasurements()
+          console.log('loadMeasurementById: 所有测量记录API响应:', allMeasurementsResponse)
+          
+          if (allMeasurementsResponse.success && allMeasurementsResponse.data) {
+            measurement = allMeasurementsResponse.data.find(m => m._id === measurementId)
+            console.log('loadMeasurementById: 在所有记录中查找结果:', measurement ? '找到' : '未找到')
+          }
+        } catch (error) {
+          console.error('loadMeasurementById: 获取所有测量记录失败:', error)
+        }
+      }
+      
+      if (measurement) {
           console.log('loadMeasurementById: 找到测量记录:', measurement)
           setMeasurementData(measurement)
           
-          // 获取患者信息
-          const userId = typeof measurement.userId === 'string' ? measurement.userId : measurement.userId._id
-          console.log('loadMeasurementById: 提取的userId:', userId, '类型:', typeof userId)
+          // 检查测量记录状态，如果已处理则设置为只读模式
+          // 但如果URL参数中有hasread=1，则优先使用URL参数
+          const hasReadParam = new URLSearchParams(window.location.search).get('hasread')
+          if (hasReadParam === '1') {
+            setIsReadOnly(true)
+            console.log('loadMeasurementById: 根据hasread=1参数设置为只读模式')
+          } else if (hasReadParam === '0') {
+            setIsReadOnly(false)
+            console.log('loadMeasurementById: 根据hasread=0参数设置为编辑模式')
+          } else if (measurement.status === 'processed' || measurement.status === 'reviewed') {
+            setIsReadOnly(true)
+            console.log('loadMeasurementById: 测量记录已处理，设置为只读模式')
+          } else {
+            setIsReadOnly(false)
+            console.log('loadMeasurementById: 测量记录待处理，设置为编辑模式')
+          }
+          
+          // 安全地获取患者信息 - 修复userId提取逻辑
+          let userId = null
+          let userInfo = null
+          
+          if (typeof measurement.userId === 'string') {
+            // userId是字符串ID
+            userId = measurement.userId
+            console.log('loadMeasurementById: userId是字符串:', userId)
+          } else if (measurement.userId && typeof measurement.userId === 'object') {
+            // userId是用户对象
+            userId = measurement.userId._id
+            userInfo = measurement.userId
+            console.log('loadMeasurementById: userId是对象:', userId, userInfo)
+          }
+          
+          if (!userId) {
+            console.error('loadMeasurementById: 无法提取有效的userId')
+            setMessage('❌ 測量記錄缺少有效的用戶信息')
+            if (hasReadParam !== '1') {
+              setTimeout(() => navigate('/medical/diagnosis'), 2000)
+            }
+            return
+          }
+          
+          console.log('loadMeasurementById: 最终提取的userId:', userId, '类型:', typeof userId)
           setCurrentUserId(userId)
           
-          // 如果userId是对象，直接使用其中的用户信息
-          if (typeof measurement.userId === 'object' && measurement.userId) {
-            console.log('loadMeasurementById: userId是对象，直接使用用户信息')
-            setPatientInfo(measurement.userId)
+          // 设置患者信息
+          if (userInfo) {
+            // 如果userId是对象，直接使用其中的用户信息
+            console.log('loadMeasurementById: 使用对象中的用户信息')
+            setPatientInfo(userInfo)
           } else {
             // 否则通过API获取用户信息
-            console.log('loadMeasurementById: userId是字符串，通过API获取用户信息')
+            console.log('loadMeasurementById: 通过API获取用户信息')
             try {
               const userResponse = await apiService.getUserById(userId)
               if (userResponse.success) {
                 setPatientInfo(userResponse.data)
+              } else {
+                console.error('获取患者信息失败:', userResponse)
               }
             } catch (error) {
               console.error('获取患者信息失败:', error)
@@ -181,17 +282,22 @@ export default function MedicalDiagnosisFormPage() {
           // 加载患者历史记录
           loadPatientHistory(userId)
         } else {
+          console.log('loadMeasurementById: 未找到指定的测量记录')
           setMessage('❌ 未找到指定的测量记录')
+          // 如果是只读模式，不要重定向，让用户看到错误信息
+          if (hasReadParam !== '1') {
+            setTimeout(() => navigate('/medical/diagnosis'), 2000)
+          }
+        }
+          } catch (error) {
+        console.error('加载测量记录失败:', error)
+        setMessage('❌ 加载测量记录失败')
+        if (hasReadParam !== '1') {
           setTimeout(() => navigate('/medical/diagnosis'), 2000)
         }
+      } finally {
+        setLoading(false)
       }
-    } catch (error) {
-      console.error('加载测量记录失败:', error)
-      setMessage('❌ 加载测量记录失败')
-      setTimeout(() => navigate('/medical/diagnosis'), 2000)
-    } finally {
-      setLoading(false)
-    }
   }
 
   // 加载患者历史测量记录
@@ -228,6 +334,22 @@ export default function MedicalDiagnosisFormPage() {
     setImageViewerOpen(true)
   }
 
+  // 打开新的图片预览组件
+  const openImagePreview = (images, index = 0) => {
+    // 确保images是字符串数组
+    const imageUrls = images.map(img => {
+      if (typeof img === 'string') {
+        return img
+      }
+      // 如果是图片对象，构建完整URL
+      return apiService.getFullImageUrl('measurement', currentUserId, img)
+    })
+    
+    setPreviewImages(imageUrls)
+    setPreviewInitialIndex(index)
+    setImagePreviewOpen(true)
+  }
+
   // 检查表单是否有数据
   const hasFormData = () => {
     return diagnosis.trim() || riskLevel || medications.trim() || lifestyle.trim() || followUp.trim() || notes.trim()
@@ -248,10 +370,17 @@ export default function MedicalDiagnosisFormPage() {
 
   // 导航到详情页面
   const navigateToDetails = (recordId) => {
-    // 滚动到顶部
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-    // 导航到详情页面
-    navigate(`/medical/diagnosis/form?mid=${recordId}`)
+    // 找到对应的记录，根据状态设置hasread参数
+    const record = patientHistory.find(r => r._id === recordId)
+    let hasRead = '0' // 默认为编辑模式
+    
+    if (record && (record.status === 'processed' || record.status === 'reviewed')) {
+      hasRead = '1' // 已处理记录设置为只读模式
+    }
+    
+    // 在新标签页打开详情页面
+    const url = `/medical/diagnosis/form?mid=${recordId}&hasread=${hasRead}`
+    window.open(url, '_blank')
   }
 
   // 确认导航
@@ -414,6 +543,57 @@ export default function MedicalDiagnosisFormPage() {
     }
   }
 
+  // 获取状态标签
+  const getStatusLabel = (status) => {
+    const statusMap = {
+      'pending': '待處理',
+      'processing': '處理中',
+      'processed': '已處理',
+      'reviewed': '已審核',
+      'completed': '已完成',
+      'cancelled': '已取消',
+      'failed': '處理失敗'
+    }
+    return statusMap[status] || status || '未知狀態'
+  }
+
+  // 获取状态样式
+  const getStatusStyle = (status, isCurrentRecord, isAbnormal) => {
+    // 如果是 processed 状态，使用灰白样式
+    if (status === 'processed') {
+      return {
+        background: 'bg-gradient-to-r from-gray-100 to-gray-200',
+        iconBg: 'bg-gradient-to-br from-gray-400 to-gray-500 text-white shadow-sm',
+        textColor: 'text-gray-600'
+      }
+    }
+    
+    // 当前记录样式
+    if (isCurrentRecord) {
+      return {
+        background: 'bg-gradient-to-r from-red-50 to-pink-50 shadow-md',
+        iconBg: 'bg-gradient-to-br from-red-600 to-red-700 text-white shadow-sm',
+        textColor: 'text-red-700'
+      }
+    }
+    
+    // 异常记录样式
+    if (isAbnormal) {
+      return {
+        background: 'bg-gradient-to-r from-orange-50 to-red-50 shadow-sm',
+        iconBg: 'bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-sm',
+        textColor: 'text-gray-800'
+      }
+    }
+    
+    // 正常记录样式
+    return {
+      background: 'bg-gradient-to-r from-green-50 to-emerald-50 shadow-sm',
+      iconBg: 'bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-sm',
+      textColor: 'text-gray-800'
+    }
+  }
+
   const getAbnormalReason = (measurement) => {
     const type = getMeasurementType(measurement)
     switch (type) {
@@ -486,43 +666,114 @@ export default function MedicalDiagnosisFormPage() {
 
     setLoading(true)
     try {
-      // 准备诊断数据
-      const diagnosisData = {
-        patientId: measurementData.userId,
-        measurementId: measurementData._id,
-        diagnosis: diagnosis,
-        riskLevel: riskLevel,
-        recommendations: {
-          medications: medications,
-          lifestyle: lifestyle,
-          followUp: followUp,
-          nextCheckup: ''
-        },
-        notes: notes,
-        treatmentPlan: treatmentPlan,
-        doctorId: currentUser._id,
-        doctorName: currentUser.fullName || currentUser.username
+      // 映射风险等级值
+      const urgencyMapping = {
+        'low': 'low',
+        'medium': 'medium', 
+        'high': 'high',
+        'critical': 'urgent'
       }
 
-      // 提交诊断报告
-      const response = await apiService.createDiagnosisReport(diagnosisData)
+      // 关键修复：确保patientId和sourceId的用户ID匹配
+      // 我们应该使用测量记录关联的用户ID作为患者ID
+      const measurementUserId = typeof measurementData.userId === 'string' 
+        ? measurementData.userId 
+        : measurementData.userId?._id
+
+      console.log('🔍 诊断提交详细信息:')
+      console.log('测量记录数据:', measurementData)
+      console.log('测量记录userId:', measurementData.userId)
+      console.log('提取的测量用户ID:', measurementUserId)
+      console.log('测量记录ID (sourceId):', measurementData._id)
+      console.log('当前患者信息:', patientInfo)
+
+      // 验证数据完整性
+      if (!measurementUserId) {
+        console.error('❌ 測量記錄缺少用戶信息')
+        setMessage('❌ 測量記錄缺少用戶信息，無法提交診斷')
+        return
+      }
+
+      if (!measurementData._id) {
+        console.error('❌ 測量記錄ID缺失')
+        setMessage('❌ 測量記錄ID缺失，無法提交診斷')
+        return
+      }
+
+      // 准备诊断数据 - 符合新的measurement-diagnoses DTO格式
+      const diagnosisData = {
+        patientId: measurementUserId,  // 使用测量记录的userId
+        measurementId: measurementData._id,  // 测量记录的ID
+        diagnosis: diagnosis,
+        riskLevel: riskLevel,
+        medications: medications || '',
+        lifestyle: lifestyle || '',
+        followUp: followUp || '',
+        treatmentPlan: `${medications || ''}${lifestyle ? '\n\n' + lifestyle : ''}`,
+        notes: notes || ''
+      }
+
+      console.log('📋 提交诊断数据:', JSON.stringify(diagnosisData, null, 2))
+
+      // 提交测量诊断
+      const response = await apiService.createMeasurementDiagnosis(diagnosisData)
       
-      if (response.success) {
-        // 更新测量状态为已处理
-        await apiService.updateMeasurementStatus(measurementData._id, 'processed', true)
+      console.log('📡 API响应:', response)
+      
+      if (response && (response.success !== false)) {
+        console.log('✅ 诊断报告提交成功')
         
-        setMessage('✅ 診斷報告已成功提交！')
+        // 更新测量状态为已处理
+        try {
+          await apiService.updateMeasurementStatus(measurementData._id, 'processed', true)
+          console.log('✅ 测量状态更新成功')
+        } catch (updateError) {
+          console.warn('⚠️ 测量状态更新失败:', updateError)
+        }
+        
+        setMessage('✅ 測量診斷已成功提交！')
         
         // 3秒后返回诊断列表
         setTimeout(() => {
           navigate('/medical/diagnosis')
         }, 3000)
       } else {
-        setMessage('❌ 提交診斷報告失敗，請重試')
+        console.error('❌ 提交測量診斷失敗:', response)
+        setMessage('❌ 提交測量診斷失敗，請重試')
       }
     } catch (error) {
-      console.error('提交诊断失败:', error)
-      setMessage('❌ 提交診斷報告失敗，請重試')
+      console.error('❌ 提交诊断失败:', error)
+      
+      let errorMessage = '❌ 提交測量診斷失敗，請重試'
+      
+      if (error.response) {
+        // 服务器响应了错误状态码
+        console.error('HTTP状态码:', error.response.status)
+        console.error('响应头:', error.response.headers)
+        console.error('响应数据:', error.response.data)
+        
+        if (error.response.data && error.response.data.message) {
+          errorMessage = `❌ 提交失敗: ${error.response.data.message}`
+        } else if (error.response.status === 500) {
+          errorMessage = '❌ 服務器內部錯誤，請稍後重試或聯繫管理員'
+        } else if (error.response.status === 400) {
+          errorMessage = '❌ 請求數據格式錯誤，請檢查輸入信息'
+        } else if (error.response.status === 401) {
+          errorMessage = '❌ 身份驗證失敗，請重新登錄'
+        } else if (error.response.status === 403) {
+          errorMessage = '❌ 沒有權限執行此操作'
+        }
+      } else if (error.request) {
+        // 请求已发出，但没有收到响应
+        console.error('请求已发出但无响应:', error.request)
+        errorMessage = '❌ 網絡連接失敗，請檢查網絡連接'
+      } else {
+        // 在设置请求时发生了错误
+        console.error('请求设置错误:', error.message)
+        errorMessage = `❌ 請求錯誤: ${error.message}`
+      }
+      
+      setMessage(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -636,27 +887,51 @@ export default function MedicalDiagnosisFormPage() {
                     )}
                     
                     {/* 测量图片 */}
-                    {measurementData.images && measurementData.images.length > 0 && (
+                    {(measurementData.imagePaths || measurementData.images) && (measurementData.imagePaths || measurementData.images).length > 0 && (
                       <div className="pt-3 border-t border-red-200/50">
                         <div className="flex items-center gap-2 mb-2">
                           <Image className="h-4 w-4 text-gray-600" />
-                          <span className="text-gray-600 text-sm font-medium">測量圖片 ({measurementData.images.length}張)</span>
+                          <span className="text-gray-600 text-sm font-medium">測量圖片 ({(measurementData.imagePaths || measurementData.images).length}張)</span>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {measurementData.images.map((image, index) => (
+                          {(measurementData.imagePaths || measurementData.images).map((image, index) => (
                             <div key={index} className="relative group">
                               <img
                                 src={apiService.getImageUrl(currentUserId || (typeof measurementData.userId === 'string' ? measurementData.userId : measurementData.userId?._id), image.split('/').pop(), 'measurement')}
                                 alt={`測量圖片 ${index + 1}`}
                                 className="w-16 h-16 object-cover rounded-lg border-2 border-red-200 cursor-pointer hover:border-red-400 transition-colors"
-                                onClick={() => openImageViewer(measurementData.images, index, currentUserId || (typeof measurementData.userId === 'string' ? measurementData.userId : measurementData.userId?._id))}
+                                onClick={() => {
+                                  // 构建完整的图片URL数组
+                                  const imageUrls = (measurementData.imagePaths || measurementData.images).map(img => 
+                                    apiService.getImageUrl(currentUserId || (typeof measurementData.userId === 'string' ? measurementData.userId : measurementData.userId?._id), img.split('/').pop(), 'measurement')
+                                  )
+                                  openImagePreview(imageUrls, index)
+                                }}
                               />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors flex items-center justify-center">
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors flex items-center justify-center pointer-events-none">
                                 <Eye className="h-4 w-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                               </div>
                             </div>
                           ))}
                         </div>
+                        
+                        {/* 查看所有图片按钮 */}
+                        {(measurementData.imagePaths || measurementData.images).length > 3 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-2 text-xs bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                            onClick={() => {
+                              const imageUrls = (measurementData.imagePaths || measurementData.images).map(img => 
+                                apiService.getImageUrl(currentUserId || (typeof measurementData.userId === 'string' ? measurementData.userId : measurementData.userId?._id), img.split('/').pop(), 'measurement')
+                              )
+                              openImagePreview(imageUrls, 0)
+                            }}
+                          >
+                            <Image className="h-3 w-3 mr-1" />
+                            查看所有圖片 ({(measurementData.imagePaths || measurementData.images).length}張)
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -667,9 +942,10 @@ export default function MedicalDiagnosisFormPage() {
         </div>
 
         {/* 左右分栏布局：患者历史记录 + 诊断表单 */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start">
-          {/* 患者历史测量记录 - 左侧 */}
-          <div>
+        {hasRead !== '1' && (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start">
+            {/* 患者历史测量记录 - 左侧 */}
+            <div>
             <Card 
               ref={historyCardRef}
               className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-2xl shadow-purple-500/10 flex flex-col"
@@ -705,28 +981,17 @@ export default function MedicalDiagnosisFormPage() {
                     {patientHistory.map((record, index) => {
                       const isCurrentRecord = record._id === measurementData._id
                       const isAbnormal = isAbnormalMeasurement(record)
+                      const statusStyle = getStatusStyle(record.status, isCurrentRecord, isAbnormal)
                       
                       return (
-                        <div key={record._id} className={`p-3 rounded-lg transition-all ${
-                          isCurrentRecord 
-                            ? 'bg-gradient-to-r from-red-50 to-pink-50 shadow-md' 
-                            : isAbnormal 
-                              ? 'bg-gradient-to-r from-orange-50 to-red-50 shadow-sm' 
-                              : 'bg-gradient-to-r from-green-50 to-emerald-50 shadow-sm'
-                        }`} style={{ border: 'none' }}>
+                        <div key={record._id} className={`p-3 rounded-lg transition-all ${statusStyle.background}`} style={{ border: 'none' }}>
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex items-center gap-2">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                isCurrentRecord 
-                                  ? 'bg-gradient-to-br from-red-600 to-red-700 text-white shadow-sm' 
-                                  : isAbnormal 
-                                    ? 'bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-sm' 
-                                    : 'bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-sm'
-                              }`}>
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${statusStyle.iconBg}`}>
                                 {getMeasurementTypeIcon(getMeasurementType(record))}
                               </div>
                               <div>
-                                <h4 className={`font-medium text-sm ${isCurrentRecord ? 'text-red-700' : 'text-gray-800'}`}>
+                                <h4 className={`font-medium text-sm ${statusStyle.textColor}`}>
                                   {getMeasurementTypeLabel(getMeasurementType(record))}
                                 </h4>
                                 <div className="flex items-center gap-1 mt-1">
@@ -735,7 +1000,20 @@ export default function MedicalDiagnosisFormPage() {
                                       當前記錄
                                     </Badge>
                                   )}
-                                  {isAbnormal && !isCurrentRecord && (
+                                  {/* 状态标签 */}
+                                  <Badge 
+                                    variant={record.status === 'processed' ? 'secondary' : isAbnormal ? 'destructive' : 'default'} 
+                                    className={`text-xs px-1.5 py-0.5 ${
+                                      record.status === 'processed' 
+                                        ? 'bg-gray-100 text-gray-600 border-gray-300' 
+                                        : isAbnormal && !isCurrentRecord
+                                          ? 'bg-orange-100 text-orange-700 border-orange-200'
+                                          : 'bg-blue-100 text-blue-700 border-blue-200'
+                                    }`}
+                                  >
+                                    {getStatusLabel(record.status)}
+                                  </Badge>
+                                  {isAbnormal && !isCurrentRecord && record.status !== 'processed' && (
                                     <Badge variant="destructive" className="bg-orange-100 text-orange-700 text-xs px-1.5 py-0.5">
                                       異常
                                     </Badge>
@@ -771,29 +1049,7 @@ export default function MedicalDiagnosisFormPage() {
                               )}
                             </div>
                             
-                            {/* 图片缩略图 */}
-                            {record.images && record.images.length > 0 && (
-                              <div className="flex items-center gap-1">
-                                <Image className="h-3 w-3 text-gray-500" />
-                                <span className="text-xs text-gray-500">{record.images.length}張</span>
-                                <div className="flex gap-1 ml-1">
-                                  {record.images.slice(0, 2).map((image, imgIndex) => (
-                                    <img
-                                      key={imgIndex}
-                                      src={apiService.getImageUrl(currentUserId || (typeof record.userId === 'string' ? record.userId : record.userId?._id), image.split('/').pop(), 'measurement')}
-                                      alt={`縮略圖 ${imgIndex + 1}`}
-                                      className="w-6 h-6 object-cover rounded border cursor-pointer hover:border-blue-400 transition-colors"
-                                      onClick={() => openImageViewer(record.images, imgIndex, currentUserId || (typeof record.userId === 'string' ? record.userId : record.userId?._id))}
-                                    />
-                                  ))}
-                                  {record.images.length > 2 && (
-                                    <div className="w-6 h-6 bg-gray-100 rounded border flex items-center justify-center text-xs text-gray-600">
-                                      +{record.images.length - 2}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
+
                           </div>
                           
                           {/* 跳转按钮 */}
@@ -821,7 +1077,7 @@ export default function MedicalDiagnosisFormPage() {
             </Card>
           </div>
 
-          {/* 诊断表单 - 右侧 */}
+          {/* 诊断表单/只读信息 - 右侧 */}
           <div>
             <Card 
               ref={diagnosisFormRef}
@@ -829,14 +1085,50 @@ export default function MedicalDiagnosisFormPage() {
             >
               <CardHeader className="pb-4">
                 <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
-                  <Stethoscope className="h-5 w-5 text-green-600" />
-                  診斷評估表單
+                  {isReadOnly ? (
+                    <>
+                      <Eye className="h-5 w-5 text-blue-600" />
+                      診斷記錄查看
+                    </>
+                  ) : (
+                    <>
+                      <Stethoscope className="h-5 w-5 text-green-600" />
+                      診斷評估表單
+                    </>
+                  )}
                 </CardTitle>
                 <CardDescription className="text-gray-600">
-                  請提供專業的診斷結果和治療建議
+                  {isReadOnly ? '此測量記錄已完成診斷評估' : '請提供專業的診斷結果和治療建議'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                
+                {isReadOnly ? (
+                  /* 只读模式 - 显示已处理状态信息 */
+                  <div className="space-y-4">
+                    <Alert className="border-blue-200 bg-blue-50">
+                      <Eye className="h-4 w-4" />
+                      <AlertDescription className="text-blue-700">
+                        <strong>此測量記錄已完成診斷評估</strong>
+                        <br />
+                        該記錄的狀態為「已處理」，診斷評估表單已隱藏。如需查看完整的診斷報告，請前往患者詳情頁面。
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <div className="flex gap-4 pt-4 border-t border-gray-200">
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate('/medical/diagnosis')}
+                        className="flex-1 border-gray-300 text-gray-600 hover:bg-gray-50"
+                      >
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        返回列表
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  /* 编辑模式 - 显示诊断表单 */
+                  <>
                 
                 {/* 诊断结果 */}
                 <div className="space-y-2">
@@ -947,18 +1239,21 @@ export default function MedicalDiagnosisFormPage() {
                   </Button>
                 </div>
 
-                {/* 消息提示 */}
-                {message && (
-                  <Alert className={`mt-4 ${message.includes('✅') ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
-                    <AlertDescription className={message.includes('✅') ? 'text-green-700' : 'text-red-700'}>
-                      {message}
-                    </AlertDescription>
-                  </Alert>
+                    {/* 消息提示 */}
+                    {message && (
+                      <Alert className={`mt-4 ${message.includes('✅') ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                        <AlertDescription className={message.includes('✅') ? 'text-green-700' : 'text-red-700'}>
+                          {message}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
           </div>
         </div>
+        )}
       </main>
       
       {/* 图片查看器 */}
@@ -970,21 +1265,31 @@ export default function MedicalDiagnosisFormPage() {
         initialIndex={currentImageIndex}
       />
 
+      {/* 新的图片预览组件 */}
+      <ImagePreview
+        images={previewImages}
+        isOpen={imagePreviewOpen}
+        onClose={() => setImagePreviewOpen(false)}
+        initialIndex={previewInitialIndex}
+        showDownload={true}
+        showRotate={true}
+        showZoom={true}
+        showNavigation={true}
+        maxZoom={5}
+        minZoom={0.1}
+        zoomStep={0.2}
+      />
+
       {/* 确认弹窗 */}
-      <Dialog open={confirmDialogOpen} onOpenChange={cancelNavigation}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>確認導航</DialogTitle>
-            <DialogDescription>
-              您確定要導航到詳情頁面嗎？
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-4 flex justify-end gap-4">
-            <Button variant="outline" onClick={cancelNavigation}>取消</Button>
-            <Button variant="default" onClick={confirmNavigation}>確認</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={confirmDialogOpen}
+        onOpenChange={cancelNavigation}
+        type="warning"
+        title="確認導航"
+        description="打開新的詳情會清理當前已填入的診斷内容，是否繼續？"
+        onConfirm={confirmNavigation}
+        onCancel={cancelNavigation}
+      />
     </div>
   )
 }

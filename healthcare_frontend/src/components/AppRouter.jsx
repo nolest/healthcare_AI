@@ -24,6 +24,8 @@ import MedicalGuidancePage from '../pages/MedicalGuidancePage.jsx'
 import MedicalDiagnosisPage from '../pages/MedicalDiagnosisPage.jsx'
 import MedicalDiagnosisFormPage from '../pages/MedicalDiagnosisFormPage.jsx'
 import PatientDetailPage from '../pages/PatientDetailPage.jsx'
+import ConfirmDialogTestPage from '../pages/ConfirmDialogTestPage.jsx'
+import ImagePreviewTestPage from '../pages/ImagePreviewTestPage.jsx'
 
 export default function AppRouter() {
   return (
@@ -65,6 +67,10 @@ export default function AppRouter() {
         
         {/* 诊断页面 */}
         <Route path="/diagnosis/:patientId" element={<DiagnosisPage />} />
+        
+        {/* 测试页面 */}
+        <Route path="/test/confirm-dialog" element={<ConfirmDialogTestPage />} />
+        <Route path="/test/image-preview" element={<ImagePreviewTestPage />} />
         
         {/* 404页面 */}
         <Route path="*" element={<NotFoundPage />} />

@@ -40,16 +40,38 @@ class ApiService {
 
     try {
       const response = await fetch(url, config);
-      const data = await response.json();
+      
+      // 先尝试解析响应体
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        // 如果响应不是JSON格式，创建一个错误对象
+        data = { message: `无法解析响应: ${response.statusText}` };
+      }
 
       if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+        // 创建一个包含详细错误信息的错误对象
+        const error = new Error(data.message || `HTTP error! status: ${response.status}`);
+        error.response = {
+          status: response.status,
+          statusText: response.statusText,
+          data: data
+        };
+        throw error;
       }
 
       return data;
     } catch (error) {
       console.error('API请求失败:', error);
-      throw error;
+      // 如果错误已经有response属性，直接抛出
+      if (error.response) {
+        throw error;
+      }
+      // 否则包装网络错误
+      const networkError = new Error(error.message || '网络请求失败');
+      networkError.response = null;
+      throw networkError;
     }
   }
 
@@ -219,7 +241,9 @@ class ApiService {
 
   // 获取测量记录的图片URL
   getImageUrl(userId, filename, businessType = 'measurement') {
-    return `${this.baseURL}/measurements/images/${businessType}/${userId}/${filename}`;
+    // 使用静态文件服务器URL，不包含/api前缀
+    const staticUrl = this.baseURL.replace('/api', '');
+    return `${staticUrl}/uploads/pic/${businessType}/${userId}/${filename}`;
   }
 
   // 获取完整图片URL（从相对路径）
@@ -234,7 +258,9 @@ class ApiService {
     // 确保路径以 / 开头
     const normalizedPath = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
     
-    return `${this.baseURL}${normalizedPath}`;
+    // 使用静态文件服务器URL，不包含/api前缀
+    const staticUrl = this.baseURL.replace('/api', '');
+    return `${staticUrl}${normalizedPath}`;
   }
 
   // 用户管理相关API
@@ -508,12 +534,69 @@ class ApiService {
     });
   }
 
-  // ===== 诊断报告 =====
-  async createDiagnosisReport(reportData) {
-    return this.request('/diagnosis-reports', {
+  // ===== 测量诊断 =====
+  async createMeasurementDiagnosis(diagnosisData) {
+    return this.request('/measurement-diagnoses', {
       method: 'POST',
-      body: JSON.stringify(reportData),
+      body: JSON.stringify(diagnosisData),
     });
+  }
+
+  async getAllMeasurementDiagnoses() {
+    return this.request('/measurement-diagnoses');
+  }
+
+  async getPatientMeasurementDiagnoses(patientId) {
+    return this.request(`/measurement-diagnoses/patient/${patientId}`);
+  }
+
+  async getDoctorMeasurementDiagnoses(doctorId) {
+    return this.request(`/measurement-diagnoses/doctor/${doctorId}`);
+  }
+
+  async getMeasurementDiagnosisByMeasurement(measurementId) {
+    return this.request(`/measurement-diagnoses/measurement/${measurementId}`);
+  }
+
+  async getUnreadMeasurementDiagnoses(patientId) {
+    return this.request(`/measurement-diagnoses/unread/${patientId}`);
+  }
+
+  async getUnreadMeasurementDiagnosesCount(patientId) {
+    return this.request(`/measurement-diagnoses/unread-count/${patientId}`);
+  }
+
+  async getMeasurementDiagnosisDetail(diagnosisId) {
+    return this.request(`/measurement-diagnoses/${diagnosisId}`);
+  }
+
+  async markMeasurementDiagnosisAsRead(diagnosisId) {
+    return this.request(`/measurement-diagnoses/${diagnosisId}/read`, {
+      method: 'PATCH',
+    });
+  }
+
+  async updateMeasurementDiagnosis(diagnosisId, updateData) {
+    return this.request(`/measurement-diagnoses/${diagnosisId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updateData),
+    });
+  }
+
+  async deleteMeasurementDiagnosis(diagnosisId) {
+    return this.request(`/measurement-diagnoses/${diagnosisId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getMeasurementDiagnosisStatistics() {
+    return this.request('/measurement-diagnoses/statistics');
+  }
+
+  // ===== 诊断报告 (保留兼容性) =====
+  async createDiagnosisReport(reportData) {
+    // 重定向到新的measurement-diagnoses API
+    return this.createMeasurementDiagnosis(reportData);
   }
 
   async getAllDiagnosisReports() {

@@ -34,7 +34,7 @@ export default function LoginPage() {
       ></div>
       
       {/* 添加背景移动动画的CSS */}
-      <style jsx>{`
+      <style>{`
         @keyframes backgroundMove {
           0% { 
             background-position: 50% 40%;

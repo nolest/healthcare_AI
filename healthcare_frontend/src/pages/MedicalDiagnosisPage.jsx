@@ -280,8 +280,11 @@ export default function MedicalDiagnosisPage() {
   }
 
   const handleDiagnose = (measurement) => {
-    // 跳转到诊断页面，使用URL参数传递测量记录ID
-    navigate(`/medical/diagnosis/form?mid=${measurement._id}`)
+    // 在新标签页打开诊断页面，使用URL参数传递测量记录ID
+    // 如果记录已处理，添加hasread=1参数进入只读模式
+    const hasRead = (measurement.status === 'processed' || measurement.status === 'reviewed') ? '1' : '0'
+    const url = `/medical/diagnosis/form?mid=${measurement._id}&hasread=${hasRead}`
+    window.open(url, '_blank')
   }
 
   if (!currentUser) {
@@ -464,7 +467,7 @@ export default function MedicalDiagnosisPage() {
               異常測量列表 ({filteredMeasurements.length})
             </CardTitle>
             <CardDescription className="text-gray-600">
-              點擊"去診斷"按鈕為患者提供專業診斷建議
+              點擊"查看詳情"按鈕查看患者異常測量詳情並進行診斷
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -566,8 +569,8 @@ export default function MedicalDiagnosisPage() {
                               onClick={() => handleDiagnose(measurement)}
                               className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
                             >
-                              <Stethoscope className="h-4 w-4 mr-1" />
-                              去診斷
+                              <Eye className="h-4 w-4 mr-1" />
+                              查看詳情
                             </Button>
                           </TableCell>
                         </TableRow>
