@@ -71,7 +71,7 @@ export default function PatientDetailPage() {
         : null
 
       setPatient({ ...patientData, age })
-      setMeasurements(measurementsData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)))
+              setMeasurements(measurementsData.sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp)))
       setDiagnoses(diagnosesData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
 
     } catch (error) {
@@ -146,7 +146,7 @@ export default function PatientDetailPage() {
             )}
           </div>
           <CardDescription className="text-gray-600">
-            {formatDateTime(measurement.timestamp)}
+            {formatDateTime(measurement.createdAt || measurement.timestamp)}
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CovidDiagnosis, CovidDiagnosisDocument } from '../schemas/covid-diagnosis.schema';
 import { CovidAssessment, CovidAssessmentDocument } from '../schemas/covid-assessment.schema';
 import { CreateCovidDiagnosisDto, UpdateCovidDiagnosisDto } from '../dto/covid-diagnosis.dto';
@@ -13,27 +13,53 @@ export class CovidDiagnosesService {
   ) {}
 
   async create(createCovidDiagnosisDto: CreateCovidDiagnosisDto, doctorId: string): Promise<CovidDiagnosis> {
-    const { patientId, assessmentId, ...diagnosisData } = createCovidDiagnosisDto;
+    try {
+      const { patientId, assessmentId, ...diagnosisData } = createCovidDiagnosisDto;
 
-    // 验证评估是否存在
-    const assessment = await this.covidAssessmentModel.findById(assessmentId);
-    if (!assessment) {
-      throw new NotFoundException('COVID评估记录不存在');
+      // 验证并转换ObjectId
+      if (!Types.ObjectId.isValid(assessmentId)) {
+        throw new NotFoundException('无效的评估记录ID');
+      }
+      
+      if (!Types.ObjectId.isValid(patientId)) {
+        throw new NotFoundException('无效的患者ID');
+      }
+      
+      if (!Types.ObjectId.isValid(doctorId)) {
+        throw new NotFoundException('无效的医生ID');
+      }
+
+      // 验证评估是否存在
+      const assessment = await this.covidAssessmentModel.findById(assessmentId);
+      if (!assessment) {
+        throw new NotFoundException('COVID评估记录不存在');
+      }
+
+      // 验证评估是否属于指定患者
+      if (assessment.userId.toString() !== patientId) {
+        throw new NotFoundException('评估记录与患者不匹配');
+      }
+
+      const covidDiagnosis = new this.covidDiagnosisModel({
+        ...diagnosisData,
+        patientId: new Types.ObjectId(patientId),
+        assessmentId: new Types.ObjectId(assessmentId),
+        doctorId: new Types.ObjectId(doctorId),
+      });
+
+      const savedDiagnosis = await covidDiagnosis.save();
+      
+      // 返回填充了关联数据的诊断记录
+      return this.covidDiagnosisModel
+        .findById(savedDiagnosis._id)
+        .populate('patientId', 'username email fullName')
+        .populate('doctorId', 'username email fullName')
+        .populate('assessmentId');
+        
+    } catch (error) {
+      console.error('创建COVID诊断时出错:', error);
+      throw error;
     }
-
-    // 验证评估是否属于指定患者
-    if (assessment.userId.toString() !== patientId) {
-      throw new NotFoundException('评估记录与患者不匹配');
-    }
-
-    const covidDiagnosis = new this.covidDiagnosisModel({
-      ...diagnosisData,
-      patientId,
-      assessmentId,
-      doctorId,
-    });
-
-    return covidDiagnosis.save();
   }
 
   async findAll(): Promise<CovidDiagnosis[]> {

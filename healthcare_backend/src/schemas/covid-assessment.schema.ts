@@ -62,6 +62,9 @@ export class CovidAssessment {
 
   @Prop({ type: [String], default: [] })
   imagePaths: string[];
+
+  @Prop({ required: true, default: 'pending' })
+  status: string; // 'pending', 'processed', 'reviewed'
 }
 
 export const CovidAssessmentSchema = SchemaFactory.createForClass(CovidAssessment); 

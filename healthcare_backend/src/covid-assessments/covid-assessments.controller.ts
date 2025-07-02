@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, Request, UseInterceptors, UploadedFiles } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, UseGuards, Request, UseInterceptors, UploadedFiles, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { CovidAssessmentsService, CreateCovidAssessmentDto, UpdateCovidAssessmentDto } from './covid-assessments.service';
@@ -125,5 +125,43 @@ export class CovidAssessmentsController {
     @Body() updateCovidAssessmentDto: UpdateCovidAssessmentDto
   ) {
     return this.covidAssessmentsService.update(id, updateCovidAssessmentDto);
+  }
+
+  @Patch(':id/status')
+  @UseGuards(RolesGuard)
+  @Roles('medical_staff')
+  @ApiOperation({ summary: '更新COVID评估状态（医护人员）' })
+  @ApiResponse({ status: 200, description: '更新成功' })
+  @ApiResponse({ status: 404, description: 'COVID评估记录不存在' })
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string }
+  ) {
+    return this.covidAssessmentsService.updateStatus(id, body.status);
+  }
+
+  @Get('filter/search')
+  @UseGuards(RolesGuard)
+  @Roles('medical_staff')
+  @ApiOperation({ summary: '筛选COVID评估记录（医护人员）' })
+  @ApiResponse({ status: 200, description: '获取成功' })
+  async findWithFilters(
+    @Query('patientId') patientId?: string,
+    @Query('patientName') patientName?: string,
+    @Query('riskLevel') riskLevel?: string,
+    @Query('symptoms') symptoms?: string,
+    @Query('dateRange') dateRange?: string,
+    @Query('status') status?: string
+  ) {
+    const filters = {
+      patientId,
+      patientName,
+      riskLevel,
+      symptoms: symptoms ? symptoms.split(',') : undefined,
+      dateRange,
+      status
+    };
+    
+    return this.covidAssessmentsService.findWithFilters(filters);
   }
 } 

@@ -44,21 +44,33 @@ export default function MedicalStaffPage() {
 
   const fetchStats = async () => {
     try {
-      const [measurements, diagnoses, covidStats] = await Promise.all([
+      const [measurementsResponse, diagnoses, covidStats] = await Promise.all([
         apiService.getAbnormalMeasurements(),
         apiService.getAllDiagnoses(),
         apiService.getCovidAssessmentStats()
       ])
 
-      // 计算待处理患者数量
+      // 解构API响应，获取实际数据
+      const measurements = measurementsResponse.data || measurementsResponse
+
+      // 计算待处理患者数量和待处理测量记录数量
       const patientMap = new Map()
+      let pendingMeasurements = 0 // 待处理的异常测量记录数量
+      
       measurements.forEach(measurement => {
-        const patientId = measurement.userId._id
-        if (!patientMap.has(patientId)) {
-          patientMap.set(patientId, { pendingCount: 0 })
-        }
-        if (measurement.isAbnormal && measurement.status === 'pending') {
-          patientMap.get(patientId).pendingCount++
+        // 获取患者ID，兼容不同的数据结构
+        const patientId = measurement.userId?._id || measurement.userId
+        
+        if (patientId) {
+          if (!patientMap.has(patientId)) {
+            patientMap.set(patientId, { pendingCount: 0 })
+          }
+          
+          // 统计待处理的异常测量记录
+          if (measurement.isAbnormal && measurement.status === 'pending') {
+            patientMap.get(patientId).pendingCount++
+            pendingMeasurements++ // 统计待处理的异常测量记录总数
+          }
         }
       })
       const pendingPatients = Array.from(patientMap.values()).filter(p => p.pendingCount > 0).length
@@ -74,9 +86,12 @@ export default function MedicalStaffPage() {
         })
       }
 
+
+
       setStats({
         totalDiagnoses: diagnoses.length,
         pendingPatients,
+        pendingMeasurements, // 新增待处理测量记录数量
         highRiskPatients: covidStats?.highRiskCount || 0,
         totalAssessments: covidStats?.totalAssessments || 0,
         riskDistribution
@@ -107,7 +122,8 @@ export default function MedicalStaffPage() {
       description: '進行患者診斷與治療建議',
       icon: FileText,
       color: 'text-green-600',  
-      path: '/medical/diagnosis'
+      path: '/medical/diagnosis',
+      badge: stats?.pendingMeasurements > 0 ? stats.pendingMeasurements : null
     },
     {
       title: 'COVID/流感管理',

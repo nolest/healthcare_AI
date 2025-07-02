@@ -375,7 +375,17 @@ class ApiService {
   }
 
   async getUserCovidAssessments(userId) {
-    return this.request(`/covid-assessments/user/${userId}`);
+    console.log('API: getUserCovidAssessments 被调用, userId:', userId);
+    console.log('API: 请求URL:', `/covid-assessments/user/${userId}`);
+    
+    try {
+      const response = await this.request(`/covid-assessments/user/${userId}`);
+      console.log('API: getUserCovidAssessments 响应:', response);
+      return response;
+    } catch (error) {
+      console.error('API: getUserCovidAssessments 失败:', error);
+      throw error;
+    }
   }
 
   async getCovidAssessmentStats() {
@@ -391,6 +401,28 @@ class ApiService {
       method: 'PATCH',
       body: JSON.stringify(updateData),
     });
+  }
+
+  async updateCovidAssessmentStatus(id, status) {
+    return this.request(`/covid-assessments/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async filterCovidAssessments(filters) {
+    const params = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key] && filters[key] !== 'all') {
+        if (Array.isArray(filters[key])) {
+          params.append(key, filters[key].join(','));
+        } else {
+          params.append(key, filters[key]);
+        }
+      }
+    });
+    
+    return this.request(`/covid-assessments/filter/search?${params.toString()}`);
   }
 
   // 诊断相关API

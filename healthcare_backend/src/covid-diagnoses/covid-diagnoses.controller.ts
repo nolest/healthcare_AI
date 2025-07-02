@@ -24,7 +24,18 @@ export class CovidDiagnosesController {
   @Post()
   @Roles('medical_staff')
   create(@Body() createCovidDiagnosisDto: CreateCovidDiagnosisDto, @Request() req) {
-    return this.covidDiagnosesService.create(createCovidDiagnosisDto, req.user.userId);
+    console.log('COVID诊断创建请求 - 用户信息:', req.user);
+    console.log('COVID诊断创建请求 - 诊断数据:', createCovidDiagnosisDto);
+    
+    // 获取医生ID，支持多种可能的字段名
+    const doctorId = req.user._id || req.user.id || req.user.userId;
+    console.log('COVID诊断创建请求 - 医生ID:', doctorId);
+    
+    if (!doctorId) {
+      throw new Error('无法获取医生ID');
+    }
+    
+    return this.covidDiagnosesService.create(createCovidDiagnosisDto, doctorId.toString());
   }
 
   @Get()
@@ -54,14 +65,16 @@ export class CovidDiagnosesController {
   @Get('my-diagnoses')
   @Roles('medical_staff')
   findMyDiagnoses(@Request() req) {
-    return this.covidDiagnosesService.findByDoctor(req.user.userId);
+    const doctorId = req.user._id || req.user.id || req.user.userId;
+    return this.covidDiagnosesService.findByDoctor(doctorId.toString());
   }
 
   @Get('patient/:patientId')
   @Roles('medical_staff', 'patient')
   findByPatient(@Param('patientId') patientId: string, @Request() req) {
     // 患者只能查看自己的诊断
-    if (req.user.role === 'patient' && req.user.userId !== patientId) {
+    const userId = req.user._id || req.user.id || req.user.userId;
+    if (req.user.role === 'patient' && userId.toString() !== patientId) {
       throw new Error('无权访问此患者的诊断记录');
     }
     return this.covidDiagnosesService.findByPatient(patientId);

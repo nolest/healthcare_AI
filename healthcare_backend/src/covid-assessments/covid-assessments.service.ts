@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { CovidAssessment, CovidAssessmentDocument } from '../schemas/covid-assessment.schema';
 import { User, UserDocument } from '../schemas/user.schema';
 
@@ -100,10 +100,28 @@ export class CovidAssessmentsService {
   }
 
   async findByUserId(userId: string) {
-    return this.covidAssessmentModel
-      .find({ userId })
-      .sort({ createdAt: -1 })
-      .exec();
+    try {
+      // 将字符串userId转换为ObjectId进行查询
+      const objectId = new Types.ObjectId(userId);
+      console.log('findByUserId: 查询userId:', userId, '转换为ObjectId:', objectId);
+      
+      const assessments = await this.covidAssessmentModel
+        .find({ userId: objectId })
+        .populate('userId', 'username fullName email phone')
+        .sort({ createdAt: -1 })
+        .exec();
+      
+      console.log(`findByUserId: 找到 ${assessments.length} 条COVID评估记录`);
+      return assessments;
+    } catch (error) {
+      console.error('findByUserId: 查询失败:', error);
+      // 如果ObjectId转换失败，尝试直接查询
+      return this.covidAssessmentModel
+        .find({ userId })
+        .populate('userId', 'username fullName email phone')
+        .sort({ createdAt: -1 })
+        .exec();
+    }
   }
 
   async findHighRisk() {
@@ -147,6 +165,19 @@ export class CovidAssessmentsService {
 
   async getStats() {
     const totalAssessments = await this.covidAssessmentModel.countDocuments();
+    
+    // 按状态统计 - 用于管理页面
+    // 修复：待处理包括没有status字段、status为null或status为'pending'的记录
+    const pending = await this.covidAssessmentModel.countDocuments({ 
+      $or: [
+        { status: { $exists: false } },
+        { status: null },
+        { status: 'pending' }
+      ]
+    });
+    const processed = await this.covidAssessmentModel.countDocuments({ 
+      status: { $in: ['processed', 'reviewed'] } 
+    });
     
     // 按风险等级统计
     const riskStats = await this.covidAssessmentModel.aggregate([
@@ -197,12 +228,105 @@ export class CovidAssessmentsService {
     });
 
     return {
+      total: totalAssessments,
       totalAssessments,
+      pending,
+      processed,
+      processingRate: totalAssessments > 0 ? Math.round((processed / totalAssessments) * 100) : 0,
       highRiskCount,
       riskStats,
       severityStats,
       recentTrend: recentAssessments,
     };
+  }
+
+  async updateStatus(id: string, status: string) {
+    const assessment = await this.covidAssessmentModel.findById(id);
+    if (!assessment) {
+      throw new NotFoundException('COVID评估记录不存在');
+    }
+
+    const updatedAssessment = await this.covidAssessmentModel
+      .findByIdAndUpdate(id, { status }, { new: true })
+      .populate('userId', 'username fullName email phone')
+      .exec();
+
+    return updatedAssessment;
+  }
+
+  async findWithFilters(filters: {
+    patientId?: string;
+    patientName?: string;
+    riskLevel?: string;
+    symptoms?: string[];
+    dateRange?: string;
+    status?: string;
+  }) {
+    const query: any = {};
+    
+    // 状态筛选
+    if (filters.status && filters.status !== 'all') {
+      query.status = filters.status;
+    }
+    
+    // 风险等级筛选
+    if (filters.riskLevel && filters.riskLevel !== 'all') {
+      query.riskLevel = filters.riskLevel;
+    }
+    
+    // 症状筛选
+    if (filters.symptoms && filters.symptoms.length > 0) {
+      query.symptoms = { $in: filters.symptoms };
+    }
+    
+    // 时间范围筛选
+    if (filters.dateRange && filters.dateRange !== 'all') {
+      const now = new Date();
+      let startDate = new Date();
+      
+      switch (filters.dateRange) {
+        case 'today':
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+      }
+      
+      query.createdAt = { $gte: startDate };
+    }
+
+    let assessments = await this.covidAssessmentModel
+      .find(query)
+      .populate('userId', 'username fullName email phone')
+      .sort({ createdAt: -1 })
+      .exec();
+
+    // 患者ID和姓名筛选需要在populate后进行
+    if (filters.patientId || filters.patientName) {
+      assessments = assessments.filter(assessment => {
+        const userInfo = assessment.userId as any;
+        let match = true;
+        
+        if (filters.patientId) {
+          const patientIdMatch = userInfo?.username?.toLowerCase().includes(filters.patientId.toLowerCase()) ||
+                                assessment._id.toString().toLowerCase().includes(filters.patientId.toLowerCase());
+          match = match && patientIdMatch;
+        }
+        
+        if (filters.patientName) {
+          const patientNameMatch = userInfo?.fullName?.toLowerCase().includes(filters.patientName.toLowerCase());
+          match = match && patientNameMatch;
+        }
+        
+        return match;
+      });
+    }
+
+    return assessments;
   }
 
   // 智能预测疾病类型

@@ -48,6 +48,15 @@ export class MeasurementsService {
   }
 
   async findAbnormalMeasurements() {
+    // 返回所有异常测量记录，不限制状态，以便前端正确统计
+    return this.measurementModel
+      .find({ isAbnormal: true })
+      .populate('userId', 'username fullName role phone email')
+      .sort({ createdAt: -1 });
+  }
+
+  async findPendingAbnormalMeasurements() {
+    // 如果需要只获取待处理的异常记录，可以使用这个方法
     return this.measurementModel
       .find({ isAbnormal: true, status: 'pending' })
       .populate('userId', 'username fullName role phone email')

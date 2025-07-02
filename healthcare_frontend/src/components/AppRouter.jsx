@@ -13,7 +13,9 @@ import MedicalPatientsPage from '../pages/MedicalPatientsPage.jsx'
 import MedicalStatisticsPage from '../pages/MedicalStatisticsPage.jsx'
 import DiagnosisPage from '../pages/DiagnosisPage.jsx'
 import AbnormalDataSettingsPage from '../pages/AbnormalDataSettingsPage.jsx'
-import CovidFluManagementPage from '../pages/CovidFluManagementPage.jsx'
+import CovidManagementPage from '../pages/CovidManagementPage.jsx'
+import CovidDiagnosisFormPage from '../pages/CovidDiagnosisFormPage.jsx'
+
 import PatientCovidAssessmentPage from '../pages/PatientCovidAssessmentPage.jsx'
 import PatientCovidAssessmentHistoryPage from '../pages/PatientCovidAssessmentHistoryPage.jsx'
 import PatientCovidAssessmentResultPage from '../pages/PatientCovidAssessmentResultPage.jsx'
@@ -56,8 +58,9 @@ export default function AppRouter() {
         
         {/* 医护人员页面 */}
         <Route path="/medical" element={<MedicalStaffPage />} />
-        <Route path="/medical/covid-management" element={<CovidFluManagementPage />} />
-        <Route path="/medical/patients-management" element={<MedicalPatientsPage />} />
+                                              <Route path="/medical/covid-management" element={<CovidManagementPage />} />
+              <Route path="/medical/covid-management/details" element={<CovidDiagnosisFormPage />} />
+              <Route path="/medical/patients-management" element={<MedicalPatientsPage />} />
         <Route path="/medical/patients-management/:patientId" element={<PatientDetailPage />} />
         <Route path="/medical/statistics" element={<MedicalStatisticsPage />} />
         <Route path="/medical/guidance" element={<MedicalGuidancePage />} />

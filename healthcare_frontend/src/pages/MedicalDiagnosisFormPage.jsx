@@ -315,7 +315,7 @@ export default function MedicalDiagnosisFormPage() {
       const response = await apiService.getUserMeasurements(userId)
       if (response.success && response.data) {
         // 按时间倒序排列
-        const sortedHistory = response.data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        const sortedHistory = response.data.sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp))
         setPatientHistory(sortedHistory)
         console.log('loadPatientHistory: 成功获取', sortedHistory.length, '条历史记录')
       }

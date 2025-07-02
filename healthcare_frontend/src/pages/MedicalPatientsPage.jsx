@@ -123,7 +123,7 @@ export default function MedicalPatientsPage() {
               covidAssessmentCount: patientCovidAssessments.length,
               hasAbnormalMeasurements,
               latestMeasurement: patientMeasurements.length > 0 
-                ? patientMeasurements.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0]
+                ? patientMeasurements.sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp))[0]
                 : null,
               nextCheckupDate: latestDiagnosis?.recommendations?.nextCheckup || null,
               diagnosisCount: diagnoses.length
@@ -175,7 +175,7 @@ export default function MedicalPatientsPage() {
       // 今日测量统计
       const today = new Date().toDateString()
       const todayMeasurements = measurementsData.filter(m => {
-        return new Date(m.timestamp || m.createdAt).toDateString() === today
+        return new Date(m.createdAt || m.timestamp).toDateString() === today
       }).length
 
       // COVID评估统计
@@ -478,7 +478,7 @@ export default function MedicalPatientsPage() {
                       <div className="text-2xl font-bold text-green-600 mb-1">
                         {patients.filter(p => {
                           if (!p.latestMeasurement) return false
-                          const daysSinceLastMeasurement = Math.floor((new Date() - new Date(p.latestMeasurement.timestamp)) / (24 * 60 * 60 * 1000))
+                          const daysSinceLastMeasurement = Math.floor((new Date() - new Date(p.latestMeasurement.createdAt || p.latestMeasurement.timestamp)) / (24 * 60 * 60 * 1000))
                           return daysSinceLastMeasurement <= 30
                         }).length}
                       </div>

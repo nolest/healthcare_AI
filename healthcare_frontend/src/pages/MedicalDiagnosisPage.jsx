@@ -106,7 +106,7 @@ export default function MedicalDiagnosisPage() {
     const stats = {
       total: measurements.length,
       pending: measurements.filter(m => m.status === 'pending').length,
-      processed: measurements.filter(m => m.status === 'processed').length,
+      processed: measurements.filter(m => m.status === 'processed' || m.status === 'reviewed').length,
       byType: {}
     }
     
@@ -249,7 +249,7 @@ export default function MedicalDiagnosisPage() {
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
       
       filtered = filtered.filter(measurement => {
-        const measurementDate = new Date(measurement.timestamp)
+        const measurementDate = new Date(measurement.createdAt || measurement.timestamp)
         
         switch (filters.dateRange) {
           case 'today':
@@ -548,7 +548,7 @@ export default function MedicalDiagnosisPage() {
                           <TableCell>
                             <div className="flex items-center gap-1 text-sm text-gray-600">
                               <Calendar className="h-3 w-3" />
-                              {formatDate(measurement.timestamp)}
+                              {formatDate(measurement.createdAt || measurement.timestamp)}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -560,7 +560,9 @@ export default function MedicalDiagnosisPage() {
                                   : 'bg-green-100 text-green-700 border-green-200'
                               }
                             >
-                              {measurement.status === 'pending' ? '待處理' : '已處理'}
+                              {measurement.status === 'pending' ? '待處理' : 
+                               measurement.status === 'processed' ? '已處理' :
+                               measurement.status === 'reviewed' ? '已審核' : '已處理'}
                             </Badge>
                           </TableCell>
                           <TableCell>
