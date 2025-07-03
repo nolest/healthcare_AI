@@ -1,37 +1,40 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Button } from '../components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card.jsx'
 import { Badge } from '../components/ui/badge.jsx'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs.jsx'
 import { 
   User, 
   Activity,
   Heart,
   Thermometer,
   Droplets,
-  FileText,
   Calendar,
-  Clock,
   AlertTriangle,
   CheckCircle,
-  Stethoscope
+  Stethoscope,
+  Shield,
+  Eye,
+  ArrowLeft
 } from 'lucide-react'
 import MedicalHeader from '../components/ui/MedicalHeader.jsx'
 import apiService from '../services/api.js'
 
 export default function PatientDetailPage() {
   const navigate = useNavigate()
-  const { patientId } = useParams()
+  const [searchParams] = useSearchParams()
+  const patientId = searchParams.get('patientId')
   const [currentUser, setCurrentUser] = useState(null)
   const [patient, setPatient] = useState(null)
   const [measurements, setMeasurements] = useState([])
-  const [diagnoses, setDiagnoses] = useState([])
+  const [covidAssessments, setCovidAssessments] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     // 检查用户是否已登录
     const userData = apiService.getCurrentUser()
+    
     if (!userData) {
       navigate('/login')
       return
@@ -43,6 +46,12 @@ export default function PatientDetailPage() {
       return
     }
 
+    // 检查是否有患者ID参数
+    if (!patientId) {
+      setError('缺少患者ID参数')
+      return
+    }
+
     setCurrentUser(userData)
     loadPatientData()
   }, [navigate, patientId])
@@ -50,19 +59,51 @@ export default function PatientDetailPage() {
   const loadPatientData = async () => {
     try {
       setLoading(true)
+      setError(null)
       
       // 获取患者基本信息
       const patientData = await apiService.getUserById(patientId)
+
+      if (!patientData) {
+        throw new Error('未找到患者信息')
+      }
       
       // 获取患者的测量记录
-      const measurementsData = await apiService.getPatientMeasurements(patientId)
-      
-      // 获取患者的诊断记录
-      let diagnosesData = []
+      let measurementsData = []
       try {
-        diagnosesData = await apiService.getPatientDiagnoses(patientId)
+        const measurementsResponse = await apiService.getPatientMeasurements(patientId)
+        
+        // 确保返回的是数组
+        if (Array.isArray(measurementsResponse)) {
+          measurementsData = measurementsResponse
+        } else if (measurementsResponse && measurementsResponse.success && Array.isArray(measurementsResponse.data)) {
+          measurementsData = measurementsResponse.data
+        } else if (measurementsResponse && Array.isArray(measurementsResponse.data)) {
+          measurementsData = measurementsResponse.data
+        } else {
+          measurementsData = []
+        }
       } catch (error) {
-        console.warn('无法获取诊断记录:', error)
+        measurementsData = []
+      }
+
+      // 获取患者的COVID评估记录
+      let covidAssessmentsData = []
+      try {
+        const covidResponse = await apiService.getUserCovidAssessments(patientId)
+        
+        // 处理不同的响应格式
+        if (Array.isArray(covidResponse)) {
+          covidAssessmentsData = covidResponse
+        } else if (covidResponse && covidResponse.success && Array.isArray(covidResponse.data)) {
+          covidAssessmentsData = covidResponse.data
+        } else if (covidResponse && Array.isArray(covidResponse.data)) {
+          covidAssessmentsData = covidResponse.data
+        } else {
+          covidAssessmentsData = []
+        }
+      } catch (error) {
+        covidAssessmentsData = []
       }
 
       // 计算年龄
@@ -71,11 +112,30 @@ export default function PatientDetailPage() {
         : null
 
       setPatient({ ...patientData, age })
-              setMeasurements(measurementsData.sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp)))
-      setDiagnoses(diagnosesData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
+      
+      // 确保数据是数组后再进行排序
+      setMeasurements(Array.isArray(measurementsData) ? 
+        measurementsData.sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp)) : 
+        []
+      )
+      setCovidAssessments(Array.isArray(covidAssessmentsData) ? 
+        covidAssessmentsData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) : 
+        []
+      )
 
     } catch (error) {
-      console.error('加载患者数据失败:', error)
+      setError(`加载患者数据失败: ${error.message}`)
+      
+      // 如果患者基本信息获取失败，设置一个默认患者对象
+      if (!patient) {
+        setPatient({
+          _id: patientId,
+          fullName: '未知患者',
+          username: patientId,
+          age: null,
+          createdAt: new Date().toISOString()
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -122,80 +182,150 @@ export default function PatientDetailPage() {
     return abnormalConditions.length > 0 ? { isAbnormal: true, conditions: abnormalConditions } : { isAbnormal: false, conditions: [] }
   }
 
+  // 处理测量记录查看详情
+  const handleViewMeasurementDetails = (measurementId) => {
+    // 找到对应的记录，根据状态设置hasread参数
+    const measurement = measurements.find(m => m._id === measurementId)
+    let hasRead = '0' // 默认为编辑模式
+    
+    if (measurement && (measurement.status === 'processed' || measurement.status === 'reviewed')) {
+      hasRead = '1' // 已处理记录设置为只读模式
+    }
+    
+    // 在新标签页打开详情页面
+    const url = `/medical/diagnosis/form?mid=${measurementId}&hasread=${hasRead}`
+    window.open(url, '_blank')
+  }
+
+  // 处理COVID评估查看详情
+  const handleViewCovidDetails = (assessmentId) => {
+    // 找到对应的记录，根据状态设置hasread参数
+    const assessment = covidAssessments.find(a => a._id === assessmentId)
+    let hasRead = '0' // 默认为编辑模式
+    
+    if (assessment && (assessment.status === 'processed' || assessment.status === 'reviewed')) {
+      hasRead = '1' // 已处理记录设置为只读模式
+    }
+    
+    // 在新标签页打开详情页面
+    const url = `/medical/covid-management/details?aid=${assessmentId}&hasread=${hasRead}`
+    window.open(url, '_blank')
+  }
+
+  // 获取风险等级显示文本
+  const getRiskLevelText = (riskLevel) => {
+    if (!riskLevel) return '未知風險'
+    
+    if (typeof riskLevel === 'string') {
+      switch (riskLevel) {
+        case 'high': return '高風險'
+        case 'medium': return '中風險'
+        case 'low': return '低風險'
+        default: return riskLevel
+      }
+    }
+    
+    return riskLevel.label || '未知風險'
+  }
+
+  // 获取风险等级颜色
+  const getRiskLevelColor = (riskLevel) => {
+    if (!riskLevel) return 'bg-gray-500'
+    
+    const level = typeof riskLevel === 'string' ? riskLevel : (riskLevel.label || riskLevel)
+    
+    switch (level) {
+      case '高風險':
+      case 'high':
+        return 'bg-red-500'
+      case '中等風險':
+      case 'medium':
+        return 'bg-yellow-500'
+      case '低風險':
+      case 'low':
+        return 'bg-green-500'
+      default:
+        return 'bg-gray-500'
+    }
+  }
+
   const renderMeasurementCard = (measurement) => {
     const status = getMeasurementStatus(measurement)
     
     return (
-      <Card key={measurement._id} className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-lg">
-        <CardHeader className="pb-4">
+      <Card key={measurement._id} className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-sm">
+        <CardHeader className="pb-1 px-3 pt-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
-              <Activity className="h-5 w-5 text-blue-600" />
-              生命體徵測量
-            </CardTitle>
-            {status.isAbnormal ? (
-              <Badge variant="destructive" className="flex items-center gap-1">
-                <AlertTriangle className="h-3 w-3" />
-                異常
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="flex items-center gap-1 text-green-600 border-green-200">
-                <CheckCircle className="h-3 w-3" />
-                正常
-              </Badge>
-            )}
+            <div className="flex items-center gap-1">
+              <Activity className="h-3 w-3 text-blue-600" />
+              <CardTitle className="text-sm text-gray-800">生命體徵</CardTitle>
+            </div>
+            <div className="flex items-center gap-1">
+              {status.isAbnormal ? (
+                <Badge variant="destructive" className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 h-5">
+                  <AlertTriangle className="h-2 w-2" />
+                  異常
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="flex items-center gap-0.5 text-green-600 border-green-200 text-xs px-1.5 py-0.5 h-5">
+                  <CheckCircle className="h-2 w-2" />
+                  正常
+                </Badge>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleViewMeasurementDetails(measurement._id)}
+                className="h-6 px-1.5 text-xs ml-1"
+              >
+                <Eye className="h-2 w-2 mr-0.5" />
+                詳情
+              </Button>
+            </div>
           </div>
-          <CardDescription className="text-gray-600">
+          <CardDescription className="text-gray-500 text-xs flex items-center gap-1 mt-0.5">
+            <Calendar className="h-2 w-2" />
             {formatDateTime(measurement.createdAt || measurement.timestamp)}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <CardContent className="pt-0 px-3 pb-3">
+          <div className="grid grid-cols-2 gap-1.5">
             {measurement.systolic && measurement.diastolic && (
-              <div className="text-center p-3 bg-blue-50/70 rounded-xl">
-                <Activity className="h-5 w-5 text-blue-600 mx-auto mb-1" />
-                <p className="text-sm text-gray-600">血壓</p>
-                <p className="font-semibold text-gray-800">
-                  {measurement.systolic}/{measurement.diastolic} mmHg
+              <div className="text-center p-1.5 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-md">
+                <Heart className="h-3 w-3 text-red-500 mx-auto mb-0.5" />
+                <p className="text-xs text-gray-600">血壓</p>
+                <p className="font-semibold text-xs text-gray-800">
+                  {measurement.systolic}/{measurement.diastolic}
                 </p>
               </div>
             )}
-            
             {measurement.heartRate && (
-              <div className="text-center p-3 bg-red-50/70 rounded-xl">
-                <Heart className="h-5 w-5 text-red-600 mx-auto mb-1" />
-                <p className="text-sm text-gray-600">心率</p>
-                <p className="font-semibold text-gray-800">{measurement.heartRate} bpm</p>
+              <div className="text-center p-1.5 bg-gradient-to-br from-pink-50 to-pink-100/50 rounded-md">
+                <Activity className="h-3 w-3 text-pink-500 mx-auto mb-0.5" />
+                <p className="text-xs text-gray-600">心率</p>
+                <p className="font-semibold text-xs text-gray-800">{measurement.heartRate} bpm</p>
               </div>
             )}
-            
             {measurement.temperature && (
-              <div className="text-center p-3 bg-orange-50/70 rounded-xl">
-                <Thermometer className="h-5 w-5 text-orange-600 mx-auto mb-1" />
-                <p className="text-sm text-gray-600">體溫</p>
-                <p className="font-semibold text-gray-800">{measurement.temperature}°C</p>
+              <div className="text-center p-1.5 bg-gradient-to-br from-orange-50 to-orange-100/50 rounded-md">
+                <Thermometer className="h-3 w-3 text-orange-500 mx-auto mb-0.5" />
+                <p className="text-xs text-gray-600">體溫</p>
+                <p className="font-semibold text-xs text-gray-800">{measurement.temperature}°C</p>
               </div>
             )}
-            
             {measurement.oxygenSaturation && (
-              <div className="text-center p-3 bg-cyan-50/70 rounded-xl">
-                <Droplets className="h-5 w-5 text-cyan-600 mx-auto mb-1" />
-                <p className="text-sm text-gray-600">血氧</p>
-                <p className="font-semibold text-gray-800">{measurement.oxygenSaturation}%</p>
+              <div className="text-center p-1.5 bg-gradient-to-br from-cyan-50 to-cyan-100/50 rounded-md">
+                <Droplets className="h-3 w-3 text-cyan-500 mx-auto mb-0.5" />
+                <p className="text-xs text-gray-600">血氧</p>
+                <p className="font-semibold text-xs text-gray-800">{measurement.oxygenSaturation}%</p>
               </div>
             )}
           </div>
-          
-          {measurement.notes && (
-            <div className="mt-4 p-3 bg-gray-50/70 rounded-xl">
-              <p className="text-sm text-gray-600 mb-1">備註:</p>
-              <p className="text-gray-800">{measurement.notes}</p>
-            </div>
-          )}
-          
-          {measurement.location && (
-            <div className="mt-2 text-sm text-gray-600">
-              <span className="font-medium">測量地點:</span> {measurement.location}
+          {status.isAbnormal && (
+            <div className="mt-1.5 p-1.5 bg-gradient-to-r from-red-50 to-pink-50 rounded-md">
+              <p className="text-xs text-red-600">
+                <strong>異常:</strong> {status.conditions.join(', ')}
+              </p>
             </div>
           )}
         </CardContent>
@@ -203,73 +333,69 @@ export default function PatientDetailPage() {
     )
   }
 
-  const renderDiagnosisCard = (diagnosis) => {
+  const renderCovidAssessmentCard = (assessment) => {
+    const riskLevel = getRiskLevelText(assessment.riskLevel)
+    const riskColor = getRiskLevelColor(assessment.riskLevel)
+    
     return (
-      <Card key={diagnosis._id} className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-lg">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
-            <Stethoscope className="h-5 w-5 text-green-600" />
-            醫護診斷
-          </CardTitle>
-          <CardDescription className="text-gray-600">
-            {formatDateTime(diagnosis.createdAt)}
+      <Card key={assessment._id} className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-sm">
+        <CardHeader className="pb-1 px-3 pt-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              <Shield className="h-3 w-3 text-purple-600" />
+              <CardTitle className="text-sm text-gray-800">COVID/流感評估</CardTitle>
+            </div>
+            <div className="flex items-center gap-1">
+              <Badge className={`text-white ${riskColor} text-xs px-1.5 py-0.5 h-5`}>
+                {riskLevel}
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleViewCovidDetails(assessment._id)}
+                className="h-6 px-1.5 text-xs ml-1"
+              >
+                <Eye className="h-2 w-2 mr-0.5" />
+                詳情
+              </Button>
+            </div>
+          </div>
+          <CardDescription className="text-gray-500 text-xs flex items-center gap-1 mt-0.5">
+            <Calendar className="h-2 w-2" />
+            {formatDateTime(assessment.createdAt)}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {diagnosis.diagnosis && (
+        <CardContent className="pt-0 px-3 pb-3">
+          <div className="space-y-1.5">
+            {assessment.symptoms && assessment.symptoms.length > 0 && (
               <div>
-                <h4 className="font-semibold text-gray-800 mb-2">診斷結果</h4>
-                <p className="text-gray-700 bg-blue-50/70 p-3 rounded-xl">{diagnosis.diagnosis}</p>
-              </div>
-            )}
-            
-            {diagnosis.recommendations && (
-              <div>
-                <h4 className="font-semibold text-gray-800 mb-2">治療建議</h4>
-                <div className="space-y-2">
-                  {typeof diagnosis.recommendations === 'string' ? (
-                    <p className="text-gray-700 bg-green-50/70 p-3 rounded-xl">{diagnosis.recommendations}</p>
-                  ) : (
-                    <>
-                      {diagnosis.recommendations.medications && (
-                        <div className="bg-green-50/70 p-3 rounded-xl">
-                          <p className="font-medium text-green-800 mb-1">用藥建議:</p>
-                          <p className="text-gray-700">{diagnosis.recommendations.medications}</p>
-                        </div>
-                      )}
-                      {diagnosis.recommendations.lifestyle && (
-                        <div className="bg-blue-50/70 p-3 rounded-xl">
-                          <p className="font-medium text-blue-800 mb-1">生活方式建議:</p>
-                          <p className="text-gray-700">{diagnosis.recommendations.lifestyle}</p>
-                        </div>
-                      )}
-                      {diagnosis.recommendations.followUp && (
-                        <div className="bg-orange-50/70 p-3 rounded-xl">
-                          <p className="font-medium text-orange-800 mb-1">隨訪建議:</p>
-                          <p className="text-gray-700">{diagnosis.recommendations.followUp}</p>
-                        </div>
-                      )}
-                      {diagnosis.recommendations.nextCheckup && (
-                        <div className="bg-purple-50/70 p-3 rounded-xl">
-                          <p className="font-medium text-purple-800 mb-1">下次檢查:</p>
-                          <p className="text-gray-700 flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            {formatDate(diagnosis.recommendations.nextCheckup)}
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  )}
+                <h4 className="font-medium text-gray-700 mb-1 text-xs">症狀</h4>
+                <div className="flex flex-wrap gap-0.5">
+                  {assessment.symptoms.map((symptom, index) => (
+                    <Badge key={index} variant="outline" className="text-xs px-1.5 py-0.5 bg-purple-50 text-purple-700 border-purple-200">
+                      {symptom}
+                    </Badge>
+                  ))}
                 </div>
               </div>
             )}
-            
-            {diagnosis.doctorId && (
-              <div className="mt-4 pt-3 border-t border-gray-200">
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">診斷醫師:</span> {diagnosis.doctorName || diagnosis.doctorId}
-                </p>
+            {assessment.temperature && (
+              <div className="flex items-center gap-1.5 p-1.5 bg-gradient-to-r from-orange-50 to-orange-100/50 rounded-md">
+                <Thermometer className="h-3 w-3 text-orange-500" />
+                <span className="text-xs text-gray-600">體溫:</span>
+                <span className="font-semibold text-xs text-gray-800">{assessment.temperature}°C</span>
+              </div>
+            )}
+            {assessment.contactHistory && (
+              <div className="p-1.5 bg-gradient-to-r from-yellow-50 to-yellow-100/50 rounded-md">
+                <p className="text-xs font-medium text-gray-700 mb-0.5">接觸史:</p>
+                <p className="text-xs text-gray-600 leading-relaxed">{assessment.contactHistory}</p>
+              </div>
+            )}
+            {assessment.travelHistory && (
+              <div className="p-1.5 bg-gradient-to-r from-blue-50 to-blue-100/50 rounded-md">
+                <p className="text-xs font-medium text-gray-700 mb-0.5">旅行史:</p>
+                <p className="text-xs text-gray-600 leading-relaxed">{assessment.travelHistory}</p>
               </div>
             )}
           </div>
@@ -278,13 +404,43 @@ export default function PatientDetailPage() {
     )
   }
 
-  if (loading || !currentUser || !patient) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">載入中...</p>
         </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-200/30 to-emerald-200/30 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-teal-200/30 to-cyan-200/30 rounded-full blur-3xl"></div>
+        </div>
+        
+        <MedicalHeader 
+          title="患者詳情"
+          subtitle="查看患者的詳細醫療記錄"
+          icon={User}
+          showBackButton={true}
+          user={currentUser}
+          onBack={() => navigate('/medical/patients-management')}
+        />
+        
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24 relative z-10">
+          <div className="text-center">
+            <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <p className="text-red-600">{error}</p>
+            <Button onClick={() => navigate('/medical/patients-management')} className="mt-4">
+              返回患者列表
+            </Button>
+          </div>
+        </main>
       </div>
     )
   }
@@ -300,7 +456,7 @@ export default function PatientDetailPage() {
       {/* Header */}
       <MedicalHeader 
         title="患者詳情"
-        subtitle={`${patient.fullName || patient.username} 的醫療記錄`}
+        subtitle={`${patient?.fullName || patient?.username || '未知患者'} 的醫療記錄`}
         icon={User}
         showBackButton={true}
         user={currentUser}
@@ -308,7 +464,8 @@ export default function PatientDetailPage() {
       />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 pt-24">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24 relative z-10">
+        
         {/* 患者基本信息 */}
         <div className="mb-8">
           <Card className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-2xl shadow-green-500/10">
@@ -322,26 +479,26 @@ export default function PatientDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="text-center p-4 bg-blue-50/70 rounded-xl">
                   <p className="text-sm text-gray-600 mb-1">姓名</p>
-                  <p className="font-semibold text-gray-800">{patient.fullName || patient.username}</p>
+                  <p className="font-semibold text-gray-800">{patient?.fullName || patient?.username || '未知'}</p>
                 </div>
                 <div className="text-center p-4 bg-green-50/70 rounded-xl">
                   <p className="text-sm text-gray-600 mb-1">年齡</p>
-                  <p className="font-semibold text-gray-800">{patient.age ? `${patient.age}歲` : '未知'}</p>
+                  <p className="font-semibold text-gray-800">{patient?.age ? `${patient.age}歲` : '未知'}</p>
                 </div>
                 <div className="text-center p-4 bg-purple-50/70 rounded-xl">
-                  <p className="text-sm text-gray-600 mb-1">注冊時間</p>
-                  <p className="font-semibold text-gray-800">{formatDate(patient.createdAt)}</p>
+                  <p className="text-sm text-gray-600 mb-1">註冊時間</p>
+                  <p className="font-semibold text-gray-800">{formatDate(patient?.createdAt)}</p>
                 </div>
                 <div className="text-center p-4 bg-orange-50/70 rounded-xl">
                   <p className="text-sm text-gray-600 mb-1">記錄統計</p>
-                  <div className="flex justify-center gap-4">
+                  <div className="flex justify-center gap-2 text-xs">
                     <span className="text-blue-600 font-semibold">{measurements.length} 測量</span>
-                    <span className="text-green-600 font-semibold">{diagnoses.length} 診斷</span>
+                    <span className="text-purple-600 font-semibold">{covidAssessments.length} 評估</span>
                   </div>
                 </div>
               </div>
               
-              {patient.email && (
+              {patient?.email && (
                 <div className="mt-4 p-3 bg-gray-50/70 rounded-xl">
                   <p className="text-sm text-gray-600">聯絡方式: {patient.email}</p>
                 </div>
@@ -350,46 +507,71 @@ export default function PatientDetailPage() {
           </Card>
         </div>
 
-        {/* 医疗记录 */}
-        <div>
-          <Tabs defaultValue="measurements" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2 bg-white/80 backdrop-blur-lg">
-              <TabsTrigger value="measurements" className="flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                測量記錄 ({measurements.length})
-              </TabsTrigger>
-              <TabsTrigger value="diagnoses" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                診斷記錄 ({diagnoses.length})
-              </TabsTrigger>
-            </TabsList>
+        {/* 左右两列布局 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* 左列：生命体征测量记录 */}
+          <div>
+            <Card className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-2xl shadow-blue-500/10">
+              <CardHeader>
+                <CardTitle className="text-xl text-gray-800 flex items-center gap-2">
+                  <Activity className="h-6 w-6 text-blue-600" />
+                  生命體徵測量記錄
+                  <Badge variant="secondary" className="ml-2">
+                    {measurements.length}
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  患者的生命體徵測量歷史記錄
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[60rem] overflow-y-auto pr-1">
+                  {measurements.length > 0 ? (
+                    <div className="space-y-1">
+                      {measurements.map(renderMeasurementCard)}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Activity className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>暫無測量記錄</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-            <TabsContent value="measurements" className="space-y-6">
-              {measurements.length === 0 ? (
-                <Card className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-lg">
-                  <CardContent className="text-center py-12">
-                    <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">暫無測量記錄</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                measurements.map(renderMeasurementCard)
-              )}
-            </TabsContent>
-
-            <TabsContent value="diagnoses" className="space-y-6">
-              {diagnoses.length === 0 ? (
-                <Card className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-lg">
-                  <CardContent className="text-center py-12">
-                    <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">暫無診斷記錄</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                diagnoses.map(renderDiagnosisCard)
-              )}
-            </TabsContent>
-          </Tabs>
+          {/* 右列：COVID/流感评估记录 */}
+          <div>
+            <Card className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-2xl shadow-purple-500/10">
+              <CardHeader>
+                <CardTitle className="text-xl text-gray-800 flex items-center gap-2">
+                  <Shield className="h-6 w-6 text-purple-600" />
+                  COVID/流感評估記錄
+                  <Badge variant="secondary" className="ml-2">
+                    {covidAssessments.length}
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  患者的COVID/流感風險評估歷史記錄
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[60rem] overflow-y-auto pr-1">
+                  {covidAssessments.length > 0 ? (
+                    <div className="space-y-1">
+                      {covidAssessments.map(renderCovidAssessmentCard)}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Shield className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <p>暫無評估記錄</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </main>
     </div>

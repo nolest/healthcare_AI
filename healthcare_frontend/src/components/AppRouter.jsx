@@ -61,7 +61,7 @@ export default function AppRouter() {
                                               <Route path="/medical/covid-management" element={<CovidManagementPage />} />
               <Route path="/medical/covid-management/details" element={<CovidDiagnosisFormPage />} />
               <Route path="/medical/patients-management" element={<MedicalPatientsPage />} />
-        <Route path="/medical/patients-management/:patientId" element={<PatientDetailPage />} />
+        <Route path="/medical/patients-management/details" element={<PatientDetailPage />} />
         <Route path="/medical/statistics" element={<MedicalStatisticsPage />} />
         <Route path="/medical/guidance" element={<MedicalGuidancePage />} />
         <Route path="/medical/diagnosis" element={<MedicalDiagnosisPage />} />

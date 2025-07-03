@@ -64,18 +64,34 @@ export default function MedicalPatientsPage() {
       setLoading(true)
       
       // 获取所有用户数据、测量数据和COVID评估数据
-      const [usersData, measurementsData, covidAssessmentsData] = await Promise.all([
+      const [usersData, measurementsResponse, covidAssessmentsResponse] = await Promise.all([
         apiService.getUsers(),
         apiService.getAllMeasurements(),
         apiService.getAllCovidAssessments()
       ])
 
       console.log('🔍 加载用户数据:', usersData)
-      console.log('📊 加载测量数据:', measurementsData)
-      console.log('🦠 加载COVID评估数据:', covidAssessmentsData)
+      console.log('📊 加载测量数据:', measurementsResponse)
+      console.log('🦠 加载COVID评估数据:', covidAssessmentsResponse)
+
+      // 确保数据是数组格式
+      const measurementsData = Array.isArray(measurementsResponse) ? measurementsResponse : 
+                              (measurementsResponse?.data && Array.isArray(measurementsResponse.data)) ? measurementsResponse.data : []
+      
+      const covidAssessmentsData = Array.isArray(covidAssessmentsResponse) ? covidAssessmentsResponse : 
+                                  (covidAssessmentsResponse?.data && Array.isArray(covidAssessmentsResponse.data)) ? covidAssessmentsResponse.data : []
+
+      const usersDataArray = Array.isArray(usersData) ? usersData : 
+                            (usersData?.data && Array.isArray(usersData.data)) ? usersData.data : []
+
+      console.log('✅ 验证后的数据:', {
+        measurementsCount: measurementsData.length,
+        covidAssessmentsCount: covidAssessmentsData.length,
+        usersCount: usersDataArray.length
+      })
 
       // 过滤出患者角色的用户
-      const patientUsers = usersData.filter(user => user.role === 'patient')
+      const patientUsers = usersDataArray.filter(user => user.role === 'patient')
       console.log('👥 患者用户数量:', patientUsers.length)
       
       // 为每个患者计算统计信息
@@ -83,15 +99,19 @@ export default function MedicalPatientsPage() {
         patientUsers.map(async (patient) => {
           try {
             // 获取患者的测量数据
-            const patientMeasurements = measurementsData.filter(m => m.userId === patient._id)
+            const patientMeasurements = Array.isArray(measurementsData) ? 
+              measurementsData.filter(m => m.userId === patient._id) : []
             
             // 获取患者的COVID评估数据
-            const patientCovidAssessments = covidAssessmentsData.filter(c => c.userId === patient._id)
+            const patientCovidAssessments = Array.isArray(covidAssessmentsData) ? 
+              covidAssessmentsData.filter(c => c.userId === patient._id) : []
             
             // 获取患者的诊断记录
             let diagnoses = []
             try {
-              diagnoses = await apiService.getPatientDiagnoses(patient._id)
+              const diagnosesResponse = await apiService.getPatientDiagnoses(patient._id)
+              diagnoses = Array.isArray(diagnosesResponse) ? diagnosesResponse : 
+                         (diagnosesResponse?.data && Array.isArray(diagnosesResponse.data)) ? diagnosesResponse.data : []
             } catch (error) {
               console.warn(`无法获取患者 ${patient._id} 的诊断记录:`, error)
               diagnoses = []
@@ -103,7 +123,7 @@ export default function MedicalPatientsPage() {
               : null
 
             // 检查是否有异常测量值
-            const hasAbnormalMeasurements = patientMeasurements.some(measurement => {
+            const hasAbnormalMeasurements = Array.isArray(patientMeasurements) && patientMeasurements.some(measurement => {
               return measurement.systolic > 140 || measurement.systolic < 90 ||
                      measurement.diastolic > 90 || measurement.diastolic < 60 ||
                      measurement.heartRate > 100 || measurement.heartRate < 60 ||
@@ -122,7 +142,7 @@ export default function MedicalPatientsPage() {
               measurementCount: patientMeasurements.length,
               covidAssessmentCount: patientCovidAssessments.length,
               hasAbnormalMeasurements,
-              latestMeasurement: patientMeasurements.length > 0 
+              latestMeasurement: (Array.isArray(patientMeasurements) && patientMeasurements.length > 0) 
                 ? patientMeasurements.sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp))[0]
                 : null,
               nextCheckupDate: latestDiagnosis?.recommendations?.nextCheckup || null,
@@ -161,32 +181,32 @@ export default function MedicalPatientsPage() {
       // 计算统计数据
       const totalPatients = patientsWithStats.length
       
-      // 测量统计
-      const totalMeasurements = measurementsData.length
-      const normalMeasurements = measurementsData.filter(m => {
+      // 测量统计 - 确保数据是数组
+      const totalMeasurements = Array.isArray(measurementsData) ? measurementsData.length : 0
+      const normalMeasurements = Array.isArray(measurementsData) ? measurementsData.filter(m => {
         return !(m.systolic > 140 || m.systolic < 90 ||
                 m.diastolic > 90 || m.diastolic < 60 ||
                 m.heartRate > 100 || m.heartRate < 60 ||
                 m.temperature > 37.3 || m.temperature < 36.0 ||
                 m.oxygenSaturation < 95)
-      }).length
+      }).length : 0
       const abnormalMeasurements = totalMeasurements - normalMeasurements
 
       // 今日测量统计
       const today = new Date().toDateString()
-      const todayMeasurements = measurementsData.filter(m => {
+      const todayMeasurements = Array.isArray(measurementsData) ? measurementsData.filter(m => {
         return new Date(m.createdAt || m.timestamp).toDateString() === today
-      }).length
+      }).length : 0
 
-      // COVID评估统计
-      const totalCovidAssessments = covidAssessmentsData.length
-      const patientCovidAssessments = covidAssessmentsData.length // 患者提交的总次数
+      // COVID评估统计 - 确保数据是数组
+      const totalCovidAssessments = Array.isArray(covidAssessmentsData) ? covidAssessmentsData.length : 0
+      const patientCovidAssessments = totalCovidAssessments // 患者提交的总次数
       
       // 获取医生诊断后异常的次数（高风险评估）
-      const highRiskCovidAssessments = covidAssessmentsData.filter(assessment => {
+      const highRiskCovidAssessments = Array.isArray(covidAssessmentsData) ? covidAssessmentsData.filter(assessment => {
         // 根据风险等级判断异常 - 假设'high'为异常
         return assessment.riskLevel === 'high' || assessment.riskLevel === 'medium'
-      }).length
+      }).length : 0
 
       const statsData = {
         totalPatients,
@@ -295,7 +315,8 @@ export default function MedicalPatientsPage() {
   }
 
   const handlePatientClick = (patientId) => {
-    navigate(`/medical/patients-management/${patientId}`)
+    // 跳转到患者详情页面，通过查询参数传递患者ID
+    navigate(`/medical/patients-management/details?patientId=${patientId}`)
   }
 
   // 获取测量数据饼图配置
