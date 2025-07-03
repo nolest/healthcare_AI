@@ -525,15 +525,31 @@ export default function PatientDetailPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[60rem] overflow-y-auto pr-1">
+                <div className={`${measurements.length > 0 ? 'h-[60rem]' : 'h-auto'} overflow-y-auto pr-1`}>
                   {measurements.length > 0 ? (
                     <div className="space-y-1">
                       {measurements.map(renderMeasurementCard)}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <Activity className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <p>暫無測量記錄</p>
+                    <div className="text-center py-12 px-6">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 rounded-2xl blur-sm"></div>
+                                                 <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg">
+                          <div className="flex flex-col items-center">
+                            <div className="relative mb-6">
+                              <div className="absolute inset-0 bg-gradient-to-br from-blue-200/30 to-indigo-200/30 rounded-full blur-lg"></div>
+                              <div className="relative bg-gradient-to-br from-blue-100 to-indigo-100 p-4 rounded-full">
+                                <Activity className="h-8 w-8 text-blue-500" />
+                              </div>
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-700 mb-2">暫無測量記錄</h3>
+                            <p className="text-sm text-gray-500 text-center leading-relaxed">
+                              該患者尚未進行任何生命體徵測量<br />
+                              <span className="text-blue-500 font-medium">建議提醒患者定期進行健康檢測</span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -557,15 +573,31 @@ export default function PatientDetailPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[60rem] overflow-y-auto pr-1">
+                <div className={`${covidAssessments.length > 0 ? 'h-[60rem]' : 'h-auto'} overflow-y-auto pr-1`}>
                   {covidAssessments.length > 0 ? (
                     <div className="space-y-1">
                       {covidAssessments.map(renderCovidAssessmentCard)}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <Shield className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                      <p>暫無評估記錄</p>
+                    <div className="text-center py-12 px-6">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-pink-50/50 rounded-2xl blur-sm"></div>
+                                                 <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg">
+                          <div className="flex flex-col items-center">
+                            <div className="relative mb-6">
+                              <div className="absolute inset-0 bg-gradient-to-br from-purple-200/30 to-pink-200/30 rounded-full blur-lg"></div>
+                              <div className="relative bg-gradient-to-br from-purple-100 to-pink-100 p-4 rounded-full">
+                                <Shield className="h-8 w-8 text-purple-500" />
+                              </div>
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-700 mb-2">暫無評估記錄</h3>
+                            <p className="text-sm text-gray-500 text-center leading-relaxed">
+                              該患者尚未進行COVID/流感風險評估<br />
+                              <span className="text-purple-500 font-medium">建議患者定期進行健康評估</span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

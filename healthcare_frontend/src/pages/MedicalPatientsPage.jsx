@@ -100,11 +100,19 @@ export default function MedicalPatientsPage() {
           try {
             // 获取患者的测量数据
             const patientMeasurements = Array.isArray(measurementsData) ? 
-              measurementsData.filter(m => m.userId === patient._id) : []
+              measurementsData.filter(m => {
+                // 处理userId可能是对象或字符串的情况
+                const measurementUserId = typeof m.userId === 'object' ? m.userId._id : m.userId;
+                return measurementUserId === patient._id;
+              }) : []
             
             // 获取患者的COVID评估数据
             const patientCovidAssessments = Array.isArray(covidAssessmentsData) ? 
-              covidAssessmentsData.filter(c => c.userId === patient._id) : []
+              covidAssessmentsData.filter(c => {
+                // 处理userId可能是对象或字符串的情况
+                const assessmentUserId = typeof c.userId === 'object' ? c.userId._id : c.userId;
+                return assessmentUserId === patient._id;
+              }) : []
             
             // 获取患者的诊断记录
             let diagnoses = []
