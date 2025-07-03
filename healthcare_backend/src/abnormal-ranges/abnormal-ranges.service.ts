@@ -71,12 +71,27 @@ export class AbnormalRangesService {
   }
 
   async create(createAbnormalRangeDto: CreateAbnormalRangeDto, userId: string) {
+    console.log('🎯 創建異常範圍:', createAbnormalRangeDto);
+    
+    // 檢查是否已存在相同類型的記錄
+    const existing = await this.abnormalRangeModel.findOne({ 
+      measurementType: createAbnormalRangeDto.measurementType 
+    });
+    
+    if (existing) {
+      console.log('📝 記錄已存在，執行更新:', existing._id);
+      return this.update(existing._id.toString(), createAbnormalRangeDto, userId);
+    }
+    
     const abnormalRange = new this.abnormalRangeModel({
       ...createAbnormalRangeDto,
       lastModifiedBy: userId,
       lastModifiedAt: new Date()
     });
-    return abnormalRange.save();
+    
+    const saved = await abnormalRange.save();
+    console.log('✅ 創建成功:', saved);
+    return saved;
   }
 
   async findAll() {
@@ -99,6 +114,8 @@ export class AbnormalRangesService {
   }
 
   async update(id: string, updateAbnormalRangeDto: UpdateAbnormalRangeDto, userId: string) {
+    console.log('🔄 更新異常範圍:', id, updateAbnormalRangeDto);
+    
     const abnormalRange = await this.abnormalRangeModel.findByIdAndUpdate(
       id,
       {
@@ -113,6 +130,7 @@ export class AbnormalRangesService {
       throw new NotFoundException('异常值范围设置不存在');
     }
 
+    console.log('✅ 更新成功:', abnormalRange);
     return abnormalRange;
   }
 
@@ -131,7 +149,7 @@ export class AbnormalRangesService {
   }
 
   // 检查测量值是否异常
-  async checkMeasurementAbnormal(measurementType: string, values: any): Promise<{ isAbnormal: boolean; reasons: string[] }> {
+  async checkMeasurementAbnormal(measurementType: string, values: any): Promise<{ isAbnormal: boolean; reasons: string[]; severity?: string }> {
     const range = await this.findByMeasurementType(measurementType);
     if (!range) {
       return { isAbnormal: false, reasons: [] };
@@ -139,61 +157,95 @@ export class AbnormalRangesService {
 
     const reasons: string[] = [];
     let isAbnormal = false;
+    let maxSeverity = 'normal';
+
+    const getSeverityLevel = (value: number, paramName: string, abnormalRanges: any) => {
+      if (!abnormalRanges || !abnormalRanges[paramName]) {
+        return 'normal';
+      }
+
+      const ranges = abnormalRanges[paramName];
+      
+      if (ranges.critical && value >= ranges.critical.min && value <= ranges.critical.max) {
+        return 'critical';
+      }
+      if (ranges.severeHigh && value >= ranges.severeHigh.min && value <= ranges.severeHigh.max) {
+        return 'severeHigh';
+      }
+      if (ranges.high && value >= ranges.high.min && value <= ranges.high.max) {
+        return 'high';
+      }
+      if (ranges.low && value >= ranges.low.min && value <= ranges.low.max) {
+        return 'low';
+      }
+      if (ranges.severeLow && value >= ranges.severeLow.min && value <= ranges.severeLow.max) {
+        return 'severeLow';
+      }
+      
+      return 'normal';
+    };
+
+    const updateMaxSeverity = (severity: string) => {
+      const severityOrder = ['normal', 'low', 'high', 'severeLow', 'severeHigh', 'critical'];
+      if (severityOrder.indexOf(severity) > severityOrder.indexOf(maxSeverity)) {
+        maxSeverity = severity;
+      }
+    };
 
     switch (measurementType) {
       case 'blood_pressure':
-        if (values.systolic && range.normalRange.systolic) {
-          if (values.systolic < range.normalRange.systolic.min) {
-            reasons.push(`收缩压过低 (${values.systolic} < ${range.normalRange.systolic.min})`);
-            isAbnormal = true;
-          } else if (values.systolic > range.normalRange.systolic.max) {
-            reasons.push(`收缩压过高 (${values.systolic} > ${range.normalRange.systolic.max})`);
-            isAbnormal = true;
+        if (values.systolic) {
+          // 檢查正常範圍
+          if (range.normalRange.systolic) {
+            if (values.systolic < range.normalRange.systolic.min || values.systolic > range.normalRange.systolic.max) {
+              isAbnormal = true;
+              const severity = getSeverityLevel(values.systolic, 'systolic', range.abnormalRanges);
+              updateMaxSeverity(severity);
+              reasons.push(`收縮壓異常 (${values.systolic} mmHg, 嚴重程度: ${severity})`);
+            }
           }
         }
-        if (values.diastolic && range.normalRange.diastolic) {
-          if (values.diastolic < range.normalRange.diastolic.min) {
-            reasons.push(`舒张压过低 (${values.diastolic} < ${range.normalRange.diastolic.min})`);
-            isAbnormal = true;
-          } else if (values.diastolic > range.normalRange.diastolic.max) {
-            reasons.push(`舒张压过高 (${values.diastolic} > ${range.normalRange.diastolic.max})`);
-            isAbnormal = true;
+        if (values.diastolic) {
+          if (range.normalRange.diastolic) {
+            if (values.diastolic < range.normalRange.diastolic.min || values.diastolic > range.normalRange.diastolic.max) {
+              isAbnormal = true;
+              const severity = getSeverityLevel(values.diastolic, 'diastolic', range.abnormalRanges);
+              updateMaxSeverity(severity);
+              reasons.push(`舒張壓異常 (${values.diastolic} mmHg, 嚴重程度: ${severity})`);
+            }
           }
         }
         break;
 
       case 'heart_rate':
         if (values.rate && range.normalRange.heartRate) {
-          if (values.rate < range.normalRange.heartRate.min) {
-            reasons.push(`心率过低 (${values.rate} < ${range.normalRange.heartRate.min})`);
+          if (values.rate < range.normalRange.heartRate.min || values.rate > range.normalRange.heartRate.max) {
             isAbnormal = true;
-          } else if (values.rate > range.normalRange.heartRate.max) {
-            reasons.push(`心率过高 (${values.rate} > ${range.normalRange.heartRate.max})`);
-            isAbnormal = true;
+            const severity = getSeverityLevel(values.rate, 'heartRate', range.abnormalRanges);
+            updateMaxSeverity(severity);
+            reasons.push(`心率異常 (${values.rate} bpm, 嚴重程度: ${severity})`);
           }
         }
         break;
 
       case 'temperature':
         if (values.celsius && range.normalRange.temperature) {
-          if (values.celsius < range.normalRange.temperature.min) {
-            reasons.push(`体温过低 (${values.celsius} < ${range.normalRange.temperature.min})`);
+          if (values.celsius < range.normalRange.temperature.min || values.celsius > range.normalRange.temperature.max) {
             isAbnormal = true;
-          } else if (values.celsius > range.normalRange.temperature.max) {
-            reasons.push(`体温过高 (${values.celsius} > ${range.normalRange.temperature.max})`);
-            isAbnormal = true;
+            const severity = getSeverityLevel(values.celsius, 'temperature', range.abnormalRanges);
+            updateMaxSeverity(severity);
+            reasons.push(`體溫異常 (${values.celsius}°C, 嚴重程度: ${severity})`);
           }
         }
         break;
 
       case 'oxygen_saturation':
         if (values.percentage && range.normalRange.oxygenSaturation) {
-          if (values.percentage < range.normalRange.oxygenSaturation.min) {
-            reasons.push(`血氧饱和度过低 (${values.percentage} < ${range.normalRange.oxygenSaturation.min})`);
+          if (values.percentage < range.normalRange.oxygenSaturation.min || values.percentage > range.normalRange.oxygenSaturation.max) {
             isAbnormal = true;
-          } else if (values.percentage > range.normalRange.oxygenSaturation.max) {
-            reasons.push(`血氧饱和度过高 (${values.percentage} > ${range.normalRange.oxygenSaturation.max})`);
-            isAbnormal = true;
+            const severity = getSeverityLevel(values.percentage, 'oxygenSaturation', range.abnormalRanges);
+            updateMaxSeverity(severity);
+            reasons.push(`血氧飽和度異常 (${values.percentage}%, 嚴重程度: ${severity})`);
           }
         }
         break;
@@ -211,6 +263,6 @@ export class AbnormalRangesService {
         break;
     }
 
-    return { isAbnormal, reasons };
+    return { isAbnormal, reasons, severity: maxSeverity };
   }
 } 

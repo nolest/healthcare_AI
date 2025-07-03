@@ -1,332 +1,596 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '../components/ui/button.jsx'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card.jsx'
-import { Input } from '../components/ui/input.jsx'
-import { Label } from '../components/ui/label.jsx'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.jsx'
-import { Textarea } from '../components/ui/textarea.jsx'
-import { Alert, AlertDescription } from '../components/ui/alert.jsx'
-import { Plus, Settings, AlertTriangle, Activity, Heart, Thermometer, Droplets } from 'lucide-react'
-import MedicalHeader from '../components/ui/MedicalHeader.jsx'
-import apiService from '../services/api.js'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
+import { Label } from '../components/ui/label'
+import { Badge } from '../components/ui/badge'
+import { Alert, AlertDescription } from '../components/ui/alert'
+import { Activity, Heart, Thermometer, Zap, Settings, Save, RotateCcw } from 'lucide-react'
+import apiService from '../services/api'
+import MedicalHeader from '../components/ui/MedicalHeader'
 
 export default function AbnormalDataSettingsPage() {
   const navigate = useNavigate()
-  const [selectedType, setSelectedType] = useState('')
-  const [formData, setFormData] = useState({
-    values: {},
-    device_id: '',
-    location: '測試診斷點',
-    notes: ''
-  })
-  const [loading, setLoading] = useState(false)
-  const [message, setMessage] = useState('')
   const [currentUser, setCurrentUser] = useState(null)
+  const [abnormalRanges, setAbnormalRanges] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
 
-  useEffect(() => {
-    // 检查用户是否已登录和权限
-    const userData = apiService.getCurrentUser()
-    if (!userData) {
-      navigate('/login')
-      return
-    }
-    
-    // 只允许医护人员访问此测试工具
-    if (userData.role !== 'medical_staff') {
-      alert('此功能仅限医护人员使用')
-      navigate('/login')
-      return
-    }
-
-    setCurrentUser(userData)
-  }, [navigate])
-
-  const measurementTypes = [
-    {
-      value: 'blood_pressure',
-      label: '血壓',
+  // 預設分界點配置 - 用戶只需要設定這些關鍵分界點
+  const defaultBoundaries = {
+    blood_pressure: {
+      measurementType: 'blood_pressure',
+      name: '血壓',
+      unit: 'mmHg',
       icon: Activity,
-      normalRange: '收縮壓: 90-139 mmHg, 舒張壓: 60-89 mmHg',
-      abnormalExamples: [
-        { name: '高血壓', values: { systolic: 160, diastolic: 100 } },
-        { name: '低血壓', values: { systolic: 80, diastolic: 50 } },
-        { name: '嚴重高血壓', values: { systolic: 180, diastolic: 110 } }
-      ]
+      color: 'blue',
+      parameters: {
+        systolic: {
+          name: '收縮壓',
+          boundaries: {
+            severe_low_max: 70,    // 嚴重低血壓上限
+            low_max: 90,           // 低血壓上限 (正常下限)
+            normal_max: 140,       // 正常上限 (高血壓下限)
+            high_max: 160,         // 高血壓1期上限
+            severe_high_max: 180   // 高血壓2期上限 (危象下限)
+          },
+          absoluteMin: 0,
+          absoluteMax: 250
+        },
+        diastolic: {
+          name: '舒張壓',
+          boundaries: {
+            severe_low_max: 40,
+            low_max: 60,
+            normal_max: 90,
+            high_max: 100,
+            severe_high_max: 110
+          },
+          absoluteMin: 0,
+          absoluteMax: 150
+        }
+      }
     },
-    {
-      value: 'heart_rate',
-      label: '心率',
+    heart_rate: {
+      measurementType: 'heart_rate',
+      name: '心率',
+      unit: 'bpm',
       icon: Heart,
-      normalRange: '60-100 bpm',
-      abnormalExamples: [
-        { name: '心動過速', values: { rate: 120 } },
-        { name: '心動過緩', values: { rate: 45 } },
-        { name: '嚴重心動過速', values: { rate: 150 } }
-      ]
+      color: 'red',
+      parameters: {
+        rate: {
+          name: '心率',
+          boundaries: {
+            severe_low_max: 40,    // 嚴重心動過緩上限
+            low_max: 60,           // 心動過緩上限 (正常下限)
+            normal_max: 100,       // 正常上限 (心動過速下限)
+            high_max: 120,         // 輕度心動過速上限
+            severe_high_max: 150   // 中度心動過速上限 (嚴重心動過速下限)
+          },
+          absoluteMin: 0,
+          absoluteMax: 250
+        }
+      }
     },
-    {
-      value: 'temperature',
-      label: '體溫',
+    temperature: {
+      measurementType: 'temperature',
+      name: '體溫',
+      unit: '°C',
       icon: Thermometer,
-      normalRange: '36.0-37.3°C',
-      abnormalExamples: [
-        { name: '發燒', values: { celsius: 38.5 } },
-        { name: '高燒', values: { celsius: 39.8 } },
-        { name: '體溫過低', values: { celsius: 35.2 } }
-      ]
+      color: 'orange',
+      parameters: {
+        temperature: {
+          name: '體溫',
+          boundaries: {
+            severe_low_max: 35.0,
+            low_max: 36.1,
+            normal_max: 37.2,
+            high_max: 38.3,
+            severe_high_max: 39.1
+          },
+          absoluteMin: 30.0,
+          absoluteMax: 45.0
+        }
+      }
     },
-    {
-      value: 'oxygen_saturation',
-      label: '血氧飽和度',
-      icon: Droplets,
-      normalRange: '≥ 95%',
-      abnormalExamples: [
-        { name: '輕度缺氧', values: { percentage: 92 } },
-        { name: '中度缺氧', values: { percentage: 88 } },
-        { name: '嚴重缺氧', values: { percentage: 85 } }
-      ]
-    }
-  ]
-
-  const checkAbnormalValues = (type, values) => {
-    switch (type) {
-      case 'blood_pressure':
-        return values.systolic >= 140 || values.systolic < 90 || values.diastolic >= 90 || values.diastolic < 60
-      case 'heart_rate':
-        return values.rate > 100 || values.rate < 60
-      case 'temperature':
-        return values.celsius > 37.3 || values.celsius < 36.0
-      case 'oxygen_saturation':
-        return values.percentage < 95
-      default:
-        return false
+    oxygen_saturation: {
+      measurementType: 'oxygen_saturation',
+      name: '血氧飽和度',
+      unit: '%',
+      icon: Zap,
+      color: 'purple',
+      parameters: {
+        oxygen_saturation: {
+          name: '血氧飽和度',
+          boundaries: {
+            severe_low_max: 85,
+            low_max: 95,  // 匹配數據庫中的min值
+            normal_max: 100, // 匹配數據庫中的max值
+            high_max: 100,
+            severe_high_max: 100
+          },
+          absoluteMin: 0,
+          absoluteMax: 100
+        }
+      }
     }
   }
 
-  const handleAddData = async () => {
-    if (!selectedType || Object.keys(formData.values).length === 0) {
-      setMessage('請選擇測量類型並輸入數值')
-      return
-    }
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    setCurrentUser(user)
+    loadAbnormalRanges()
+  }, [])
 
+  const loadAbnormalRanges = async () => {
     setLoading(true)
     try {
-      const currentUser = await apiService.getCurrentUser()
-      if (!currentUser) {
-        throw new Error('無法獲取當前用戶信息')
-      }
-
-      const isAbnormal = checkAbnormalValues(selectedType, formData.values)
+      const response = await apiService.getAbnormalRanges()
+      const ranges = Array.isArray(response) ? response : (response.data || [])
+      console.log('📥 從API載入的異常範圍:', ranges)
       
-      // 根据测量类型构建数据，适应新的API结构
-      const measurementData = {
-        deviceId: formData.device_id || `TEST_${selectedType.toUpperCase()}`,
-        location: formData.location,
-        notes: formData.notes || '測試異常數據'
-      }
-
-      // 根据测量类型添加相应的值
-      if (selectedType === 'blood_pressure') {
-        measurementData.systolic = formData.values.systolic
-        measurementData.diastolic = formData.values.diastolic
-      } else if (selectedType === 'heart_rate') {
-        measurementData.heartRate = formData.values.rate
-      } else if (selectedType === 'temperature') {
-        measurementData.temperature = formData.values.celsius
-      } else if (selectedType === 'oxygen_saturation') {
-        measurementData.oxygenSaturation = formData.values.percentage
-      }
-
-      await apiService.submitMeasurement(measurementData)
-      
-      setMessage(`✅ 已添加${isAbnormal ? '異常' : '正常'}測量數據！`)
-      
-      // 重置表單
-      setFormData({
-        values: {},
-        device_id: '',
-        location: '測試診斷點',
-        notes: ''
+      // 將API資料轉換為分界點格式
+      const boundariesData = { ...defaultBoundaries }
+      ranges.forEach(range => {
+        if (boundariesData[range.measurementType]) {
+          boundariesData[range.measurementType].apiData = range
+          // 如果有API資料，嘗試從正常範圍推導分界點
+          if (range.normalRange) {
+            // 後端到前端的參數名映射
+            const backendToFrontendMapping = {
+              'systolic': 'systolic',
+              'diastolic': 'diastolic',
+              'heartRate': 'rate',
+              'temperature': 'temperature',
+              'oxygenSaturation': 'oxygen_saturation'
+            }
+            
+            Object.keys(range.normalRange).forEach(backendParam => {
+              const frontendParam = backendToFrontendMapping[backendParam] || backendParam
+              if (boundariesData[range.measurementType].parameters[frontendParam]) {
+                const normalRange = range.normalRange[backendParam]
+                const abnormalRange = range.abnormalRanges?.[backendParam]
+                
+                if (abnormalRange) {
+                  // 如果有完整的異常範圍，從異常範圍反推分界點
+                  console.log(`📊 從異常範圍載入 ${range.measurementType}.${backendParam}:`, abnormalRange)
+                  
+                  // 從異常範圍反推分界點
+                  const boundaries = {}
+                  
+                  // 從異常範圍反推分界點
+                  // 嚴重偏低上限 = severeLow.max
+                  if (abnormalRange.severeLow?.max !== undefined) {
+                    boundaries.severe_low_max = abnormalRange.severeLow.max
+                  }
+                  
+                  // 偏低上限 = low.max = 正常下限
+                  if (abnormalRange.low?.max !== undefined) {
+                    boundaries.low_max = abnormalRange.low.max
+                  } else if (normalRange.min !== undefined) {
+                    boundaries.low_max = normalRange.min
+                  }
+                  
+                  // 正常上限 = normal.max
+                  if (normalRange.max !== undefined) {
+                    boundaries.normal_max = normalRange.max
+                  }
+                  
+                  // 偏高上限 = high.max
+                  if (abnormalRange.high?.max !== undefined) {
+                    boundaries.high_max = abnormalRange.high.max
+                  } else {
+                    boundaries.high_max = normalRange.max || boundaries.normal_max
+                  }
+                  
+                  // 嚴重偏高上限 = severeHigh.max
+                  if (abnormalRange.severeHigh?.max !== undefined) {
+                    boundaries.severe_high_max = abnormalRange.severeHigh.max
+                  } else {
+                    boundaries.severe_high_max = boundaries.high_max || boundaries.normal_max
+                  }
+                  
+                  // 確保所有分界點都有值，使用預設值填補
+                  const defaultBoundaries = boundariesData[range.measurementType].parameters[frontendParam].boundaries
+                  boundaries.severe_low_max = boundaries.severe_low_max ?? defaultBoundaries.severe_low_max
+                  boundaries.low_max = boundaries.low_max ?? defaultBoundaries.low_max
+                  boundaries.normal_max = boundaries.normal_max ?? defaultBoundaries.normal_max
+                  boundaries.high_max = boundaries.high_max ?? defaultBoundaries.high_max
+                  boundaries.severe_high_max = boundaries.severe_high_max ?? defaultBoundaries.severe_high_max
+                  
+                  // 更新分界點
+                  Object.assign(boundariesData[range.measurementType].parameters[frontendParam].boundaries, boundaries)
+                  
+                  console.log(`✅ 反推的分界點:`, boundaries)
+                } else {
+                  // 如果沒有異常範圍，只使用正常範圍
+                  boundariesData[range.measurementType].parameters[frontendParam].boundaries.low_max = normalRange.min
+                  boundariesData[range.measurementType].parameters[frontendParam].boundaries.normal_max = normalRange.max
+                  console.log(`🔄 僅載入正常範圍 ${range.measurementType}.${backendParam} -> ${frontendParam}:`, normalRange)
+                }
+              } else {
+                console.warn(`⚠️ 找不到前端參數 ${frontendParam} 在 ${range.measurementType}`)
+              }
+            })
+          }
+        } else {
+          console.warn(`⚠️ 找不到測量類型 ${range.measurementType} 的配置`)
+        }
       })
       
+      console.log('🎯 最終的分界點數據:', boundariesData)
+      setAbnormalRanges(boundariesData)
     } catch (error) {
-      console.error('Error adding data:', error)
-      setMessage('❌ 添加數據失敗，請重試')
+      console.error('載入異常範圍設定失敗:', error)
+      setAbnormalRanges(defaultBoundaries)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleAddPresetData = (example) => {
-    setFormData(prev => ({
+  // 根據分界點生成完整的範圍
+  const generateRangesFromBoundaries = (boundaries, absoluteMin, absoluteMax) => {
+    const ranges = {}
+    
+    ranges.severe_low = [absoluteMin, boundaries.severe_low_max]
+    ranges.low = [boundaries.severe_low_max, boundaries.low_max]
+    ranges.normal = [boundaries.low_max, boundaries.normal_max]
+    ranges.high = [boundaries.normal_max, boundaries.high_max]
+    ranges.severe_high = [boundaries.high_max, boundaries.severe_high_max]
+    ranges.critical = [boundaries.severe_high_max, absoluteMax]
+    
+    return ranges
+  }
+
+  const handleBoundaryChange = (measurementType, parameter, boundaryKey, value) => {
+    setAbnormalRanges(prev => ({
       ...prev,
-      values: example.values,
-      notes: `測試數據 - ${example.name}`
+      [measurementType]: {
+        ...prev[measurementType],
+        parameters: {
+          ...prev[measurementType].parameters,
+          [parameter]: {
+            ...prev[measurementType].parameters[parameter],
+            boundaries: {
+              ...prev[measurementType].parameters[parameter].boundaries,
+              [boundaryKey]: parseFloat(value) || 0
+            }
+          }
+        }
+      }
     }))
   }
 
-  const addAllAbnormalData = async () => {
-    setLoading(true)
-    try {
-      const currentUser = await apiService.getCurrentUser()
-      if (!currentUser) {
-        throw new Error('無法獲取當前用戶信息')
-      }
-
-      const allAbnormalData = [
-        {
-          systolic: 180,
-          diastolic: 110,
-          deviceId: 'TEST_BLOOD_PRESSURE',
-          location: '測試診斷點',
-          notes: '嚴重高血壓測試數據'
-        },
-        {
-          heartRate: 120,
-          deviceId: 'TEST_HEART_RATE',
-          location: '測試診斷點',
-          notes: '心動過速測試數據'
-        },
-        {
-          temperature: 39.2,
-          deviceId: 'TEST_TEMPERATURE',
-          location: '測試診斷點',
-          notes: '高燒測試數據'
-        },
-        {
-          oxygenSaturation: 85,
-          deviceId: 'TEST_OXYGEN_SATURATION',
-          location: '測試診斷點',
-          notes: '嚴重缺氧測試數據'
+  const resetToDefaults = (measurementType, parameter) => {
+    setAbnormalRanges(prev => ({
+      ...prev,
+      [measurementType]: {
+        ...prev[measurementType],
+        parameters: {
+          ...prev[measurementType].parameters,
+          [parameter]: {
+            ...prev[measurementType].parameters[parameter],
+            boundaries: { ...defaultBoundaries[measurementType].parameters[parameter].boundaries }
+          }
         }
-      ]
+      }
+    }))
+  }
 
-      // 使用 for...of 循环以便正确处理异步操作
-      for (const data of allAbnormalData) {
-        await apiService.submitMeasurement(data)
-        await new Promise(resolve => setTimeout(resolve, 500)) // 添加短暂延迟
+  const validateBoundaries = (boundaries) => {
+    const orderedKeys = ['severe_low_max', 'low_max', 'normal_max', 'high_max', 'severe_high_max']
+    const errors = []
+    
+    for (let i = 0; i < orderedKeys.length - 1; i++) {
+      const current = boundaries[orderedKeys[i]]
+      const next = boundaries[orderedKeys[i + 1]]
+      
+      if (current >= next) {
+        errors.push(`${getBoundaryLabel(orderedKeys[i])} 必須小於 ${getBoundaryLabel(orderedKeys[i + 1])}`)
+      }
+    }
+    
+    return errors
+  }
+
+  const getBoundaryLabel = (boundaryKey) => {
+    const labels = {
+      severe_low_max: '嚴重偏低上限',
+      low_max: '偏低上限',
+      normal_max: '正常上限',
+      high_max: '偏高上限',
+      severe_high_max: '嚴重偏高上限'
+    }
+    return labels[boundaryKey] || boundaryKey
+  }
+
+  const getRangeColor = (rangeType) => {
+    const colors = {
+      critical: 'bg-red-500',
+      severe_high: 'bg-red-400',
+      high: 'bg-orange-400',
+      normal: 'bg-green-500',
+      low: 'bg-yellow-400',
+      severe_low: 'bg-orange-500'
+    }
+    return colors[rangeType] || 'bg-gray-400'
+  }
+
+  const getRangeLabel = (rangeType) => {
+    const labels = {
+      critical: '危急',
+      severe_high: '嚴重偏高',
+      high: '偏高',
+      normal: '正常',
+      low: '偏低',
+      severe_low: '嚴重偏低'
+    }
+    return labels[rangeType] || rangeType
+  }
+
+  const saveAllSettings = async () => {
+    setSaving(true)
+    try {
+      for (const [measurementType, config] of Object.entries(abnormalRanges)) {
+        console.log(`🔧 處理 ${measurementType} 的設定...`, config)
+        
+        const normalRange = {}
+        
+        // 參數名稱映射：前端參數名 -> 後端期望的參數名
+        const parameterMapping = {
+          'systolic': 'systolic',
+          'diastolic': 'diastolic',
+          'rate': 'heartRate',
+          'temperature': 'temperature',
+          'oxygen_saturation': 'oxygenSaturation'
+        }
+        
+        console.log(`📋 ${measurementType} 的參數:`, Object.keys(config.parameters))
+        
+        const abnormalRanges = {}
+        
+        Object.entries(config.parameters).forEach(([parameter, paramConfig]) => {
+          const backendParamName = parameterMapping[parameter] || parameter
+          const boundaries = paramConfig.boundaries
+          const absoluteMin = paramConfig.absoluteMin || 0
+          const absoluteMax = paramConfig.absoluteMax || 1000
+          
+          // 正常範圍
+          const normalRangeData = {
+            min: parseFloat(boundaries.low_max),
+            max: parseFloat(boundaries.normal_max)
+          }
+          normalRange[backendParamName] = normalRangeData
+          
+          // 異常範圍
+          const abnormalRangeData = {
+            severeLow: {
+              min: absoluteMin,
+              max: parseFloat(boundaries.severe_low_max)
+            },
+            low: {
+              min: parseFloat(boundaries.severe_low_max),
+              max: parseFloat(boundaries.low_max)
+            },
+            high: {
+              min: parseFloat(boundaries.normal_max),
+              max: parseFloat(boundaries.high_max)
+            },
+            severeHigh: {
+              min: parseFloat(boundaries.high_max),
+              max: parseFloat(boundaries.severe_high_max)
+            },
+            critical: {
+              min: parseFloat(boundaries.severe_high_max),
+              max: absoluteMax
+            }
+          }
+          abnormalRanges[backendParamName] = abnormalRangeData
+          
+          console.log(`📊 ${parameter} -> ${backendParamName}:`)
+          console.log('  正常範圍:', normalRangeData)
+          console.log('  異常範圍:', abnormalRangeData)
+        })
+
+        // 創建和更新使用不同的數據格式
+        if (config.apiData && config.apiData._id) {
+          // 更新時不包含 measurementType
+          const updateData = {
+            name: config.name,
+            normalRange,
+            abnormalRanges,
+            unit: config.unit,
+            description: `${config.name}的異常範圍設定`,
+            isActive: true
+          }
+          console.log(`🔄 更新 ${measurementType} (ID: ${config.apiData._id}):`, updateData)
+          await apiService.updateAbnormalRange(config.apiData._id, updateData)
+        } else {
+          // 創建時包含 measurementType
+          const createData = {
+            measurementType,
+            name: config.name,
+            normalRange,
+            abnormalRanges,
+            unit: config.unit,
+            description: `${config.name}的異常範圍設定`,
+            isActive: true
+          }
+          console.log(`✨ 創建 ${measurementType}:`, createData)
+          await apiService.createAbnormalRange(createData)
+        }
+        
+        console.log(`✅ ${measurementType} 處理完成`)
       }
 
-      setMessage('✅ 已成功添加所有異常測試數據！')
+      setMessage('✅ 異常範圍設定已成功儲存！')
+      setTimeout(() => setMessage(''), 3000)
       
+      // 重新載入設定以確保同步
+      await loadAbnormalRanges()
     } catch (error) {
-      console.error('Error adding all abnormal data:', error)
-      setMessage('❌ 批量添加數據失敗，請重試')
+      console.error('儲存異常範圍設定失敗:', error)
+      console.error('錯誤詳情:', error.response?.data || error.message)
+      setMessage(`❌ 儲存設定失敗: ${error.response?.data?.message || error.message}`)
+      setTimeout(() => setMessage(''), 5000)
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
-  const renderFormFields = () => {
-    if (!selectedType) return null
-
-    const type = measurementTypes.find(t => t.value === selectedType)
-    if (!type) return null
-
-    switch (selectedType) {
-      case 'blood_pressure':
-        return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="systolic" className="text-sm font-medium text-gray-700">收縮壓 (mmHg)</Label>
-                <Input
-                  id="systolic"
-                  type="number"
-                  placeholder="120"
-                  className="mt-1 bg-white/70 border-green-200 focus:border-green-400 focus:ring-green-400/20"
-                  value={formData.values.systolic || ''}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    values: { ...prev.values, systolic: parseInt(e.target.value) || 0 }
-                  }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="diastolic" className="text-sm font-medium text-gray-700">舒張壓 (mmHg)</Label>
-                <Input
-                  id="diastolic"
-                  type="number"
-                  placeholder="80"
-                  className="mt-1 bg-white/70 border-green-200 focus:border-green-400 focus:ring-green-400/20"
-                  value={formData.values.diastolic || ''}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    values: { ...prev.values, diastolic: parseInt(e.target.value) || 0 }
-                  }))}
-                />
-              </div>
+  const renderMeasurementConfig = (measurementType, config) => {
+    const IconComponent = config.icon
+    
+    return (
+      <Card key={measurementType} className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg shadow-xl shadow-gray-500/10 hover:shadow-2xl hover:shadow-gray-500/15 transition-all duration-300 group border-0 ring-1 ring-white/20">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl text-gray-800 flex items-center gap-3">
+            <div className={`p-3 rounded-xl bg-gradient-to-br from-${config.color}-100 to-${config.color}-50 shadow-sm group-hover:shadow-md transition-all duration-300`}>
+              <IconComponent className={`h-6 w-6 text-${config.color}-600 group-hover:scale-110 transition-transform duration-300`} />
             </div>
-          </div>
-        )
+            {config.name}
+            <Badge variant="outline" className="ml-auto bg-white/80 backdrop-blur-sm shadow-sm border-0 ring-1 ring-gray-200/50">
+              {config.unit}
+            </Badge>
+          </CardTitle>
+          <CardDescription className="text-gray-600">
+            設定 {config.name} 的關鍵分界點，系統將自動生成完整的異常範圍
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {Object.entries(config.parameters).map(([parameter, paramConfig]) => {
+            const ranges = generateRangesFromBoundaries(
+              paramConfig.boundaries,
+              paramConfig.absoluteMin,
+              paramConfig.absoluteMax
+            )
+            const validationErrors = validateBoundaries(paramConfig.boundaries)
+            
+            return (
+              <div key={parameter} className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-semibold text-gray-700">{paramConfig.name}</h4>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => resetToDefaults(measurementType, parameter)}
+                      className="px-3 py-1 text-xs bg-white/80 backdrop-blur-sm text-gray-700 rounded-lg hover:bg-white/90 shadow-sm hover:shadow-md transition-all duration-200 border-0 ring-1 ring-gray-200/50 hover:ring-gray-300/60"
+                    >
+                      <RotateCcw className="h-3 w-3 mr-1 inline" />
+                      重置預設
+                    </button>
+                    <div className="text-sm text-gray-500">
+                      正常範圍: {ranges.normal[0]} - {ranges.normal[1]} {config.unit}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 範圍視覺化 - 美化版本 */}
+                <div className="relative">
+                  <div className="flex h-10 rounded-xl overflow-hidden bg-gradient-to-r from-gray-50 to-white shadow-lg backdrop-blur-sm">
+                    {Object.entries(ranges).map(([rangeType, values]) => {
+                      const totalRange = paramConfig.absoluteMax - paramConfig.absoluteMin
+                      const width = ((values[1] - values[0]) / totalRange) * 100
+                      return (
+                        <div
+                          key={rangeType}
+                          className={`${getRangeColor(rangeType)} flex items-center justify-center text-white text-xs font-medium transition-all duration-300 hover:scale-105 hover:z-10 relative group shadow-sm`}
+                          style={{ width: `${width}%` }}
+                        >
+                          {width > 12 && getRangeLabel(rangeType)}
+                          {/* 懸停提示 */}
+                          <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20">
+                            {values[0]}-{values[1]} {config.unit}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400 mt-2 font-medium">
+                    <span>{paramConfig.absoluteMin}</span>
+                    <span>{paramConfig.absoluteMax}</span>
+                  </div>
+                </div>
 
-      case 'heart_rate':
-        return (
-          <div>
-            <Label htmlFor="rate" className="text-sm font-medium text-gray-700">心率 (bpm)</Label>
-            <Input
-              id="rate"
-              type="number"
-              placeholder="75"
-              className="mt-1 bg-white/70 border-green-200 focus:border-green-400 focus:ring-green-400/20"
-              value={formData.values.rate || ''}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                values: { ...prev.values, rate: parseInt(e.target.value) || 0 }
-              }))}
-            />
-          </div>
-        )
+                {/* 分界點設定 - 美化版本 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.entries(paramConfig.boundaries).map(([boundaryKey, value]) => (
+                    <div key={boundaryKey} className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">
+                        {getBoundaryLabel(boundaryKey)}
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={value}
+                          onChange={(e) => handleBoundaryChange(measurementType, parameter, boundaryKey, e.target.value)}
+                          step={measurementType === 'temperature' ? 0.1 : 1}
+                          min={paramConfig.absoluteMin}
+                          max={paramConfig.absoluteMax}
+                          className="w-20 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 focus:ring-2 focus:ring-blue-500/20 focus:shadow-lg focus:bg-white/90 border-0 ring-1 ring-gray-200/50 focus:ring-blue-400/50"
+                        />
+                        <span className="text-sm text-gray-500 font-medium">{config.unit}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-      case 'temperature':
-        return (
-          <div>
-            <Label htmlFor="celsius" className="text-sm font-medium text-gray-700">體溫 (°C)</Label>
-            <Input
-              id="celsius"
-              type="number"
-              step="0.1"
-              placeholder="36.5"
-              className="mt-1 bg-white/70 border-green-200 focus:border-green-400 focus:ring-green-400/20"
-              value={formData.values.celsius || ''}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                values: { ...prev.values, celsius: parseFloat(e.target.value) || 0 }
-              }))}
-            />
-          </div>
-        )
+                {/* 生成的範圍預覽 - 美化版本 */}
+                <div className="bg-gradient-to-br from-blue-50/50 to-indigo-50/30 backdrop-blur-sm rounded-xl p-5 shadow-sm">
+                  <h5 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    生成的範圍預覽
+                  </h5>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                    {Object.entries(ranges).map(([rangeType, values]) => (
+                      <div key={rangeType} className="flex items-center gap-2 p-2 bg-white/60 backdrop-blur-sm rounded-lg hover:bg-white/80 transition-all duration-200 group">
+                        <div className={`w-3 h-3 rounded-full ${getRangeColor(rangeType)} shadow-sm group-hover:scale-110 transition-transform duration-200`}></div>
+                        <span className="text-gray-700 font-medium">
+                          {getRangeLabel(rangeType)}: {values[0]}-{values[1]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
-      case 'oxygen_saturation':
-        return (
-          <div>
-            <Label htmlFor="percentage" className="text-sm font-medium text-gray-700">血氧飽和度 (%)</Label>
-            <Input
-              id="percentage"
-              type="number"
-              placeholder="98"
-              className="mt-1 bg-white/70 border-green-200 focus:border-green-400 focus:ring-green-400/20"
-              value={formData.values.percentage || ''}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                values: { ...prev.values, percentage: parseInt(e.target.value) || 0 }
-              }))}
-            />
-          </div>
-        )
-
-      default:
-        return null
-    }
+                {/* 驗證錯誤 - 美化版本 */}
+                {validationErrors.length > 0 && (
+                  <div className="bg-gradient-to-br from-red-50/80 to-pink-50/60 backdrop-blur-sm rounded-xl p-4 shadow-sm">
+                    <div className="flex items-center gap-2 text-red-800 text-sm font-semibold mb-3">
+                      <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs">!</div>
+                      設定錯誤
+                    </div>
+                    <ul className="text-sm text-red-700 space-y-1">
+                      {validationErrors.map((error, index) => (
+                        <li key={index} className="flex items-center gap-2 p-2 bg-white/60 rounded-lg">
+                          <div className="w-1 h-1 bg-red-500 rounded-full"></div>
+                          {error}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </CardContent>
+      </Card>
+    )
   }
 
-  if (!currentUser) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <div className="relative mx-auto w-32 h-32">
+            <div className="animate-spin rounded-full h-32 w-32 bg-gradient-to-r from-green-400 via-emerald-500 to-teal-500 p-1">
+              <div className="bg-white rounded-full h-full w-full flex items-center justify-center">
+                <div className="w-16 h-16 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+          <p className="mt-4 text-gray-600">載入設定中...</p>
         </div>
       </div>
     )
@@ -334,218 +598,61 @@ export default function AbnormalDataSettingsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 relative overflow-hidden">
-      {/* Background decorative elements */}
+      {/* 背景裝飾元素 */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-200/30 to-emerald-200/30 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-teal-200/30 to-cyan-200/30 rounded-full blur-3xl"></div>
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-emerald-200/20 to-green-200/20 rounded-full blur-3xl"></div>
       </div>
 
-      {/* Header */}
+      {/* 標題 */}
       <MedicalHeader 
-        title="異常數據設置"
-        subtitle="醫護人員測試工具 - 生成異常測量數據"
+        title="異常範圍設定"
+        subtitle="設定關鍵分界點，系統自動生成完整的異常檢測範圍"
         icon={Settings}
         showBackButton={true}
         user={currentUser}
         onBack={() => navigate('/medical')}
       />
 
-      {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 pt-24">
-        {/* 警告提示 */}
+      {/* 主要內容 */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 pt-24">
+        {/* 說明資訊 */}
         <div className="mb-8">
-          <Alert className="bg-gradient-to-br from-orange-50/90 to-orange-100/70 backdrop-blur-lg border-orange-200 shadow-lg shadow-orange-500/10">
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
-            <AlertDescription className="text-orange-800">
-              <strong>醫護人員專用工具</strong> - 此功能用於生成測試數據，請謹慎使用
+          <Alert className="bg-gradient-to-br from-blue-50/90 to-blue-100/70 backdrop-blur-lg shadow-lg shadow-blue-500/10 hover:shadow-xl hover:shadow-blue-500/15 transition-all duration-300 border-0 ring-1 ring-blue-200/30">
+            <Settings className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              <strong>分界點設定</strong> - 只需設定幾個關鍵分界點，系統將自動生成完整的異常範圍。這種方式更直觀，確保範圍邏輯正確。
             </AlertDescription>
           </Alert>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* 左侧：数据输入表单 */}
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-xl font-bold bg-gradient-to-r from-green-700 to-emerald-700 bg-clip-text text-transparent mb-4">
-                添加測試數據
-              </h3>
-              
-              <Card className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-2xl shadow-green-500/10">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-lg text-gray-800">選擇測量類型</CardTitle>
-                  <CardDescription className="text-gray-600">
-                    選擇要添加測試數據的測量類型
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label htmlFor="type" className="text-sm font-medium text-gray-700">測量類型</Label>
-                    <Select value={selectedType} onValueChange={setSelectedType}>
-                      <SelectTrigger className="mt-1 bg-white/70 border-green-200 focus:border-green-400">
-                        <SelectValue placeholder="選擇測量類型" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {measurementTypes.map((type) => {
-                          const IconComponent = type.icon
-                          return (
-                            <SelectItem key={type.value} value={type.value}>
-                              <div className="flex items-center gap-2">
-                                <IconComponent className="h-4 w-4" />
-                                {type.label}
-                              </div>
-                            </SelectItem>
-                          )
-                        })}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {selectedType && (
-                    <div className="space-y-4">
-                      <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-200">
-                        <p className="text-sm text-blue-800">
-                          <strong>正常範圍:</strong> {measurementTypes.find(t => t.value === selectedType)?.normalRange}
-                        </p>
-                      </div>
-
-                      {renderFormFields()}
-
-                      <div className="space-y-3">
-                        <div>
-                          <Label htmlFor="device_id" className="text-sm font-medium text-gray-700">設備ID (可選)</Label>
-                          <Input
-                            id="device_id"
-                            placeholder="TEST_DEVICE_001"
-                            className="mt-1 bg-white/70 border-green-200 focus:border-green-400 focus:ring-green-400/20"
-                            value={formData.device_id}
-                            onChange={(e) => setFormData(prev => ({ ...prev, device_id: e.target.value }))}
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="location" className="text-sm font-medium text-gray-700">測量地點</Label>
-                          <Input
-                            id="location"
-                            className="mt-1 bg-white/70 border-green-200 focus:border-green-400 focus:ring-green-400/20"
-                            value={formData.location}
-                            onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="notes" className="text-sm font-medium text-gray-700">備註</Label>
-                          <Textarea
-                            id="notes"
-                            placeholder="測試數據備註..."
-                            className="mt-1 bg-white/70 border-green-200 focus:border-green-400 focus:ring-green-400/20"
-                            rows={3}
-                            value={formData.notes}
-                            onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                          />
-                        </div>
-                      </div>
-
-                      <Button
-                        onClick={handleAddData}
-                        disabled={loading}
-                        className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                      >
-                        {loading ? '添加中...' : '添加測試數據'}
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* 快速操作 */}
-            <Card className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-2xl shadow-purple-500/10">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg text-gray-800">快速操作</CardTitle>
-                <CardDescription className="text-gray-600">
-                  一鍵添加所有類型的異常測試數據
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  onClick={addAllAbnormalData}
-                  disabled={loading}
-                  variant="outline"
-                  className="w-full border-purple-200 hover:bg-purple-50 hover:border-purple-300 text-purple-700 hover:text-purple-800"
-                >
-                  {loading ? '批量添加中...' : '添加所有異常數據'}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* 右侧：预设数据示例 */}
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-xl font-bold bg-gradient-to-r from-green-700 to-emerald-700 bg-clip-text text-transparent mb-4">
-                預設異常數據
-              </h3>
-              
-              <div className="space-y-4">
-                {measurementTypes.map((type) => {
-                  const IconComponent = type.icon
-                  return (
-                    <Card key={type.value} className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-lg shadow-gray-500/5">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
-                          <IconComponent className="h-5 w-5 text-green-600" />
-                          {type.label}
-                        </CardTitle>
-                        <CardDescription className="text-sm text-gray-600">
-                          正常範圍: {type.normalRange}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="space-y-2">
-                          {type.abnormalExamples.map((example, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 bg-red-50/70 rounded-lg border border-red-200">
-                              <div>
-                                <p className="font-medium text-red-800">{example.name}</p>
-                                <p className="text-sm text-red-600">
-                                  {Object.entries(example.values).map(([key, value]) => `${key}: ${value}`).join(', ')}
-                                </p>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedType(type.value)
-                                  handleAddPresetData(example)
-                                }}
-                                className="border-red-200 hover:bg-red-50 hover:border-red-300 text-red-700 hover:text-red-800"
-                              >
-                                使用
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
+        {/* 配置卡片 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {Object.entries(abnormalRanges).map(([measurementType, config]) => 
+            renderMeasurementConfig(measurementType, config)
+          )}
         </div>
 
-        {/* 状态消息 */}
+        {/* 儲存按鈕 */}
+        <div className="flex justify-center">
+          <Button
+            onClick={saveAllSettings}
+            disabled={saving}
+            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-3 rounded-xl shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300 transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
+          >
+            <Save className={`h-5 w-5 mr-2 ${saving ? 'animate-spin' : ''}`} />
+            {saving ? '儲存中...' : '儲存所有設定'}
+          </Button>
+        </div>
+
+        {/* 訊息提示 - 美化版本 */}
         {message && (
-          <div className="mt-8">
-            <Alert className={`${
-              message.includes('✅') 
-                ? 'bg-gradient-to-br from-green-50/90 to-green-100/70 border-green-200 shadow-green-500/10' 
-                : 'bg-gradient-to-br from-red-50/90 to-red-100/70 border-red-200 shadow-red-500/10'
-            } backdrop-blur-lg shadow-lg`}>
-              <AlertDescription className={message.includes('✅') ? 'text-green-800' : 'text-red-800'}>
-                {message}
-              </AlertDescription>
-            </Alert>
+          <div className="fixed bottom-4 right-4 bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg rounded-xl shadow-2xl shadow-gray-500/20 p-4 max-w-sm z-50 transform transition-all duration-300 hover:scale-105">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <p className="text-sm text-gray-700 font-medium">{message}</p>
+            </div>
           </div>
         )}
       </main>

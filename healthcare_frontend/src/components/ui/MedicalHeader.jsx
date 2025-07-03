@@ -34,7 +34,7 @@ export default function MedicalHeader({
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-white/20 shadow-lg shadow-green-500/10">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md shadow-lg shadow-green-500/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center">
@@ -42,7 +42,7 @@ export default function MedicalHeader({
               <Button
                 variant="ghost"
                 onClick={handleBack}
-                className="mr-4 bg-white/40 backdrop-blur-sm border-0 hover:bg-white/60 text-gray-600 hover:text-gray-800 shadow-md hover:shadow-lg transition-all duration-300 rounded-2xl"
+                className="mr-4 bg-white/40 backdrop-blur-sm hover:bg-white/60 text-gray-600 hover:text-gray-800 shadow-md hover:shadow-lg transition-all duration-300 rounded-2xl"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 返回菜單
@@ -93,7 +93,7 @@ export default function MedicalHeader({
             {/* 登出按钮 */}
             <Button 
               variant="ghost" 
-              className="h-11 bg-white/40 backdrop-blur-sm border-0 hover:bg-white/60 text-gray-600 hover:text-gray-800 shadow-md hover:shadow-lg transition-all duration-300 rounded-2xl px-4"
+              className="h-11 bg-white/40 backdrop-blur-sm hover:bg-white/60 text-gray-600 hover:text-gray-800 shadow-md hover:shadow-lg transition-all duration-300 rounded-2xl px-4"
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4 mr-2" />

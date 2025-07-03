@@ -26,6 +26,57 @@ export class AbnormalRange {
     bloodGlucose?: { min: number; max: number };
   };
 
+  @Prop({ type: Object })
+  abnormalRanges?: {
+    // 血压异常范围
+    systolic?: {
+      critical?: { min: number; max: number };
+      severeHigh?: { min: number; max: number };
+      high?: { min: number; max: number };
+      low?: { min: number; max: number };
+      severeLow?: { min: number; max: number };
+    };
+    diastolic?: {
+      critical?: { min: number; max: number };
+      severeHigh?: { min: number; max: number };
+      high?: { min: number; max: number };
+      low?: { min: number; max: number };
+      severeLow?: { min: number; max: number };
+    };
+    // 心率异常范围
+    heartRate?: {
+      critical?: { min: number; max: number };
+      severeHigh?: { min: number; max: number };
+      high?: { min: number; max: number };
+      low?: { min: number; max: number };
+      severeLow?: { min: number; max: number };
+    };
+    // 体温异常范围
+    temperature?: {
+      critical?: { min: number; max: number };
+      severeHigh?: { min: number; max: number };
+      high?: { min: number; max: number };
+      low?: { min: number; max: number };
+      severeLow?: { min: number; max: number };
+    };
+    // 血氧饱和度异常范围
+    oxygenSaturation?: {
+      critical?: { min: number; max: number };
+      severeHigh?: { min: number; max: number };
+      high?: { min: number; max: number };
+      low?: { min: number; max: number };
+      severeLow?: { min: number; max: number };
+    };
+    // 血糖异常范围
+    bloodGlucose?: {
+      critical?: { min: number; max: number };
+      severeHigh?: { min: number; max: number };
+      high?: { min: number; max: number };
+      low?: { min: number; max: number };
+      severeLow?: { min: number; max: number };
+    };
+  };
+
   @Prop({ required: true })
   unit: string; // 单位
 

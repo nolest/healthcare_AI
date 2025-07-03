@@ -21,6 +21,7 @@ export class MeasurementsService {
       ...createMeasurementDto,
       isAbnormal: abnormalResult.isAbnormal,
       abnormalReasons: abnormalResult.reasons,
+      severity: abnormalResult.severity || 'normal',
       measurementTime: createMeasurementDto.measurementTime || new Date(),
     });
 
@@ -100,9 +101,17 @@ export class MeasurementsService {
     );
   }
 
-  private async detectAbnormalValues(measurement: CreateMeasurementDto): Promise<{ isAbnormal: boolean; reasons: string[] }> {
+  private async detectAbnormalValues(measurement: CreateMeasurementDto): Promise<{ isAbnormal: boolean; reasons: string[]; severity?: string }> {
     const allReasons: string[] = [];
     let hasAbnormal = false;
+    let maxSeverity = 'normal';
+
+    const updateMaxSeverity = (severity: string) => {
+      const severityOrder = ['normal', 'low', 'high', 'severeLow', 'severeHigh', 'critical'];
+      if (severityOrder.indexOf(severity) > severityOrder.indexOf(maxSeverity)) {
+        maxSeverity = severity;
+      }
+    };
 
     // 检查血压
     if (measurement.systolic || measurement.diastolic) {
@@ -113,6 +122,9 @@ export class MeasurementsService {
       if (result.isAbnormal) {
         hasAbnormal = true;
         allReasons.push(...result.reasons);
+        if (result.severity) {
+          updateMaxSeverity(result.severity);
+        }
       }
     }
 
@@ -124,6 +136,9 @@ export class MeasurementsService {
       if (result.isAbnormal) {
         hasAbnormal = true;
         allReasons.push(...result.reasons);
+        if (result.severity) {
+          updateMaxSeverity(result.severity);
+        }
       }
     }
 
@@ -135,6 +150,9 @@ export class MeasurementsService {
       if (result.isAbnormal) {
         hasAbnormal = true;
         allReasons.push(...result.reasons);
+        if (result.severity) {
+          updateMaxSeverity(result.severity);
+        }
       }
     }
 
@@ -146,10 +164,13 @@ export class MeasurementsService {
       if (result.isAbnormal) {
         hasAbnormal = true;
         allReasons.push(...result.reasons);
+        if (result.severity) {
+          updateMaxSeverity(result.severity);
+        }
       }
     }
 
-    return { isAbnormal: hasAbnormal, reasons: allReasons };
+    return { isAbnormal: hasAbnormal, reasons: allReasons, severity: maxSeverity };
   }
 
   async getStats() {

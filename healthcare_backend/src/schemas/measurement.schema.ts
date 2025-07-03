@@ -38,6 +38,9 @@ export class Measurement {
   @Prop({ type: [String], default: [] })
   abnormalReasons: string[]; // 异常原因列表
 
+  @Prop({ default: 'normal', enum: ['normal', 'low', 'high', 'severeLow', 'severeHigh', 'critical'] })
+  severity: string; // 异常严重程度
+
   @Prop()
   measurementTime: Date;
 }

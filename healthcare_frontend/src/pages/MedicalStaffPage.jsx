@@ -203,7 +203,7 @@ export default function MedicalStaffPage() {
             <h3 className="text-xl font-bold bg-gradient-to-r from-green-700 to-emerald-700 bg-clip-text text-transparent mb-4">
               當前診療狀態
             </h3>
-            <div className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg rounded-3xl p-6 shadow-2xl border-0">
+            <div className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg rounded-3xl p-6 shadow-md shadow-gray-200/60">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600 mb-1">{stats.totalDiagnoses}</div>
