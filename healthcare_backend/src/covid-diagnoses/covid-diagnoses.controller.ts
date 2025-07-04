@@ -71,13 +71,18 @@ export class CovidDiagnosesController {
 
   @Get('patient/:patientId')
   @Roles('medical_staff', 'patient')
-  findByPatient(@Param('patientId') patientId: string, @Request() req) {
+  async findByPatient(@Param('patientId') patientId: string, @Request() req) {
     // 患者只能查看自己的诊断
     const userId = req.user._id || req.user.id || req.user.userId;
     if (req.user.role === 'patient' && userId.toString() !== patientId) {
       throw new Error('无权访问此患者的诊断记录');
     }
-    return this.covidDiagnosesService.findByPatient(patientId);
+    const diagnoses = await this.covidDiagnosesService.findByPatient(patientId);
+    return {
+      success: true,
+      data: diagnoses,
+      message: '获取患者COVID诊断记录成功'
+    };
   }
 
   @Get('by-assessment/:assessmentId')

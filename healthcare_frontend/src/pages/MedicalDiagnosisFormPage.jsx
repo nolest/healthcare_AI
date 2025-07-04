@@ -1011,7 +1011,7 @@ export default function MedicalDiagnosisFormPage() {
         {/* 根据hasRead参数决定显示模式 */}
         {hasRead === '1' ? (
           /* 只读模式：只显示诊断内容 */
-          <div className="max-w-4xl mx-auto">
+          <div>
             <Card className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-2xl shadow-green-500/10">
               <CardHeader className="pb-4">
                 <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
@@ -1058,7 +1058,7 @@ export default function MedicalDiagnosisFormPage() {
                             riskLevel === 'high' || riskLevel === 'critical' 
                               ? 'bg-gradient-to-r from-red-500 to-red-600 text-white border-0' 
                               : riskLevel === 'medium' 
-                                ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0'
+                                ? 'bg-yellow-500 text-white border-0'
                                 : 'bg-gradient-to-r from-green-500 to-green-600 text-white border-0'
                           }`}
                         >

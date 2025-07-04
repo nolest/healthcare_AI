@@ -43,11 +43,12 @@ export default function PatientMenuPage() {
       const currentUserId = currentUser?.id || currentUser?.userId // 兼容两种ID字段
       
       if (currentUserId) {
-        const unreadCount = await apiService.getUnreadDiagnosisReportsCount(currentUserId)
+        // 使用新的measurement-diagnoses API
+        const unreadCount = await apiService.getUnreadMeasurementDiagnosesCount(currentUserId)
         setUnreadDiagnoses(unreadCount)
       }
     } catch (error) {
-      console.error('Error fetching unread diagnosis reports:', error)
+      console.error('Error fetching unread measurement diagnoses:', error)
       setUnreadDiagnoses(0)
     }
   }

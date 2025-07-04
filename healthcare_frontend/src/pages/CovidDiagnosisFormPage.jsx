@@ -1170,7 +1170,7 @@ export default function CovidDiagnosisFormPage() {
                                 riskLevel === 'high' || riskLevel === 'very_high' 
                                   ? 'bg-gradient-to-r from-red-500 to-red-600 text-white border-0' 
                                   : riskLevel === 'medium' 
-                                    ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0'
+                                    ? 'bg-yellow-500 text-white border-0'
                                     : riskLevel === 'low' || riskLevel === 'very_low'
                                       ? 'bg-gradient-to-r from-green-500 to-green-600 text-white border-0'
                                       : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white border-0'

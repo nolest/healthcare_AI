@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card.jsx'
 import { Badge } from '../components/ui/badge.jsx'
-import { FileText, Clock, Activity, Shield, AlertTriangle, Eye } from 'lucide-react'
+import { FileText, Clock, Activity, Shield, AlertTriangle, Eye, User, Calendar, Heart, Thermometer, Droplets, Stethoscope } from 'lucide-react'
 import PatientHeader from '../components/ui/PatientHeader.jsx'
 import apiService from '../services/api.js'
 import i18n from '../utils/i18n.js'
@@ -11,7 +11,8 @@ import i18n from '../utils/i18n.js'
 export default function PatientDiagnosisReportsPage() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
-  const [reports, setReports] = useState([])
+  const [measurementDiagnoses, setMeasurementDiagnoses] = useState([])
+  const [covidDiagnoses, setCovidDiagnoses] = useState([])
   const [loading, setLoading] = useState(true)
   const [language, setLanguage] = useState(i18n.getCurrentLanguage())
 
@@ -41,76 +42,78 @@ export default function PatientDiagnosisReportsPage() {
     try {
       setLoading(true)
       const currentUser = apiService.getCurrentUser()
-      const userId = currentUser?.id || currentUser?.userId // 兼容两种ID字段
+      
+      // 支持多种用户ID字段格式
+      let userId = currentUser?.id || currentUser?.userId || currentUser?._id
+      
+      console.log('🔍 获取诊断报告 - 用户ID:', userId)
+      
+      // 如果还是没有ID，尝试获取最新的用户信息
+      if (!userId) {
+        try {
+          const profileResponse = await apiService.getProfile()
+          const profileUser = profileResponse?.user || profileResponse
+          userId = profileUser?._id || profileUser?.id || profileUser?.userId
+          console.log('🔍 从profile获取的用户ID:', userId)
+        } catch (error) {
+          console.error('获取用户profile失败:', error)
+        }
+      }
       
       if (!userId) {
         console.error('无法获取用户ID')
-        setReports([])
+        setMeasurementDiagnoses([])
+        setCovidDiagnoses([])
         return
       }
       
-      const data = await apiService.getPatientDiagnosisReports(userId)
-      setReports(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
+      // 并行获取两种诊断记录
+      const [measurementData, covidData] = await Promise.all([
+        apiService.getPatientMeasurementDiagnoses(userId).then(response => {
+          // 处理包装格式的响应
+          const data = response?.data || response || []
+          console.log('✅ 获取普通诊断记录成功:', data.length, '条')
+          return Array.isArray(data) ? data : []
+        }).catch(err => {
+          console.error('❌ 获取普通诊断记录失败:', err.message)
+          return []
+        }),
+        apiService.getPatientCovidDiagnoses(userId).then(response => {
+          // 处理包装格式的响应
+          const data = response?.data || response || []
+          console.log('✅ 获取COVID诊断记录成功:', data.length, '条')
+          return Array.isArray(data) ? data : []
+        }).catch(err => {
+          console.error('❌ 获取COVID诊断记录失败:', err.message)
+          return []
+        })
+      ])
+      
+      // 按时间排序
+      const sortedMeasurementData = measurementData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      const sortedCovidData = covidData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      
+      setMeasurementDiagnoses(sortedMeasurementData)
+      setCovidDiagnoses(sortedCovidData)
+      
     } catch (error) {
-      console.error('获取诊断报告失败:', error)
-      setReports([])
+      console.error('❌ 获取诊断报告失败:', error)
+      setMeasurementDiagnoses([])
+      setCovidDiagnoses([])
     } finally {
       setLoading(false)
     }
   }
 
-  const handleViewReport = async (reportId) => {
-    try {
-      // 标记为已读并跳转到详情页
-      await apiService.markDiagnosisReportAsRead(reportId)
-      navigate(`/patient/diagnosis-reports/${reportId}`)
-      // 刷新列表以更新已读状态
-      fetchDiagnosisReports()
-    } catch (error) {
-      console.error('打开报告失败:', error)
-    }
+  const handleViewMeasurementDiagnosis = (measurementId) => {
+    navigate(`/medical/diagnosis/form?mid=${measurementId}&hasread=1`)
   }
 
-  const getReportTypeText = (reportType) => {
-    switch (reportType) {
-      case 'measurement': return '生命體徵測量'
-      case 'covid_flu': return 'COVID/流感評估'
-      default: return '未知類型'
-    }
+  const handleViewCovidDiagnosis = (assessmentId) => {
+    navigate(`/medical/covid-diagnosis/form?aid=${assessmentId}&hasread=1`)
   }
 
-  const getReportTypeIcon = (reportType) => {
-    switch (reportType) {
-      case 'measurement': return Activity
-      case 'covid_flu': return Shield
-      default: return FileText
-    }
-  }
-
-  const getReportTypeColor = (reportType) => {
-    switch (reportType) {
-      case 'measurement': return 'from-green-500 to-emerald-600'
-      case 'covid_flu': return 'from-purple-500 to-indigo-600'
-      default: return 'from-gray-500 to-gray-600'
-    }
-  }
-
-  const getUrgencyBadge = (urgency) => {
-    switch (urgency) {
-      case 'urgent':
-        return <Badge className="bg-red-600 text-white">緊急</Badge>
-      case 'high':
-        return <Badge className="bg-red-500 text-white">高優先級</Badge>
-      case 'medium':
-        return <Badge className="bg-yellow-500 text-white">中等</Badge>
-      case 'low':
-        return <Badge className="bg-green-500 text-white">低優先級</Badge>
-      default:
-        return <Badge variant="outline">普通</Badge>
-    }
-  }
-
-  const formatDate = (dateString) => {
+  const formatDateTime = (dateString) => {
     return new Date(dateString).toLocaleString('zh-CN', {
       year: 'numeric',
       month: '2-digit',
@@ -118,6 +121,361 @@ export default function PatientDiagnosisReportsPage() {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    })
+  }
+
+  const getRiskLevelText = (riskLevel) => {
+    if (typeof riskLevel === 'object' && riskLevel?.label) {
+      return riskLevel.label
+    }
+    
+    switch (riskLevel) {
+      case 'low': return '低風險'
+      case 'medium': return '中等風險'
+      case 'high': return '高風險'
+      case 'critical': return '緊急'
+      case 'very_low': return '極低風險'
+      case 'very_high': return '極高風險'
+      default: return riskLevel || '未設定'
+    }
+  }
+
+  const getRiskLevelColor = (riskLevel) => {
+    const level = typeof riskLevel === 'string' ? riskLevel : (riskLevel?.label || riskLevel)
+    
+    switch (level) {
+      case '極高風險':
+      case 'very_high':
+      case '高風險':
+      case 'high':
+      case '緊急':
+      case 'critical':
+        return 'bg-red-500'
+      case '中等風險':
+      case 'medium':
+        return 'bg-yellow-500'
+      case '低風險':
+      case 'low':
+      case '極低風險':
+      case 'very_low':
+        return 'bg-green-500'
+      default:
+        return 'bg-gray-500'
+    }
+  }
+
+  // 获取卡片背景颜色 - 根据风险等级返回优雅清淡的颜色
+  const getCardBackgroundColor = (riskLevel) => {
+    const level = typeof riskLevel === 'string' ? riskLevel : (riskLevel?.label || riskLevel)
+    
+    switch (level) {
+      case '極高風險':
+      case 'very_high':
+      case '高風險':
+      case 'high':
+      case '緊急':
+      case 'critical':
+        return 'bg-gradient-to-br from-red-50/90 to-red-100/70'
+      case '中等風險':
+      case 'medium':
+        return 'bg-gradient-to-br from-amber-50/90 to-amber-100/70'
+      case '低風險':
+      case 'low':
+      case '極低風險':
+      case 'very_low':
+        return 'bg-gradient-to-br from-emerald-50/90 to-emerald-100/70'
+      default:
+        return 'bg-gradient-to-br from-slate-50/90 to-slate-100/70'
+    }
+  }
+
+  // 获取卡片边框颜色
+  const getCardBorderColor = (riskLevel) => {
+    const level = typeof riskLevel === 'string' ? riskLevel : (riskLevel?.label || riskLevel)
+    
+    switch (level) {
+      case '極高風險':
+      case 'very_high':
+      case '高風險':
+      case 'high':
+      case '緊急':
+      case 'critical':
+        return 'ring-red-200/50'
+      case '中等風險':
+      case 'medium':
+        return 'ring-amber-200/50'
+      case '低風險':
+      case 'low':
+      case '極低風險':
+      case 'very_low':
+        return 'ring-emerald-200/50'
+      default:
+        return 'ring-slate-200/50'
+    }
+  }
+
+  // 获取按钮颜色
+  const getButtonColor = (riskLevel) => {
+    const level = typeof riskLevel === 'string' ? riskLevel : (riskLevel?.label || riskLevel)
+    
+    switch (level) {
+      case '極高風險':
+      case 'very_high':
+      case '高風險':
+      case 'high':
+      case '緊急':
+      case 'critical':
+        return 'bg-gradient-to-r from-red-50 to-red-100 text-red-700 hover:from-red-100 hover:to-red-200 ring-1 ring-red-200/50'
+      case '中等風險':
+      case 'medium':
+        return 'bg-gradient-to-r from-amber-50 to-amber-100 text-amber-700 hover:from-amber-100 hover:to-amber-200 ring-1 ring-amber-200/50'
+      case '低風險':
+      case 'low':
+      case '極低風險':
+      case 'very_low':
+        return 'bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700 hover:from-emerald-100 hover:to-emerald-200 ring-1 ring-emerald-200/50'
+      default:
+        return 'bg-gradient-to-r from-slate-50 to-slate-100 text-slate-700 hover:from-slate-100 hover:to-slate-200 ring-1 ring-slate-200/50'
+    }
+  }
+
+  // 获取症状徽章颜色
+  const getSymptomBadgeColor = (riskLevel) => {
+    const level = typeof riskLevel === 'string' ? riskLevel : (riskLevel?.label || riskLevel)
+    
+    switch (level) {
+      case '極高風險':
+      case 'very_high':
+      case '高風險':
+      case 'high':
+      case '緊急':
+      case 'critical':
+        return 'bg-red-100/80 text-red-700 ring-1 ring-red-200/50'
+      case '中等風險':
+      case 'medium':
+        return 'bg-amber-100/80 text-amber-700 ring-1 ring-amber-200/50'
+      case '低風險':
+      case 'low':
+      case '極低風險':
+      case 'very_low':
+        return 'bg-emerald-100/80 text-emerald-700 ring-1 ring-emerald-200/50'
+      default:
+        return 'bg-slate-100/80 text-slate-700 ring-1 ring-slate-200/50'
+    }
+  }
+
+  // 获取图标颜色
+  const getIconColor = (riskLevel) => {
+    const level = typeof riskLevel === 'string' ? riskLevel : (riskLevel?.label || riskLevel)
+    
+    switch (level) {
+      case '極高風險':
+      case 'very_high':
+      case '高風險':
+      case 'high':
+      case '緊急':
+      case 'critical':
+        return 'text-red-600'
+      case '中等風險':
+      case 'medium':
+        return 'text-amber-600'
+      case '低風險':
+      case 'low':
+      case '極低風險':
+      case 'very_low':
+        return 'text-emerald-600'
+      default:
+        return 'text-slate-600'
+    }
+  }
+
+  const renderMeasurementDiagnosisCard = (diagnosis) => {
+    const measurementData = diagnosis.measurementId
+    
+    return (
+      <Card className={`${getCardBackgroundColor(diagnosis.riskLevel)} backdrop-blur-lg ring-1 ${getCardBorderColor(diagnosis.riskLevel)} shadow-md transition-all duration-300 !py-2 !gap-1.5`}>
+        <CardHeader className="pb-1 px-3 pt-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              <Activity className={`h-4 w-4 ${getIconColor(diagnosis.riskLevel)}`} />
+              <CardTitle className="text-sm text-gray-800">生命體徵診斷</CardTitle>
+            </div>
+            <div className="flex items-center gap-1">
+              <Badge className={`text-white ${getRiskLevelColor(diagnosis.riskLevel)} text-xs px-2 py-1 h-5`}>
+                {getRiskLevelText(diagnosis.riskLevel)}
+              </Badge>
+              <Button
+                size="sm"
+                onClick={() => handleViewMeasurementDiagnosis(measurementData._id)}
+                className={`h-6 px-2 text-xs ml-1 ${getButtonColor(diagnosis.riskLevel)} shadow-sm transition-all duration-200`}
+              >
+                <Eye className="h-3 w-3 mr-1" />
+                詳情
+              </Button>
+            </div>
+          </div>
+          <CardDescription className="text-gray-500 text-xs flex items-center gap-1 mt-0.5">
+            <Calendar className="h-3 w-3" />
+            {formatDateTime(diagnosis.createdAt)}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0 px-3 pb-2">
+          <div className="space-y-1.5">
+            {/* 诊断结果 */}
+            <div>
+              <h4 className="font-medium text-gray-700 mb-1 text-xs">診斷結果</h4>
+              <div className="p-2 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-blue-200/30 shadow-sm">
+                <p className="text-xs text-gray-800 leading-relaxed">{diagnosis.diagnosis || '暫無診斷結果'}</p>
+              </div>
+            </div>
+
+            {/* 测量数据 */}
+            {measurementData && (
+              <div>
+                <h4 className="font-medium text-gray-700 mb-1 text-xs">測量數據</h4>
+                <div className="grid grid-cols-2 gap-1">
+                  {measurementData.systolic && measurementData.diastolic && (
+                    <div className="text-center p-1 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-blue-200/30 shadow-sm">
+                      <Heart className="h-3 w-3 text-red-500 mx-auto mb-0.5" />
+                      <p className="text-xs text-gray-600">血壓</p>
+                      <p className="font-semibold text-xs text-gray-800">
+                        {measurementData.systolic}/{measurementData.diastolic}
+                      </p>
+                    </div>
+                  )}
+                  {measurementData.heartRate && (
+                    <div className="text-center p-1 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-pink-200/30 shadow-sm">
+                      <Activity className="h-3 w-3 text-pink-500 mx-auto mb-0.5" />
+                      <p className="text-xs text-gray-600">心率</p>
+                      <p className="font-semibold text-xs text-gray-800">{measurementData.heartRate} bpm</p>
+                    </div>
+                  )}
+                  {measurementData.temperature && (
+                    <div className="text-center p-1 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-orange-200/30 shadow-sm">
+                      <Thermometer className="h-3 w-3 text-orange-500 mx-auto mb-0.5" />
+                      <p className="text-xs text-gray-600">體溫</p>
+                      <p className="font-semibold text-xs text-gray-800">{measurementData.temperature}°C</p>
+                    </div>
+                  )}
+                  {measurementData.oxygenSaturation && (
+                    <div className="text-center p-1 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-cyan-200/30 shadow-sm">
+                      <Droplets className="h-3 w-3 text-cyan-500 mx-auto mb-0.5" />
+                      <p className="text-xs text-gray-600">血氧</p>
+                      <p className="font-semibold text-xs text-gray-800">{measurementData.oxygenSaturation}%</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 医生信息 */}
+            {diagnosis.doctorId && (
+              <div className="pt-1 border-t border-gray-200/50">
+                <p className="text-xs text-gray-500 flex items-center gap-1">
+                  <User className="h-3 w-3" />
+                  診斷醫生：{diagnosis.doctorId.fullName || diagnosis.doctorId.username}
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const renderCovidDiagnosisCard = (diagnosis) => {
+    const assessmentData = diagnosis.assessmentId
+    
+    return (
+      <Card className={`${getCardBackgroundColor(diagnosis.riskLevel)} backdrop-blur-lg ring-1 ${getCardBorderColor(diagnosis.riskLevel)} shadow-md transition-all duration-300 !py-2 !gap-1.5`}>
+        <CardHeader className="pb-1 px-3 pt-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              <Shield className={`h-4 w-4 ${getIconColor(diagnosis.riskLevel)}`} />
+              <CardTitle className="text-sm text-gray-800">COVID/流感診斷</CardTitle>
+            </div>
+            <div className="flex items-center gap-1">
+              <Badge className={`text-white ${getRiskLevelColor(diagnosis.riskLevel)} text-xs px-2 py-1 h-5`}>
+                {getRiskLevelText(diagnosis.riskLevel)}
+              </Badge>
+              <Button
+                size="sm"
+                onClick={() => handleViewCovidDiagnosis(assessmentData._id)}
+                className={`h-6 px-2 text-xs ml-1 ${getButtonColor(diagnosis.riskLevel)} shadow-sm transition-all duration-200`}
+              >
+                <Eye className="h-3 w-3 mr-1" />
+                詳情
+              </Button>
+            </div>
+          </div>
+          <CardDescription className="text-gray-500 text-xs flex items-center gap-1 mt-0.5">
+            <Calendar className="h-3 w-3" />
+            {formatDateTime(diagnosis.createdAt)}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0 px-3 pb-2">
+          <div className="space-y-1.5">
+            {/* 诊断结果 */}
+            <div>
+              <h4 className="font-medium text-gray-700 mb-1 text-xs">診斷結果</h4>
+              <div className="p-2 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-purple-200/30 shadow-sm">
+                <p className="text-xs text-gray-800 leading-relaxed">{diagnosis.diagnosis || '暫無診斷結果'}</p>
+              </div>
+            </div>
+
+            {/* 评估数据 */}
+            {assessmentData && (
+              <div>
+                <h4 className="font-medium text-gray-700 mb-1 text-xs">評估數據</h4>
+                <div className="space-y-1">
+                  {assessmentData.symptoms && assessmentData.symptoms.length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-600 mb-1">症狀</p>
+                      <div className="flex flex-wrap gap-1">
+                        {assessmentData.symptoms.slice(0, 3).map((symptom, index) => (
+                          <Badge key={index} className={`text-xs px-1.5 py-0.5 ${getSymptomBadgeColor(diagnosis.riskLevel)} shadow-sm`}>
+                            {symptom}
+                          </Badge>
+                        ))}
+                        {assessmentData.symptoms.length > 3 && (
+                          <Badge className="text-xs px-1.5 py-0.5 bg-gray-100/80 text-gray-600 ring-1 ring-gray-200/50 shadow-sm">
+                            +{assessmentData.symptoms.length - 3}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {assessmentData.temperature && (
+                    <div className="flex items-center gap-2 p-1 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-orange-200/30 shadow-sm">
+                      <Thermometer className="h-3 w-3 text-orange-500" />
+                      <span className="text-xs text-gray-600">體溫:</span>
+                      <span className="font-semibold text-xs text-gray-800">{assessmentData.temperature}°C</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 医生信息 */}
+            {diagnosis.doctorId && (
+              <div className="pt-1 border-t border-gray-200/50">
+                <p className="text-xs text-gray-500 flex items-center gap-1">
+                  <User className="h-3 w-3" />
+                  診斷醫生：{diagnosis.doctorId.fullName || diagnosis.doctorId.username}
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   if (!user) {
@@ -130,6 +488,8 @@ export default function PatientDiagnosisReportsPage() {
       </div>
     )
   }
+
+  const totalDiagnoses = measurementDiagnoses.length + covidDiagnoses.length
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
@@ -155,131 +515,141 @@ export default function PatientDiagnosisReportsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl shadow-blue-500/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">總報告數</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-700">總診斷數</CardTitle>
               <FileText className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-700">{reports.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl shadow-purple-500/10">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">未讀報告</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-red-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {reports.filter(r => !r.isRead).length}
-              </div>
+              <div className="text-2xl font-bold text-blue-700">{totalDiagnoses}</div>
             </CardContent>
           </Card>
 
           <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl shadow-green-500/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">最新報告</CardTitle>
-              <Clock className="h-4 w-4 text-green-500" />
+              <CardTitle className="text-sm font-medium text-gray-700">生命體徵診斷</CardTitle>
+              <Activity className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-lg font-bold text-green-600">
-                {reports.length > 0 ? formatDate(reports[0].createdAt).split(' ')[0] : '無'}
-              </div>
+              <div className="text-2xl font-bold text-green-700">{measurementDiagnoses.length}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl shadow-purple-500/10">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">COVID/流感診斷</CardTitle>
+              <Shield className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-700">{covidDiagnoses.length}</div>
             </CardContent>
           </Card>
         </div>
 
-        {/* 报告列表 */}
-        <Card className="bg-white/40 backdrop-blur-xl border border-white/30 shadow-2xl shadow-blue-500/10">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">
-              <FileText className="h-6 w-6 text-blue-600" />
-              診斷報告列表
-            </CardTitle>
-            <CardDescription className="text-gray-600">
-              您的醫療診斷報告和醫生建議
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            ) : reports.length === 0 ? (
-              <div className="text-center py-12">
-                <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg mb-2">暫無診斷報告</p>
-                <p className="text-gray-400">完成健康評估後，醫護人員會為您提供診斷報告</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {reports.map((report) => {
-                  const ReportIcon = getReportTypeIcon(report.reportType)
-                  return (
-                    <div 
-                      key={report._id} 
-                      className={`bg-white/60 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer ${!report.isRead ? 'ring-2 ring-blue-500/50' : ''}`}
-                      onClick={() => handleViewReport(report._id)}
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 bg-gradient-to-br ${getReportTypeColor(report.reportType)} rounded-xl shadow-lg`}>
-                            <ReportIcon className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                              {getReportTypeText(report.reportType)}
-                              {!report.isRead && (
-                                <Badge className="bg-blue-500 text-white text-xs">未讀</Badge>
-                              )}
-                            </h3>
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <Clock className="h-4 w-4" />
-                              {formatDate(report.createdAt)}
-                            </div>
-                          </div>
+        {/* 左右两列布局 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* 左列：生命体征诊断记录 */}
+          <div>
+            <Card className="bg-gradient-to-br from-white/95 to-blue-50/30 backdrop-blur-lg ring-1 ring-white/30 shadow-2xl shadow-blue-500/10 transition-all duration-300">
+              <CardHeader>
+                <CardTitle className="text-xl text-gray-800 flex items-center gap-2">
+                  <Activity className="h-6 w-6 text-blue-600" />
+                  生命體徵診斷記錄
+                  <Badge className="ml-2 bg-blue-100 text-blue-700 ring-1 ring-blue-200/50 shadow-sm">
+                    {measurementDiagnoses.length}
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  您的生命體徵測量診斷記錄
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className={`${measurementDiagnoses.length > 0 ? 'h-[60rem]' : 'h-auto'} overflow-y-auto pr-1`}>
+                  {measurementDiagnoses.length > 0 ? (
+                    <div className="space-y-0">
+                      {measurementDiagnoses.map((diagnosis) => (
+                        <div key={diagnosis._id} className="py-2">
+                          {renderMeasurementDiagnosisCard(diagnosis)}
                         </div>
-                        <div className="flex items-center gap-2">
-                          {report.urgency && getUrgencyBadge(report.urgency)}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="bg-white/50 border-blue-200 hover:bg-blue-50"
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            查看
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <h4 className="font-medium text-gray-700 mb-2">診斷結果</h4>
-                          <p className="text-sm text-gray-600 bg-white/50 rounded-lg p-3">
-                            {report.diagnosis || '診斷進行中...'}
-                          </p>
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-gray-700 mb-2">醫生建議</h4>
-                          <p className="text-sm text-gray-600 bg-white/50 rounded-lg p-3">
-                            {report.recommendation || '建議制定中...'}
-                          </p>
-                        </div>
-                      </div>
-
-                      {report.doctorId && (
-                        <div className="mt-4 pt-4 border-t border-gray-200/50">
-                          <p className="text-xs text-gray-500">
-                            診斷醫生：{report.doctorId.fullName || report.doctorId.username}
-                          </p>
-                        </div>
-                      )}
+                      ))}
                     </div>
-                  )
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ) : (
+                    <div className="text-center py-12 px-6">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 rounded-2xl blur-sm"></div>
+                        <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg">
+                          <div className="flex flex-col items-center">
+                            <div className="relative mb-6">
+                              <div className="absolute inset-0 bg-gradient-to-br from-blue-200/30 to-indigo-200/30 rounded-full blur-lg"></div>
+                              <div className="relative bg-gradient-to-br from-blue-100 to-indigo-100 p-4 rounded-full">
+                                <Activity className="h-8 w-8 text-blue-500" />
+                              </div>
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-700 mb-2">暫無診斷記錄</h3>
+                            <p className="text-sm text-gray-500 text-center leading-relaxed">
+                              您尚未有生命體徵診斷記錄<br />
+                              <span className="text-blue-500 font-medium">請先進行測量，等待醫生診斷</span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 右列：COVID/流感诊断记录 */}
+          <div>
+            <Card className="bg-gradient-to-br from-white/95 to-purple-50/30 backdrop-blur-lg ring-1 ring-white/30 shadow-2xl shadow-purple-500/10 transition-all duration-300">
+              <CardHeader>
+                <CardTitle className="text-xl text-gray-800 flex items-center gap-2">
+                  <Shield className="h-6 w-6 text-purple-600" />
+                  COVID/流感診斷記錄
+                  <Badge className="ml-2 bg-purple-100 text-purple-700 ring-1 ring-purple-200/50 shadow-sm">
+                    {covidDiagnoses.length}
+                  </Badge>
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  您的COVID/流感診斷記錄
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className={`${covidDiagnoses.length > 0 ? 'h-[60rem]' : 'h-auto'} overflow-y-auto pr-1`}>
+                  {covidDiagnoses.length > 0 ? (
+                    <div className="space-y-0">
+                      {covidDiagnoses.map((diagnosis) => (
+                        <div key={diagnosis._id} className="py-2">
+                          {renderCovidDiagnosisCard(diagnosis)}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 px-6">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-pink-50/50 rounded-2xl blur-sm"></div>
+                        <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg">
+                          <div className="flex flex-col items-center">
+                            <div className="relative mb-6">
+                              <div className="absolute inset-0 bg-gradient-to-br from-purple-200/30 to-pink-200/30 rounded-full blur-lg"></div>
+                              <div className="relative bg-gradient-to-br from-purple-100 to-pink-100 p-4 rounded-full">
+                                <Shield className="h-8 w-8 text-purple-500" />
+                              </div>
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-700 mb-2">暫無診斷記錄</h3>
+                            <p className="text-sm text-gray-500 text-center leading-relaxed">
+                              您尚未有COVID/流感診斷記錄<br />
+                              <span className="text-purple-500 font-medium">請先進行評估，等待醫生診斷</span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </main>
     </div>
   )

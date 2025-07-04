@@ -1,15 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
-import { Button } from '@/components/ui/button.jsx'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx'
-import { Heart, Activity, Thermometer, Droplets, RefreshCw, Calendar } from 'lucide-react'
+import { Heart, Activity, Thermometer, Droplets, RefreshCw, Calendar, Stethoscope } from 'lucide-react'
 import apiService from '../services/api.js'
 
 export default function MeasurementHistory({ measurements: propMeasurements, onRefresh }) {
   const [measurements, setMeasurements] = useState([])
-  const [filter, setFilter] = useState('all')
-  const [sortBy, setSortBy] = useState('date')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -35,7 +31,20 @@ export default function MeasurementHistory({ measurements: propMeasurements, onR
     setError('')
     
     try {
-      const userMeasurements = await apiService.getMyMeasurements()
+      const response = await apiService.getMyMeasurements()
+      console.log('API response:', response)
+      
+      // 处理API响应格式：可能是包装对象或直接数组
+      let userMeasurements = []
+      if (response && response.data && Array.isArray(response.data)) {
+        userMeasurements = response.data
+      } else if (Array.isArray(response)) {
+        userMeasurements = response
+      } else {
+        console.warn('Unexpected API response format:', response)
+        userMeasurements = []
+      }
+      
       console.log('Loading measurements from API:', userMeasurements.length)
       setMeasurements(userMeasurements)
     } catch (error) {
@@ -47,157 +56,153 @@ export default function MeasurementHistory({ measurements: propMeasurements, onR
     }
   }
 
-  // 刷新數據
-  const handleRefresh = async () => {
-    if (!propMeasurements) {
-      await loadMeasurements()
-    }
-    if (onRefresh) {
-      onRefresh()
-    }
-  }
-
-  const formatMeasurementValue = (measurement) => {
-    const values = []
-    
-    if (measurement.systolic && measurement.diastolic) {
-      values.push(`血壓: ${measurement.systolic}/${measurement.diastolic} mmHg`)
-    }
-    if (measurement.heartRate) {
-      values.push(`心率: ${measurement.heartRate} 次/分`)
-    }
-    if (measurement.temperature) {
-      values.push(`體溫: ${measurement.temperature}°C`)
-    }
-    if (measurement.oxygenSaturation) {
-      values.push(`血氧: ${measurement.oxygenSaturation}%`)
-    }
-    
-    return values.join(' | ')
-  }
-
   const getStatusBadge = (measurement) => {
     if (measurement.isAbnormal) {
-      return <Badge variant="destructive">異常</Badge>
+      return <Badge className="bg-red-500 text-white text-xs px-2 py-1 h-5">異常</Badge>
     }
     
     switch (measurement.status) {
       case 'pending':
-        return <Badge variant="secondary">待處理</Badge>
+        return <Badge className="bg-yellow-500 text-white text-xs px-2 py-1 h-5">待處理</Badge>
       case 'processed':
-        return <Badge variant="outline">已處理</Badge>
+        return <Badge className="bg-green-500 text-white text-xs px-2 py-1 h-5">已處理</Badge>
       case 'reviewed':
-        return <Badge variant="default">已審核</Badge>
+        return <Badge className="bg-blue-500 text-white text-xs px-2 py-1 h-5">已審核</Badge>
       default:
-        return <Badge variant="secondary">未知</Badge>
+        return <Badge className="bg-gray-500 text-white text-xs px-2 py-1 h-5">未知</Badge>
     }
   }
 
-  const filteredMeasurements = measurements.filter(measurement => {
-    if (filter === 'all') return true
-    if (filter === 'abnormal') return measurement.isAbnormal
-    if (filter === 'pending') return measurement.status === 'pending'
-    return true
-  })
+  const getCardBackgroundColor = (measurement) => {
+    if (measurement.isAbnormal) {
+      return 'bg-gradient-to-br from-red-50/90 to-red-100/70'
+    }
+    return 'bg-gradient-to-br from-blue-50/90 to-blue-100/70'
+  }
 
-  const sortedMeasurements = [...filteredMeasurements].sort((a, b) => {
-    if (sortBy === 'date') {
-      return new Date(b.createdAt || b.measurementTime) - new Date(a.createdAt || a.measurementTime)
+  const getCardBorderColor = (measurement) => {
+    if (measurement.isAbnormal) {
+      return 'ring-red-200/50'
     }
-    if (sortBy === 'status') {
-      return a.status.localeCompare(b.status)
+    return 'ring-blue-200/50'
+  }
+
+  const getIconColor = (measurement) => {
+    if (measurement.isAbnormal) {
+      return 'text-red-600'
     }
-    return 0
+    return 'text-blue-600'
+  }
+
+  const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  // 直接按日期排序显示所有测量记录
+  const sortedMeasurements = [...(measurements || [])].sort((a, b) => {
+    return new Date(b.createdAt || b.measurementTime) - new Date(a.createdAt || a.measurementTime)
   })
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="bg-white/40 backdrop-blur-xl ring-1 ring-white/30 shadow-2xl shadow-blue-500/10">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>測量歷史記錄</CardTitle>
-              <CardDescription>查看您的所有測量數據</CardDescription>
-            </div>
-            <Button variant="outline" onClick={handleRefresh} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              刷新
-            </Button>
+          <div>
+            <CardTitle className="text-xl bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">測量歷史記錄</CardTitle>
+            <CardDescription className="text-gray-600">查看您的所有測量數據</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+            <div className="bg-gradient-to-r from-red-50/90 to-red-100/70 ring-1 ring-red-200/50 text-red-700 px-4 py-3 rounded-xl mb-4 shadow-sm">
               {error}
             </div>
           )}
 
-          {/* 過濾和排序控制 */}
-          <div className="flex space-x-4 mb-6">
-            <div className="flex-1">
-              <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="篩選類型" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部</SelectItem>
-                  <SelectItem value="abnormal">異常值</SelectItem>
-                  <SelectItem value="pending">待處理</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex-1">
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger>
-                  <SelectValue placeholder="排序方式" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="date">按日期</SelectItem>
-                  <SelectItem value="status">按狀態</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
           {/* 測量記錄列表 */}
           {loading ? (
             <div className="text-center py-8">
-              <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
               <p className="text-gray-500">加載中...</p>
             </div>
           ) : sortedMeasurements.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">暫無測量記錄</p>
+              <Stethoscope className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">暫無測量記錄</p>
             </div>
           ) : (
             <div className="space-y-4">
               {sortedMeasurements.map((measurement) => (
-                <Card key={measurement._id} className={`${measurement.isAbnormal ? 'border-red-200 bg-red-50' : ''}`}>
-                  <CardContent className="p-4">
+                <Card key={measurement._id} className={`${getCardBackgroundColor(measurement)} backdrop-blur-lg ring-1 ${getCardBorderColor(measurement)} shadow-md transition-all duration-300 !py-2 !gap-1.5`}>
+                  <CardHeader className="pb-1 px-3 pt-2">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded-full ${measurement.isAbnormal ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                          <Heart className="h-5 w-5" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium">生理指標測量</h3>
-                          <p className="text-sm text-gray-600 mt-1">{formatMeasurementValue(measurement)}</p>
-                          <div className="flex items-center space-x-2 mt-2">
-                            <Calendar className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-500">
-                              {new Date(measurement.createdAt || measurement.measurementTime).toLocaleString('zh-TW')}
-                            </span>
-                          </div>
-                          {measurement.notes && (
-                            <p className="text-sm text-gray-600 mt-1">
-                              <strong>備註:</strong> {measurement.notes}
-                            </p>
+                      <div className="flex items-center gap-1">
+                        <Activity className={`h-4 w-4 ${getIconColor(measurement)}`} />
+                        <CardTitle className="text-sm text-gray-800">生命體徵測量</CardTitle>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {getStatusBadge(measurement)}
+                      </div>
+                    </div>
+                    <CardDescription className="text-gray-500 text-xs flex items-center gap-1 mt-0.5">
+                      <Calendar className="h-3 w-3" />
+                      {formatDateTime(measurement.createdAt || measurement.measurementTime)}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0 px-3 pb-2">
+                    <div className="space-y-1.5">
+                      {/* 测量数据 */}
+                      <div>
+                        <h4 className="font-medium text-gray-700 mb-1 text-xs">測量數據</h4>
+                        <div className="grid grid-cols-2 gap-1">
+                          {measurement.systolic && measurement.diastolic && (
+                            <div className="text-center p-1 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-red-200/30 shadow-sm">
+                              <Heart className="h-3 w-3 text-red-500 mx-auto mb-0.5" />
+                              <p className="text-xs text-gray-600">血壓</p>
+                              <p className="font-semibold text-xs text-gray-800">
+                                {measurement.systolic}/{measurement.diastolic}
+                              </p>
+                            </div>
+                          )}
+                          {measurement.heartRate && (
+                            <div className="text-center p-1 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-pink-200/30 shadow-sm">
+                              <Activity className="h-3 w-3 text-pink-500 mx-auto mb-0.5" />
+                              <p className="text-xs text-gray-600">心率</p>
+                              <p className="font-semibold text-xs text-gray-800">{measurement.heartRate} bpm</p>
+                            </div>
+                          )}
+                          {measurement.temperature && (
+                            <div className="text-center p-1 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-orange-200/30 shadow-sm">
+                              <Thermometer className="h-3 w-3 text-orange-500 mx-auto mb-0.5" />
+                              <p className="text-xs text-gray-600">體溫</p>
+                              <p className="font-semibold text-xs text-gray-800">{measurement.temperature}°C</p>
+                            </div>
+                          )}
+                          {measurement.oxygenSaturation && (
+                            <div className="text-center p-1 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-cyan-200/30 shadow-sm">
+                              <Droplets className="h-3 w-3 text-cyan-500 mx-auto mb-0.5" />
+                              <p className="text-xs text-gray-600">血氧</p>
+                              <p className="font-semibold text-xs text-gray-800">{measurement.oxygenSaturation}%</p>
+                            </div>
                           )}
                         </div>
                       </div>
-                      <div className="flex flex-col items-end space-y-2">
-                        {getStatusBadge(measurement)}
-                      </div>
+
+                      {/* 备注信息 */}
+                      {measurement.notes && (
+                        <div>
+                          <h4 className="font-medium text-gray-700 mb-1 text-xs">備註</h4>
+                          <div className="p-2 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-blue-200/30 shadow-sm">
+                            <p className="text-xs text-gray-800 leading-relaxed">{measurement.notes}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

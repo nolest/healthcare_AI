@@ -595,7 +595,7 @@ class ApiService {
   }
 
   async getUnreadMeasurementDiagnosesCount(patientId) {
-    return this.request(`/measurement-diagnoses/unread-count/${patientId}`);
+    return this.request(`/measurement-diagnoses/patient/${patientId}/unread-count`);
   }
 
   async getMeasurementDiagnosisDetail(diagnosisId) {

@@ -28,7 +28,14 @@ export default function PatientMeasurementHistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-200/30 to-indigo-200/30 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-blue-200/30 to-purple-200/30 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-indigo-200/20 to-purple-200/20 rounded-full blur-3xl"></div>
+      </div>
+
       {/* Header */}
       <PatientHeader 
         title="測量歷史記錄"
@@ -40,17 +47,8 @@ export default function PatientMeasurementHistoryPage() {
       />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <History className="h-5 w-5 text-purple-600" />
-            您的生命體徵測量歷史
-          </h2>
-          <p className="text-gray-600 mb-6">
-            查看您過往的所有生命體徵測量記錄，包括血壓、心率、體溫、血氧飽和度等數據。
-          </p>
-          <MeasurementHistory />
-        </div>
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10 pt-24">
+        <MeasurementHistory />
       </main>
     </div>
   )

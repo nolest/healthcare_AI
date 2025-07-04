@@ -72,11 +72,35 @@ export class CovidDiagnosesService {
   }
 
   async findByPatient(patientId: string): Promise<CovidDiagnosis[]> {
-    return this.covidDiagnosisModel
-      .find({ patientId })
-      .populate('doctorId', 'username email fullName')
-      .populate('assessmentId')
-      .sort({ createdAt: -1 });
+    try {
+      console.log('查找患者COVID诊断记录, patientId:', patientId);
+      
+      // 验证patientId格式
+      if (!Types.ObjectId.isValid(patientId)) {
+        console.log('无效的patientId格式:', patientId);
+        return [];
+      }
+
+      const diagnoses = await this.covidDiagnosisModel
+        .find({ patientId: new Types.ObjectId(patientId) })
+        .populate('doctorId', 'username email fullName')
+        .populate('assessmentId')
+        .sort({ createdAt: -1 });
+      
+      console.log('查找结果:', diagnoses.length, '条记录');
+      if (diagnoses.length > 0) {
+        console.log('第一条记录:', {
+          id: diagnoses[0]._id,
+          patientId: diagnoses[0].patientId,
+          diagnosis: diagnoses[0].diagnosis?.substring(0, 50) + '...'
+        });
+      }
+      
+      return diagnoses;
+    } catch (error) {
+      console.error('查找患者COVID诊断记录时出错:', error);
+      throw error;
+    }
   }
 
   async findByDoctor(doctorId: string): Promise<CovidDiagnosis[]> {
