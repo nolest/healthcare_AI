@@ -40,7 +40,16 @@ export default function PatientDiagnosisReportsPage() {
   const fetchDiagnosisReports = async () => {
     try {
       setLoading(true)
-      const data = await apiService.getPatientDiagnosisReports(apiService.getCurrentUser().userId)
+      const currentUser = apiService.getCurrentUser()
+      const userId = currentUser?.id || currentUser?.userId // 兼容两种ID字段
+      
+      if (!userId) {
+        console.error('无法获取用户ID')
+        setReports([])
+        return
+      }
+      
+      const data = await apiService.getPatientDiagnosisReports(userId)
       setReports(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
     } catch (error) {
       console.error('获取诊断报告失败:', error)

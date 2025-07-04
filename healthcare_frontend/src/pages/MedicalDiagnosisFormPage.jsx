@@ -75,6 +75,9 @@ export default function MedicalDiagnosisFormPage() {
   // 只读状态 - 当查看已处理的记录时为true
   const [isReadOnly, setIsReadOnly] = useState(false)
   
+  // 已有诊断数据状态
+  const [existingDiagnosis, setExistingDiagnosis] = useState(null)
+  
   // 从URL参数获取hasread状态
   const hasRead = searchParams.get('hasread')
 
@@ -281,6 +284,16 @@ export default function MedicalDiagnosisFormPage() {
           
           // 加载患者历史记录
           loadPatientHistory(userId)
+          
+          // 如果是只读模式，加载已有的诊断记录
+          const currentHasReadParam = new URLSearchParams(window.location.search).get('hasread')
+          if (currentHasReadParam === '1') {
+            console.log('loadMeasurementById: 只读模式，开始加载已有诊断记录')
+            // 使用setTimeout确保状态更新完成后再加载诊断
+            setTimeout(() => {
+              loadExistingDiagnosis(measurementId)
+            }, 100)
+          }
         } else {
           console.log('loadMeasurementById: 未找到指定的测量记录')
           setMessage('❌ 未找到指定的测量记录')
@@ -298,6 +311,60 @@ export default function MedicalDiagnosisFormPage() {
       } finally {
         setLoading(false)
       }
+  }
+
+  // 加载已有的诊断记录
+  const loadExistingDiagnosis = async (measurementId) => {
+    try {
+      console.log('🔍 加载已有诊断记录, measurementId:', measurementId)
+      const response = await apiService.getMeasurementDiagnosisByMeasurement(measurementId)
+      console.log('📡 API响应:', response)
+      
+      // 检查响应格式，支持多种格式
+      let diagnosisData = null
+      
+      if (response && response.success && response.data) {
+        // 格式: { success: true, data: diagnosisData }
+        diagnosisData = response.data
+        console.log('✅ 找到已有诊断记录 (包装格式):', diagnosisData)
+      } else if (response && Array.isArray(response) && response.length > 0) {
+        // 格式: [diagnosisData]
+        diagnosisData = response[0]
+        console.log('✅ 找到已有诊断记录 (数组格式):', diagnosisData)
+      } else if (response && response._id) {
+        // 格式: 直接返回诊断对象
+        diagnosisData = response
+        console.log('✅ 找到已有诊断记录 (直接对象):', diagnosisData)
+      }
+      
+      if (diagnosisData) {
+        setExistingDiagnosis(diagnosisData)
+        
+        // 将诊断数据填充到表单字段中（只读模式下显示）
+        setDiagnosis(diagnosisData.diagnosis || '')
+        setRiskLevel(diagnosisData.riskLevel || '')
+        setMedications(diagnosisData.medications || '')
+        setLifestyle(diagnosisData.lifestyle || '')
+        setFollowUp(diagnosisData.followUp || '')
+        setNotes(diagnosisData.notes || '')
+        setTreatmentPlan(diagnosisData.treatmentPlan || '')
+        
+        console.log('📋 诊断数据已填充:', {
+          diagnosis: diagnosisData.diagnosis,
+          riskLevel: diagnosisData.riskLevel,
+          medications: diagnosisData.medications,
+          lifestyle: diagnosisData.lifestyle,
+          followUp: diagnosisData.followUp,
+          notes: diagnosisData.notes
+        })
+      } else {
+        console.log('⚠️ 未找到已有诊断记录')
+        setExistingDiagnosis(null)
+      }
+    } catch (error) {
+      console.error('❌ 加载已有诊断记录失败:', error)
+      setExistingDiagnosis(null)
+    }
   }
 
   // 加载患者历史测量记录
@@ -899,7 +966,7 @@ export default function MedicalDiagnosisFormPage() {
                               <img
                                 src={apiService.getImageUrl(currentUserId || (typeof measurementData.userId === 'string' ? measurementData.userId : measurementData.userId?._id), image.split('/').pop(), 'measurement')}
                                 alt={`測量圖片 ${index + 1}`}
-                                className="w-16 h-16 object-cover rounded-lg border-2 border-red-200 cursor-pointer hover:border-red-400 transition-colors"
+                                className="w-16 h-16 object-cover rounded-xl shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 ring-2 ring-blue-200 hover:ring-blue-400"
                                 onClick={() => {
                                   // 构建完整的图片URL数组
                                   const imageUrls = (measurementData.imagePaths || measurementData.images).map(img => 
@@ -908,8 +975,8 @@ export default function MedicalDiagnosisFormPage() {
                                   openImagePreview(imageUrls, index)
                                 }}
                               />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-lg transition-colors flex items-center justify-center pointer-events-none">
-                                <Eye className="h-4 w-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 rounded-xl transition-all duration-200 flex items-center justify-center pointer-events-none">
+                                <Eye className="h-4 w-4 text-white drop-shadow-lg" />
                               </div>
                             </div>
                           ))}
@@ -920,7 +987,7 @@ export default function MedicalDiagnosisFormPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="mt-2 text-xs bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                            className="mt-2 text-xs bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-blue-700 border-0 shadow-sm hover:shadow-md transition-all duration-200 rounded-lg"
                             onClick={() => {
                               const imageUrls = (measurementData.imagePaths || measurementData.images).map(img => 
                                 apiService.getImageUrl(currentUserId || (typeof measurementData.userId === 'string' ? measurementData.userId : measurementData.userId?._id), img.split('/').pop(), 'measurement')
@@ -941,8 +1008,161 @@ export default function MedicalDiagnosisFormPage() {
           </Card>
         </div>
 
-        {/* 左右分栏布局：患者历史记录 + 诊断表单 */}
-        {hasRead !== '1' && (
+        {/* 根据hasRead参数决定显示模式 */}
+        {hasRead === '1' ? (
+          /* 只读模式：只显示诊断内容 */
+          <div className="max-w-4xl mx-auto">
+            <Card className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg border-0 shadow-2xl shadow-green-500/10">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
+                  <Eye className="h-5 w-5 text-blue-600" />
+                  診斷記錄查看
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  此測量記錄已完成診斷評估
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <Alert className="border-blue-200 bg-blue-50">
+                  <Eye className="h-4 w-4" />
+                  <AlertDescription className="text-blue-700">
+                    <strong>此測量記錄已完成診斷評估</strong>
+                    <br />
+                    以下是該記錄的診斷詳情，內容為只讀模式。
+                  </AlertDescription>
+                </Alert>
+                
+                {existingDiagnosis ? (
+                  <div className="space-y-6">
+                    
+                    {/* 诊断结果 */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+                        <h3 className="text-lg font-semibold text-gray-800">診斷結果</h3>
+                      </div>
+                      <div className="p-4 bg-gradient-to-br from-blue-50 via-blue-25 to-white rounded-xl shadow-sm">
+                        <p className="text-blue-900 font-medium text-base leading-relaxed whitespace-pre-wrap">{diagnosis || '無診斷結果'}</p>
+                      </div>
+                    </div>
+
+                    {/* 风险等级 */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-1 h-6 bg-gradient-to-b from-orange-500 to-orange-600 rounded-full"></div>
+                        <h3 className="text-lg font-semibold text-gray-800">風險等級</h3>
+                      </div>
+                      <div className="p-4 bg-gradient-to-br from-orange-50 via-orange-25 to-white rounded-xl shadow-sm">
+                        <Badge 
+                          className={`text-sm px-3 py-1.5 font-medium rounded-lg shadow-sm ${
+                            riskLevel === 'high' || riskLevel === 'critical' 
+                              ? 'bg-gradient-to-r from-red-500 to-red-600 text-white border-0' 
+                              : riskLevel === 'medium' 
+                                ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0'
+                                : 'bg-gradient-to-r from-green-500 to-green-600 text-white border-0'
+                          }`}
+                        >
+                          {riskLevel === 'low' ? '🟢 低風險' : 
+                           riskLevel === 'medium' ? '🟡 中風險' : 
+                           riskLevel === 'high' ? '🔴 高風險' : 
+                           riskLevel === 'critical' ? '🚨 緊急' : '⚪ 未設定'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* 治疗建议 */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
+                          <h3 className="text-lg font-semibold text-gray-800">用藥建議</h3>
+                        </div>
+                        <div className="p-4 bg-gradient-to-br from-green-50 via-green-25 to-white rounded-xl shadow-sm min-h-[100px]">
+                          <p className="text-green-900 leading-relaxed whitespace-pre-wrap">{medications || '暫無用藥建議'}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
+                          <h3 className="text-lg font-semibold text-gray-800">生活方式建議</h3>
+                        </div>
+                        <div className="p-4 bg-gradient-to-br from-purple-50 via-purple-25 to-white rounded-xl shadow-sm min-h-[100px]">
+                          <p className="text-purple-900 leading-relaxed whitespace-pre-wrap">{lifestyle || '暫無生活方式建議'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 复查建议 */}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-indigo-600 rounded-full"></div>
+                        <h3 className="text-lg font-semibold text-gray-800">復查建議</h3>
+                      </div>
+                      <div className="p-4 bg-gradient-to-br from-indigo-50 via-indigo-25 to-white rounded-xl shadow-sm">
+                        <p className="text-indigo-900 leading-relaxed whitespace-pre-wrap">{followUp || '暫無復查建議'}</p>
+                      </div>
+                    </div>
+
+                    {/* 其他备注 */}
+                    {notes && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-1 h-6 bg-gradient-to-b from-gray-500 to-gray-600 rounded-full"></div>
+                          <h3 className="text-lg font-semibold text-gray-800">其他備註</h3>
+                        </div>
+                        <div className="p-4 bg-gradient-to-br from-gray-50 via-gray-25 to-white rounded-xl shadow-sm">
+                          <p className="text-gray-900 leading-relaxed whitespace-pre-wrap">{notes}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 诊断信息 */}
+                    <div className="mt-8 p-4 bg-gradient-to-r from-slate-50 via-blue-50 to-indigo-50 rounded-xl shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 text-sm text-slate-600">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-blue-500" />
+                            <span className="font-medium">診斷時間：{formatDate(existingDiagnosis.createdAt)}</span>
+                          </div>
+                          {existingDiagnosis.doctorId && (
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-green-500" />
+                              <span className="font-medium">診斷醫生：{existingDiagnosis.doctorId.fullName || existingDiagnosis.doctorId.username || '未知醫生'}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-slate-500 bg-white px-2 py-1 rounded-full">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span>已完成診斷</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
+                      <p className="text-orange-800 font-medium">⚠️ 正在加載診斷記錄，請稍候...</p>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="flex gap-4 pt-6 mt-6 border-t border-gray-200">
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/medical/diagnosis')}
+                    className="flex-1 bg-gradient-to-r from-slate-50 to-gray-50 border-0 text-gray-700 hover:from-slate-100 hover:to-gray-100 hover:shadow-md transition-all duration-200 font-medium py-3 rounded-xl"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    返回診斷列表
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          /* 编辑模式：显示患者历史记录 + 诊断表单 */
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start">
             {/* 患者历史测量记录 - 左侧 */}
             <div>
@@ -1104,32 +1324,147 @@ export default function MedicalDiagnosisFormPage() {
               <CardContent className="space-y-6">
                 
                 {isReadOnly ? (
-                  /* 只读模式 - 显示已处理状态信息 */
-                  <div className="space-y-4">
+                  /* 只读模式 - 显示诊断内容 */
+                  <div className="space-y-6">
                     <Alert className="border-blue-200 bg-blue-50">
                       <Eye className="h-4 w-4" />
                       <AlertDescription className="text-blue-700">
                         <strong>此測量記錄已完成診斷評估</strong>
                         <br />
-                        該記錄的狀態為「已處理」，診斷評估表單已隱藏。如需查看完整的診斷報告，請前往患者詳情頁面。
+                        以下是該記錄的診斷詳情，內容為只讀模式。
                       </AlertDescription>
                     </Alert>
                     
-                    <div className="flex gap-4 pt-4 border-t border-gray-200">
+                    {existingDiagnosis ? (
+                      <div className="space-y-6">
+                        
+                        {/* 诊断结果 */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+                            <h3 className="text-lg font-semibold text-gray-800">診斷結果</h3>
+                          </div>
+                          <div className="p-4 bg-gradient-to-br from-blue-50 via-blue-25 to-white rounded-xl shadow-sm">
+                            <p className="text-blue-900 font-medium text-base leading-relaxed whitespace-pre-wrap">{diagnosis || '無診斷結果'}</p>
+                          </div>
+                        </div>
+
+                        {/* 风险等级 */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-1 h-6 bg-gradient-to-b from-orange-500 to-orange-600 rounded-full"></div>
+                            <h3 className="text-lg font-semibold text-gray-800">風險等級</h3>
+                          </div>
+                          <div className="p-4 bg-gradient-to-br from-orange-50 via-orange-25 to-white rounded-xl shadow-sm">
+                            <Badge 
+                              className={`text-sm px-3 py-1.5 font-medium rounded-lg shadow-sm ${
+                                riskLevel === 'high' || riskLevel === 'critical' 
+                                  ? 'bg-gradient-to-r from-red-500 to-red-600 text-white border-0' 
+                                  : riskLevel === 'medium' 
+                                    ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0'
+                                    : 'bg-gradient-to-r from-green-500 to-green-600 text-white border-0'
+                              }`}
+                            >
+                              {riskLevel === 'low' ? '🟢 低風險' : 
+                               riskLevel === 'medium' ? '🟡 中風險' : 
+                               riskLevel === 'high' ? '🔴 高風險' : 
+                               riskLevel === 'critical' ? '🚨 緊急' : '⚪ 未設定'}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* 治疗建议 */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
+                              <h3 className="text-lg font-semibold text-gray-800">用藥建議</h3>
+                            </div>
+                            <div className="p-4 bg-gradient-to-br from-green-50 via-green-25 to-white rounded-xl shadow-sm min-h-[100px]">
+                              <p className="text-green-900 leading-relaxed whitespace-pre-wrap">{medications || '暫無用藥建議'}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
+                              <h3 className="text-lg font-semibold text-gray-800">生活方式建議</h3>
+                            </div>
+                            <div className="p-4 bg-gradient-to-br from-purple-50 via-purple-25 to-white rounded-xl shadow-sm min-h-[100px]">
+                              <p className="text-purple-900 leading-relaxed whitespace-pre-wrap">{lifestyle || '暫無生活方式建議'}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 复查建议 */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-indigo-600 rounded-full"></div>
+                            <h3 className="text-lg font-semibold text-gray-800">復查建議</h3>
+                          </div>
+                          <div className="p-4 bg-gradient-to-br from-indigo-50 via-indigo-25 to-white rounded-xl shadow-sm">
+                            <p className="text-indigo-900 leading-relaxed whitespace-pre-wrap">{followUp || '暫無復查建議'}</p>
+                          </div>
+                        </div>
+
+                        {/* 其他备注 */}
+                        {notes && (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-1 h-6 bg-gradient-to-b from-gray-500 to-gray-600 rounded-full"></div>
+                              <h3 className="text-lg font-semibold text-gray-800">其他備註</h3>
+                            </div>
+                            <div className="p-4 bg-gradient-to-br from-gray-50 via-gray-25 to-white rounded-xl shadow-sm">
+                              <p className="text-gray-900 leading-relaxed whitespace-pre-wrap">{notes}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 诊断信息 */}
+                        <div className="mt-8 p-4 bg-gradient-to-r from-slate-50 via-blue-50 to-indigo-50 rounded-xl shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4 text-sm text-slate-600">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-blue-500" />
+                                <span className="font-medium">診斷時間：{formatDate(existingDiagnosis.createdAt)}</span>
+                              </div>
+                              {existingDiagnosis.doctorId && (
+                                <div className="flex items-center gap-2">
+                                  <User className="h-4 w-4 text-green-500" />
+                                  <span className="font-medium">診斷醫生：{existingDiagnosis.doctorId.fullName || existingDiagnosis.doctorId.username || '未知醫生'}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-slate-500 bg-white px-2 py-1 rounded-full">
+                              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                              <span>已完成診斷</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
+                          <p className="text-orange-800 font-medium">⚠️ 正在加載診斷記錄，請稍候...</p>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex gap-4 pt-6 mt-6 border-t border-gray-200">
                       <Button
                         variant="outline"
                         onClick={() => navigate('/medical/diagnosis')}
-                        className="flex-1 border-gray-300 text-gray-600 hover:bg-gray-50"
+                        className="flex-1 bg-gradient-to-r from-slate-50 to-gray-50 border-0 text-gray-700 hover:from-slate-100 hover:to-gray-100 hover:shadow-md transition-all duration-200 font-medium py-3 rounded-xl"
                       >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        返回列表
+                        返回診斷列表
                       </Button>
                     </div>
                   </div>
                 ) : (
                   /* 编辑模式 - 显示诊断表单 */
                   <>
-                
                 {/* 诊断结果 */}
                 <div className="space-y-2">
                   <Label htmlFor="diagnosis" className="text-sm font-medium text-gray-700">診斷結果 *</Label>

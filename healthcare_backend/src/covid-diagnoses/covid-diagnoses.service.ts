@@ -96,10 +96,35 @@ export class CovidDiagnosesService {
   }
 
   async findByAssessment(assessmentId: string): Promise<CovidDiagnosis> {
-    return this.covidDiagnosisModel
-      .findOne({ assessmentId })
-      .populate('doctorId', 'username email fullName')
-      .populate('assessmentId');
+    try {
+      console.log('查找COVID诊断记录, assessmentId:', assessmentId);
+      
+      // 验证assessmentId格式
+      if (!Types.ObjectId.isValid(assessmentId)) {
+        console.log('无效的assessmentId格式:', assessmentId);
+        return null;
+      }
+
+      const diagnosis = await this.covidDiagnosisModel
+        .findOne({ assessmentId: new Types.ObjectId(assessmentId) })
+        .populate('doctorId', 'username email fullName')
+        .populate('assessmentId');
+      
+      console.log('查找结果:', diagnosis ? '找到诊断记录' : '未找到诊断记录');
+      if (diagnosis) {
+        console.log('诊断记录详情:', {
+          id: diagnosis._id,
+          assessmentId: diagnosis.assessmentId,
+          patientId: diagnosis.patientId,
+          diagnosis: diagnosis.diagnosis?.substring(0, 50) + '...'
+        });
+      }
+      
+      return diagnosis;
+    } catch (error) {
+      console.error('查找COVID诊断记录时出错:', error);
+      throw error;
+    }
   }
 
   async findOne(id: string): Promise<CovidDiagnosis> {

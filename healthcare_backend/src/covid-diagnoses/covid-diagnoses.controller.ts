@@ -82,8 +82,11 @@ export class CovidDiagnosesController {
 
   @Get('by-assessment/:assessmentId')
   @Roles('medical_staff', 'patient')
-  findByAssessment(@Param('assessmentId') assessmentId: string) {
-    return this.covidDiagnosesService.findByAssessment(assessmentId);
+  async findByAssessment(@Param('assessmentId') assessmentId: string) {
+    console.log('COVID诊断查询请求 - assessmentId:', assessmentId);
+    const result = await this.covidDiagnosesService.findByAssessment(assessmentId);
+    console.log('COVID诊断查询结果:', result ? '找到记录' : '未找到记录');
+    return result;
   }
 
   @Get(':id')

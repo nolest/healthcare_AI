@@ -39,7 +39,9 @@ export default function PatientMenuPage() {
 
   const fetchUnreadDiagnoses = async () => {
     try {
-      const currentUserId = apiService.getCurrentUser()?.userId
+      const currentUser = apiService.getCurrentUser()
+      const currentUserId = currentUser?.id || currentUser?.userId // 兼容两种ID字段
+      
       if (currentUserId) {
         const unreadCount = await apiService.getUnreadDiagnosisReportsCount(currentUserId)
         setUnreadDiagnoses(unreadCount)

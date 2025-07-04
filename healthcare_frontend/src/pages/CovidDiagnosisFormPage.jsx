@@ -76,6 +76,10 @@ export default function CovidDiagnosisFormPage() {
   // 只读状态 - 当查看已处理的记录时为true
   const [isReadOnly, setIsReadOnly] = useState(false)
   
+  // 已有诊断记录状态
+  const [existingDiagnosis, setExistingDiagnosis] = useState(null)
+  const [diagnosisLoading, setDiagnosisLoading] = useState(false)
+  
   // 从URL参数获取hasread状态
   const hasRead = searchParams.get('hasread')
 
@@ -221,6 +225,11 @@ export default function CovidDiagnosisFormPage() {
         // 加载患者COVID评估历史
         console.log('🔄 开始加载患者COVID评估历史, patientId:', patientId)
         loadPatientCovidHistory(patientId)
+        
+        // 如果是只读模式，加载已有诊断记录
+        if (hasRead === '1') {
+          loadExistingCovidDiagnosis(assessmentId)
+        }
       } else {
         setMessage('❌ 找不到指定的COVID评估记录')
         setTimeout(() => navigate('/medical/covid-management'), 3000)
@@ -363,14 +372,78 @@ export default function CovidDiagnosisFormPage() {
     }
   }
 
+  // 加载已有COVID诊断记录
+  const loadExistingCovidDiagnosis = async (assessmentId) => {
+    setDiagnosisLoading(true)
+    try {
+      console.log('🔍 正在加载已有COVID诊断记录')
+      console.log('🔍 assessmentId:', assessmentId)
+      console.log('🔍 assessmentId类型:', typeof assessmentId)
+      console.log('🔍 assessmentId长度:', assessmentId?.length)
+      
+      const response = await apiService.getCovidDiagnosisByAssessment(assessmentId)
+      
+      console.log('🔍 COVID诊断记录API响应:', response)
+      console.log('🔍 API响应类型:', typeof response)
+      console.log('🔍 API响应是否为null:', response === null)
+      console.log('🔍 API响应是否为undefined:', response === undefined)
+      
+      let diagnosisData = null
+      
+      // 处理不同的API响应格式
+      if (response && response.success && response.data) {
+        // 包装对象格式
+        diagnosisData = response.data
+      } else if (Array.isArray(response) && response.length > 0) {
+        // 数组格式
+        diagnosisData = response[0]
+      } else if (response && response.diagnosis) {
+        // 直接对象格式
+        diagnosisData = response
+      }
+      
+      if (diagnosisData) {
+        console.log('✅ 找到COVID诊断记录:', diagnosisData)
+        setExistingDiagnosis(diagnosisData)
+        
+        // 设置表单数据
+        setDiagnosis(diagnosisData.diagnosis || '')
+        setRiskLevel(diagnosisData.riskLevel || '')
+        setMedications(diagnosisData.medications || '')
+        setLifestyle(diagnosisData.lifestyle || '')
+        setFollowUp(diagnosisData.followUp || '')
+        setNotes(diagnosisData.notes || '')
+        setTreatmentPlan(diagnosisData.treatmentPlan || '')
+        setIsolationAdvice(diagnosisData.isolationAdvice || '')
+        setTestingRecommendation(diagnosisData.testingRecommendation || '')
+      } else {
+        console.log('⚠️ 未找到COVID诊断记录')
+        setExistingDiagnosis(null)
+      }
+    } catch (error) {
+      console.error('❌ 加载COVID诊断记录失败:', error)
+      
+      // 显示详细错误信息
+      if (error.response) {
+        console.error('HTTP状态码:', error.response.status)
+        console.error('响应数据:', error.response.data)
+        console.error('请求URL:', error.config?.url)
+      }
+      
+      setExistingDiagnosis(null)
+    } finally {
+      setDiagnosisLoading(false)
+    }
+  }
+
   // 获取风险等级标签
   const getRiskLevelLabel = (riskLevel) => {
     const riskLevels = {
-      'very_high': '極高風險',
-      'high': '高風險', 
-      'medium': '中風險',
+      'very_low': '極低風險',
       'low': '低風險',
-      'very_low': '極低風險'
+      'medium': '中風險',
+      'high': '高風險',
+      'very_high': '極高風險'
     }
     return riskLevels[riskLevel] || '未知風險'
   }
@@ -378,11 +451,11 @@ export default function CovidDiagnosisFormPage() {
   // 获取风险等级颜色
   const getRiskLevelColor = (riskLevel) => {
     const colors = {
-      'very_high': 'bg-red-600 text-white border-red-700',
-      'high': 'bg-red-100 text-red-700 border-red-200',
-      'medium': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+      'very_low': 'bg-blue-100 text-blue-700 border-blue-200',
       'low': 'bg-green-100 text-green-700 border-green-200',
-      'very_low': 'bg-blue-100 text-blue-700 border-blue-200'
+      'medium': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+      'high': 'bg-red-100 text-red-700 border-red-200',
+      'very_high': 'bg-red-600 text-white border-red-700'
     }
     return colors[riskLevel] || 'bg-gray-100 text-gray-700 border-gray-200'
   }
@@ -575,13 +648,14 @@ export default function CovidDiagnosisFormPage() {
   // 将风险等级映射到紧急程度
   const mapRiskLevelToUrgency = (riskLevel) => {
     switch (riskLevel) {
-      case 'critical':
+      case 'very_high':
         return 'urgent'
       case 'high':
         return 'high'
       case 'medium':
         return 'medium'
       case 'low':
+      case 'very_low':
       default:
         return 'low'
     }
@@ -634,9 +708,20 @@ export default function CovidDiagnosisFormPage() {
 
     setLoading(true)
     try {
+      // 确保patientId是字符串类型
+      const patientId = currentUserId 
+        ? (typeof currentUserId === 'object' ? currentUserId._id || currentUserId.toString() : currentUserId.toString())
+        : null;
+      
+      if (!patientId) {
+        console.error('无法获取患者ID，currentUserId:', currentUserId, 'assessmentData:', assessmentData);
+        setMessage('❌ 無法獲取患者ID，請重試');
+        return;
+      }
+
       const diagnosisData = {
-        assessmentId: assessmentData._id,
-        patientId: currentUserId,
+        assessmentId: assessmentData._id.toString(),
+        patientId: patientId,
         diagnosisType: 'covid', // 必需字段，指定为COVID诊断
         diagnosis: diagnosis.trim(),
         recommendation: `${lifestyle.trim() ? `生活方式建議: ${lifestyle.trim()}. ` : ''}${followUp.trim() ? `復查建議: ${followUp.trim()}. ` : ''}${isolationAdvice.trim() ? `隔離建議: ${isolationAdvice.trim()}. ` : ''}`.trim() || '無特殊建議',
@@ -650,10 +735,14 @@ export default function CovidDiagnosisFormPage() {
         urgency: mapRiskLevelToUrgency(riskLevel)
       }
 
-      console.log('提交COVID诊断数据:', diagnosisData)
+      console.log('📤 提交COVID诊断数据:', diagnosisData)
+      console.log('📤 患者ID类型:', typeof patientId, '值:', patientId)
+      console.log('📤 评估ID类型:', typeof diagnosisData.assessmentId, '值:', diagnosisData.assessmentId)
+      console.log('📤 评估数据:', assessmentData)
 
       // 提交COVID诊断
       const response = await apiService.createCovidDiagnosis(diagnosisData)
+      console.log('📤 COVID诊断提交响应:', response)
       
       if (response && response.success !== false) {
         console.log('COVID诊断提交成功')
@@ -1037,25 +1126,179 @@ export default function CovidDiagnosisFormPage() {
               <CardContent className="space-y-6">
                 
                 {isReadOnly ? (
-                  /* 只读模式 - 显示已处理状态信息 */
-                  <div className="space-y-4">
+                  /* 只读模式 - 显示COVID诊断记录 */
+                  <div className="space-y-6">
                     <Alert className="border-blue-200 bg-blue-50">
                       <Eye className="h-4 w-4" />
                       <AlertDescription className="text-blue-700">
                         <strong>此COVID評估記錄已完成診斷</strong>
                         <br />
-                        該記錄的狀態為「已處理」，診斷評估表單已隱藏。如需查看完整的診斷報告，請前往患者詳情頁面。
+                        以下是該記錄的診斷詳情，內容為只讀模式。
                       </AlertDescription>
                     </Alert>
                     
-                    <div className="flex gap-4 pt-4 border-t border-gray-200">
+                    {diagnosisLoading ? (
+                      <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                          <p className="text-blue-800 font-medium">⏳ 正在加載COVID診斷記錄，請稍候...</p>
+                        </div>
+                      </div>
+                    ) : existingDiagnosis ? (
+                      <div className="space-y-6">
+                        
+                        {/* 诊断结果 */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+                            <h3 className="text-lg font-semibold text-gray-800">COVID/流感診斷結果</h3>
+                          </div>
+                          <div className="p-4 bg-gradient-to-br from-blue-50 via-blue-25 to-white rounded-xl shadow-sm">
+                            <p className="text-blue-900 font-medium text-base leading-relaxed whitespace-pre-wrap">{diagnosis || '無診斷結果'}</p>
+                          </div>
+                        </div>
+
+                        {/* 风险等级 */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-1 h-6 bg-gradient-to-b from-orange-500 to-orange-600 rounded-full"></div>
+                            <h3 className="text-lg font-semibold text-gray-800">風險等級</h3>
+                          </div>
+                          <div className="p-4 bg-gradient-to-br from-orange-50 via-orange-25 to-white rounded-xl shadow-sm">
+                            <Badge 
+                              className={`text-sm px-3 py-1.5 font-medium rounded-lg shadow-sm ${
+                                riskLevel === 'high' || riskLevel === 'very_high' 
+                                  ? 'bg-gradient-to-r from-red-500 to-red-600 text-white border-0' 
+                                  : riskLevel === 'medium' 
+                                    ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0'
+                                    : riskLevel === 'low' || riskLevel === 'very_low'
+                                      ? 'bg-gradient-to-r from-green-500 to-green-600 text-white border-0'
+                                      : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white border-0'
+                              }`}
+                            >
+                              {riskLevel === 'very_low' ? '🔵 極低風險' : 
+                               riskLevel === 'low' ? '🟢 低風險' : 
+                               riskLevel === 'medium' ? '🟡 中風險' : 
+                               riskLevel === 'high' ? '🔴 高風險' : 
+                               riskLevel === 'very_high' ? '🚨 極高風險' : '⚪ 未設定'}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* 治疗建议 */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
+                              <h3 className="text-lg font-semibold text-gray-800">用藥建議</h3>
+                            </div>
+                            <div className="p-4 bg-gradient-to-br from-green-50 via-green-25 to-white rounded-xl shadow-sm min-h-[100px]">
+                              <p className="text-green-900 leading-relaxed whitespace-pre-wrap">{medications || '暫無用藥建議'}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
+                              <h3 className="text-lg font-semibold text-gray-800">生活方式建議</h3>
+                            </div>
+                            <div className="p-4 bg-gradient-to-br from-purple-50 via-purple-25 to-white rounded-xl shadow-sm min-h-[100px]">
+                              <p className="text-purple-900 leading-relaxed whitespace-pre-wrap">{lifestyle || '暫無生活方式建議'}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* COVID特有字段 */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-1 h-6 bg-gradient-to-b from-red-500 to-red-600 rounded-full"></div>
+                              <h3 className="text-lg font-semibold text-gray-800">隔離建議</h3>
+                            </div>
+                            <div className="p-4 bg-gradient-to-br from-red-50 via-red-25 to-white rounded-xl shadow-sm min-h-[100px]">
+                              <p className="text-red-900 leading-relaxed whitespace-pre-wrap">{isolationAdvice || '暫無隔離建議'}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-1 h-6 bg-gradient-to-b from-cyan-500 to-cyan-600 rounded-full"></div>
+                              <h3 className="text-lg font-semibold text-gray-800">檢測建議</h3>
+                            </div>
+                            <div className="p-4 bg-gradient-to-br from-cyan-50 via-cyan-25 to-white rounded-xl shadow-sm min-h-[100px]">
+                              <p className="text-cyan-900 leading-relaxed whitespace-pre-wrap">{testingRecommendation || '暫無檢測建議'}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 复查建议 */}
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-indigo-600 rounded-full"></div>
+                            <h3 className="text-lg font-semibold text-gray-800">復查建議</h3>
+                          </div>
+                          <div className="p-4 bg-gradient-to-br from-indigo-50 via-indigo-25 to-white rounded-xl shadow-sm">
+                            <p className="text-indigo-900 leading-relaxed whitespace-pre-wrap">{followUp || '暫無復查建議'}</p>
+                          </div>
+                        </div>
+
+                        {/* 其他备注 */}
+                        {notes && (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-1 h-6 bg-gradient-to-b from-gray-500 to-gray-600 rounded-full"></div>
+                              <h3 className="text-lg font-semibold text-gray-800">其他備註</h3>
+                            </div>
+                            <div className="p-4 bg-gradient-to-br from-gray-50 via-gray-25 to-white rounded-xl shadow-sm">
+                              <p className="text-gray-900 leading-relaxed whitespace-pre-wrap">{notes}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 诊断信息 */}
+                        <div className="mt-8 p-4 bg-gradient-to-r from-slate-50 via-blue-50 to-indigo-50 rounded-xl shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4 text-sm text-slate-600">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-blue-500" />
+                                <span className="font-medium">診斷時間：{formatDate(existingDiagnosis.createdAt)}</span>
+                              </div>
+                              {existingDiagnosis.doctorId && (
+                                <div className="flex items-center gap-2">
+                                  <User className="h-4 w-4 text-green-500" />
+                                  <span className="font-medium">診斷醫生：{existingDiagnosis.doctorId.fullName || existingDiagnosis.doctorId.username || '未知醫生'}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-slate-500 bg-white px-2 py-1 rounded-full">
+                              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                              <span>已完成診斷</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="w-5 h-5 bg-gray-400 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs">!</span>
+                          </div>
+                          <p className="text-gray-700 font-medium">⚠️ 此COVID評估記錄尚未完成診斷</p>
+                        </div>
+                        <p className="text-gray-600 text-sm mt-2 ml-8">
+                          該評估記錄可能還在等待醫生處理，或者診斷記錄不存在。
+                        </p>
+                      </div>
+                    )}
+                    
+                    <div className="flex gap-4 pt-6 mt-6 border-t border-gray-200">
                       <Button
                         variant="outline"
                         onClick={() => handleNavigation('/medical/covid-management')}
-                        className="flex-1 border-gray-300 text-gray-600 hover:bg-gray-50"
+                        className="flex-1 bg-gradient-to-r from-slate-50 to-gray-50 border-0 text-gray-700 hover:from-slate-100 hover:to-gray-100 hover:shadow-md transition-all duration-200 font-medium py-3 rounded-xl"
                       >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        返回列表
+                        返回COVID管理列表
                       </Button>
                     </div>
                   </div>
@@ -1086,10 +1329,11 @@ export default function CovidDiagnosisFormPage() {
                       <SelectValue placeholder="選擇風險等級" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="very_low">極低風險</SelectItem>
                       <SelectItem value="low">低風險</SelectItem>
                       <SelectItem value="medium">中風險</SelectItem>
                       <SelectItem value="high">高風險</SelectItem>
-                      <SelectItem value="critical">緊急</SelectItem>
+                      <SelectItem value="very_high">極高風險</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
