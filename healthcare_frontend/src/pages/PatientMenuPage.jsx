@@ -7,7 +7,6 @@ import {
   History, 
   FileText, 
   Shield, 
-  TrendingUp,
   Plus,
   AlertCircle
 } from 'lucide-react'
@@ -55,15 +54,6 @@ export default function PatientMenuPage() {
 
   const menuItems = [
     {
-      title: '概覽',
-      description: '查看健康狀態總覽',
-      icon: Heart,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50 hover:bg-blue-100',
-      borderColor: 'border-blue-200',
-      path: '/patient/overview'
-    },
-    {
       title: '新測量',
       description: '記錄生命體徵與查看歷史',
       icon: Plus,
@@ -90,15 +80,6 @@ export default function PatientMenuPage() {
       borderColor: 'border-orange-200',
       path: '/patient/diagnosis-reports',
       badge: unreadDiagnoses > 0 ? unreadDiagnoses : null
-    },
-    {
-      title: '症狀追蹤',
-      description: '記錄和監測症狀',
-      icon: TrendingUp,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50 hover:bg-red-100',
-      borderColor: 'border-red-200',
-      path: '/patient/symptoms'
     }
   ]
 
@@ -144,21 +125,12 @@ export default function PatientMenuPage() {
         </div>
 
         {/* 功能菜单网格 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 max-w-4xl mx-auto">
           {menuItems.map((item, index) => {
             const IconComponent = item.icon
             // 根据不同按钮设置不同的颜色主题
             const getColorTheme = (title) => {
               switch(title) {
-                case '概覽':
-                  return {
-                    bg: 'from-blue-50/80 to-blue-100/60',
-                    hoverBg: 'hover:from-blue-100/90 hover:to-blue-200/70',
-                    iconBg: 'from-blue-500 to-blue-600',
-                    iconShadow: 'shadow-blue-500/30',
-                    textHover: 'group-hover:from-blue-700 group-hover:to-blue-600',
-                    cardShadow: 'shadow-blue-500/15 hover:shadow-blue-500/25'
-                  }
                 case '新測量':
                   return {
                     bg: 'from-green-50/80 to-green-100/60',
@@ -185,15 +157,6 @@ export default function PatientMenuPage() {
                     iconShadow: 'shadow-orange-500/30',
                     textHover: 'group-hover:from-orange-700 group-hover:to-orange-600',
                     cardShadow: 'shadow-orange-500/15 hover:shadow-orange-500/25'
-                  }
-                case '症狀追蹤':
-                  return {
-                    bg: 'from-red-50/80 to-red-100/60',
-                    hoverBg: 'hover:from-red-100/90 hover:to-red-200/70',
-                    iconBg: 'from-red-500 to-red-600',
-                    iconShadow: 'shadow-red-500/30',
-                    textHover: 'group-hover:from-red-700 group-hover:to-red-600',
-                    cardShadow: 'shadow-red-500/15 hover:shadow-red-500/25'
                   }
                 default:
                   return {
@@ -268,10 +231,6 @@ export default function PatientMenuPage() {
                 <li className="flex items-center group">
                   <div className="w-2 h-2 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full mr-4 flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-200"></div>
                   <span className="group-hover:text-purple-700 transition-colors duration-200">定期查看診斷報告，遵循醫護人員建議</span>
-                </li>
-                <li className="flex items-center group">
-                  <div className="w-2 h-2 bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-full mr-4 flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-200"></div>
-                  <span className="group-hover:text-cyan-700 transition-colors duration-200">持續追蹤症狀變化，便於醫護人員診斷</span>
                 </li>
               </ul>
             </div>

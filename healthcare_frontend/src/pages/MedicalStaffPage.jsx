@@ -9,7 +9,6 @@ import {
   Shield,
   Settings,
   Activity,
-  TrendingUp,
   LogOut,
   User,
   Plus,
@@ -134,13 +133,6 @@ export default function MedicalStaffPage() {
       badge: stats?.highRiskPatients || null
     },
     {
-      title: '數據統計',
-      description: '查看整體健康數據統計',
-      icon: TrendingUp,
-      color: 'text-indigo-600',
-      path: '/medical/statistics'
-    },
-    {
       title: '異常值設置',
       description: '配置測量數據異常範圍',
       icon: Settings,
@@ -227,7 +219,7 @@ export default function MedicalStaffPage() {
         )}
 
         {/* 功能菜单网格 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
           {menuItems.map((item, index) => {
             const IconComponent = item.icon
             // 根据不同按钮设置不同的颜色主题
@@ -259,15 +251,6 @@ export default function MedicalStaffPage() {
                     iconShadow: 'shadow-purple-500/30',
                     textHover: 'group-hover:from-purple-700 group-hover:to-purple-600',
                     cardShadow: 'shadow-purple-500/15 hover:shadow-purple-500/25'
-                  }
-                case '數據統計':
-                  return {
-                    bg: 'from-indigo-50/80 to-indigo-100/60',
-                    hoverBg: 'hover:from-indigo-100/90 hover:to-indigo-200/70',
-                    iconBg: 'from-indigo-500 to-indigo-600',
-                    iconShadow: 'shadow-indigo-500/30',
-                    textHover: 'group-hover:from-indigo-700 group-hover:to-indigo-600',
-                    cardShadow: 'shadow-indigo-500/15 hover:shadow-indigo-500/25'
                   }
                 case '異常值設置':
                   return {
