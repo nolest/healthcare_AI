@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
 
@@ -19,6 +19,7 @@ import {
   KeyRound
 } from 'lucide-react'
 import apiService from '../services/api.js'
+import i18n from '../utils/i18n'
 
 export default function RegisterForm({ onRegisterSuccess }) {
   const [formData, setFormData] = useState({
@@ -38,6 +39,20 @@ export default function RegisterForm({ onRegisterSuccess }) {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    // 监听语言变化
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    
+    i18n.addListener(handleLanguageChange)
+    
+    return () => {
+      i18n.removeListener(handleLanguageChange)
+    }
+  }, [])
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -57,38 +72,38 @@ export default function RegisterForm({ onRegisterSuccess }) {
     const newErrors = {}
 
     // 基本驗證
-    if (!formData.username.trim()) newErrors.username = '登錄賬號不能為空'
+    if (!formData.username.trim()) newErrors.username = i18n.t('auth.username_required')
     // 验证用户名只包含英文和数字
     const usernameRegex = /^[a-zA-Z0-9]+$/
     if (formData.username && !usernameRegex.test(formData.username)) {
-      newErrors.username = '登錄賬號只能包含英文字母和數字'
+      newErrors.username = i18n.t('auth.username_format_error')
     }
-    if (!formData.password) newErrors.password = '密碼不能為空'
-    if (formData.password.length < 6) newErrors.password = '密碼至少需要6個字符'
+    if (!formData.password) newErrors.password = i18n.t('auth.password_required')
+    if (formData.password.length < 6) newErrors.password = i18n.t('auth.password_min_length')
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = '密碼確認不匹配'
+      newErrors.confirmPassword = i18n.t('auth.password_mismatch')
     }
-    if (!formData.fullName.trim()) newErrors.fullName = '姓名不能為空'
-    if (!formData.email.trim()) newErrors.email = '電子郵件不能為空'
-    if (!formData.phone.trim()) newErrors.phone = '電話號碼不能為空'
-    if (!formData.role) newErrors.role = '請選擇用戶角色'
+    if (!formData.fullName.trim()) newErrors.fullName = i18n.t('auth.fullname_required')
+    if (!formData.email.trim()) newErrors.email = i18n.t('auth.email_required')
+    if (!formData.phone.trim()) newErrors.phone = i18n.t('auth.phone_required')
+    if (!formData.role) newErrors.role = i18n.t('auth.role_required')
 
     // 患者特定驗證
     if (formData.role === 'patient') {
-      if (!formData.birthDate) newErrors.birthDate = '出生日期不能為空'
-      if (!formData.gender) newErrors.gender = '請選擇性別'
+      if (!formData.birthDate) newErrors.birthDate = i18n.t('auth.birthdate_required')
+      if (!formData.gender) newErrors.gender = i18n.t('auth.select_gender')
     }
 
     // 醫護人員特定驗證
     if (formData.role === 'medical_staff') {
-      if (!formData.department.trim()) newErrors.department = '科室不能為空'
-      if (!formData.licenseNumber.trim()) newErrors.licenseNumber = '執照號碼不能為空'
+      if (!formData.department.trim()) newErrors.department = i18n.t('auth.department_required')
+      if (!formData.licenseNumber.trim()) newErrors.licenseNumber = i18n.t('auth.license_required')
     }
 
     // 電子郵件格式驗證
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (formData.email && !emailRegex.test(formData.email)) {
-      newErrors.email = '電子郵件格式不正確'
+      newErrors.email = i18n.t('auth.email_format_error')
     }
 
     setErrors(newErrors)
@@ -137,18 +152,18 @@ export default function RegisterForm({ onRegisterSuccess }) {
           onRegisterSuccess(response.user)
         }
       } else {
-        setErrors({ submit: response.message || '註冊失敗' })
+        setErrors({ submit: response.message || i18n.t('auth.register_failed') })
       }
 
     } catch (error) {
       console.error('Registration error:', error)
       if (error.message.includes('用户名或邮箱已存在')) {
         setErrors({ 
-          username: '用戶名已存在',
-          email: '電子郵件已存在'
+          username: i18n.t('auth.username_exists'),
+          email: i18n.t('auth.email_exists')
         })
       } else {
-        setErrors({ submit: error.message || '註冊失敗，請檢查網絡連接' })
+        setErrors({ submit: error.message || i18n.t('auth.register_failed') })
       }
     } finally {
       setIsLoading(false)
@@ -180,7 +195,7 @@ export default function RegisterForm({ onRegisterSuccess }) {
               <Input
                 id="username"
                 type="text"
-                placeholder="登錄賬號（英文數字組合）"
+                placeholder={i18n.t('auth.placeholder.username')}
                 value={formData.username}
                 onChange={(e) => handleInputChange('username', e.target.value)}
                 className={`flex-1 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.username ? 'ring-2 ring-red-500/50' : ''}`}
@@ -198,7 +213,7 @@ export default function RegisterForm({ onRegisterSuccess }) {
               <Input
                 id="fullName"
                 type="text"
-                placeholder="請輸入真實姓名"
+                placeholder={i18n.t('auth.placeholder.full_name')}
                 value={formData.fullName}
                 onChange={(e) => handleInputChange('fullName', e.target.value)}
                 className={`flex-1 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.fullName ? 'ring-2 ring-red-500/50' : ''}`}
@@ -219,7 +234,7 @@ export default function RegisterForm({ onRegisterSuccess }) {
               <Input
                 id="email"
                 type="email"
-                placeholder="請輸入電子郵件"
+                placeholder={i18n.t('auth.placeholder.email')}
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 className={`flex-1 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.email ? 'ring-2 ring-red-500/50' : ''}`}
@@ -237,7 +252,7 @@ export default function RegisterForm({ onRegisterSuccess }) {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="請輸入電話號碼"
+                placeholder={i18n.t('auth.placeholder.phone')}
                 value={formData.phone}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
                 className={`flex-1 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.phone ? 'ring-2 ring-red-500/50' : ''}`}
@@ -260,7 +275,7 @@ export default function RegisterForm({ onRegisterSuccess }) {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="請輸入密碼"
+                    placeholder={i18n.t('auth.placeholder.password')}
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
                     className={`w-full pr-12 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.password ? 'ring-2 ring-red-500/50' : ''}`}
@@ -291,7 +306,7 @@ export default function RegisterForm({ onRegisterSuccess }) {
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
-                    placeholder="請再次輸入密碼"
+                    placeholder={i18n.t('auth.placeholder.confirm_password')}
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                     className={`w-full pr-12 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.confirmPassword ? 'ring-2 ring-red-500/50' : ''}`}
@@ -323,14 +338,14 @@ export default function RegisterForm({ onRegisterSuccess }) {
               </div>
               <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
                 <SelectTrigger className={`flex-1 h-12 w-auto bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 px-4 py-3 ${errors.role ? 'ring-2 ring-red-500/50' : ''}`}>
-                  <SelectValue placeholder="請選擇用戶角色" />
+                  <SelectValue placeholder={i18n.t('auth.select_user_type')} />
                 </SelectTrigger>
                 <SelectContent className="border-0 bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden min-w-[200px] p-2">
                   <SelectItem value="patient" className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-xl transition-all duration-200 cursor-pointer py-2.5 pl-3 pr-8 my-1 relative">
-                    患者
+                    {i18n.t('auth.user_type.patient')}
                   </SelectItem>
                   <SelectItem value="medical_staff" className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-xl transition-all duration-200 cursor-pointer py-2.5 pl-3 pr-8 my-1 relative">
-                    醫護人員
+                    {i18n.t('auth.user_type.medical_staff')}
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -365,17 +380,14 @@ export default function RegisterForm({ onRegisterSuccess }) {
                 </div>
                 <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
                   <SelectTrigger className={`flex-1 h-12 w-auto bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 px-4 py-3 ${errors.gender ? 'ring-2 ring-red-500/50' : ''}`}>
-                    <SelectValue placeholder="請選擇性別" />
+                    <SelectValue placeholder={i18n.t('auth.select_gender')} />
                   </SelectTrigger>
                   <SelectContent className="border-0 bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md shadow-2xl rounded-2xl overflow-hidden min-w-[120px] p-2">
                     <SelectItem value="male" className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-xl transition-all duration-200 cursor-pointer py-2.5 pl-3 pr-8 my-1 relative">
-                      男
+                      {i18n.t('auth.gender.male')}
                     </SelectItem>
                     <SelectItem value="female" className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-xl transition-all duration-200 cursor-pointer py-2.5 pl-3 pr-8 my-1 relative">
-                      女
-                    </SelectItem>
-                    <SelectItem value="other" className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 rounded-xl transition-all duration-200 cursor-pointer py-2.5 pl-3 pr-8 my-1 relative">
-                      其他
+                      {i18n.t('auth.gender.female')}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -396,7 +408,7 @@ export default function RegisterForm({ onRegisterSuccess }) {
                 <Input
                   id="department"
                   type="text"
-                  placeholder="請輸入科室"
+                  placeholder={i18n.t('auth.placeholder.department')}
                   value={formData.department}
                   onChange={(e) => handleInputChange('department', e.target.value)}
                   className={`flex-1 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.department ? 'ring-2 ring-red-500/50' : ''}`}
@@ -413,7 +425,7 @@ export default function RegisterForm({ onRegisterSuccess }) {
                 <Input
                   id="licenseNumber"
                   type="text"
-                  placeholder="請輸入執照號碼"
+                  placeholder={i18n.t('auth.placeholder.license_number')}
                   value={formData.licenseNumber}
                   onChange={(e) => handleInputChange('licenseNumber', e.target.value)}
                   className={`flex-1 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 ${errors.licenseNumber ? 'ring-2 ring-red-500/50' : ''}`}
@@ -435,12 +447,12 @@ export default function RegisterForm({ onRegisterSuccess }) {
             {isLoading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                註冊中...
+                {i18n.t('common.loading')}
               </>
             ) : (
               <>
                 <UserPlus className="w-4 h-4 mr-2" />
-                創建賬戶
+                {i18n.t('auth.register')}
               </>
             )}
           </div>
@@ -449,7 +461,7 @@ export default function RegisterForm({ onRegisterSuccess }) {
 
         {/* 提示文本 */}
         <div className="text-center text-xs text-gray-500 mt-3">
-          <p>註冊即表示您同意我們的服務條款和隱私政策</p>
+          <p>{i18n.t('auth.register_terms')}</p>
         </div>
       </form>
     </div>

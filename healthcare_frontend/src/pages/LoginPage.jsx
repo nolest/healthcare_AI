@@ -1,9 +1,26 @@
 import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import LoginForm from '../components/LoginForm.jsx'
+import LanguageSwitcher from '../components/LanguageSwitcher.jsx'
 import { Monitor, Users, Shield } from 'lucide-react'
+import i18n from '../utils/i18n'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    // 监听语言变化
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    
+    i18n.addListener(handleLanguageChange)
+    
+    return () => {
+      i18n.removeListener(handleLanguageChange)
+    }
+  }, [])
 
   const handleLogin = (user) => {
     // 保存用户信息到localStorage
@@ -59,7 +76,10 @@ export default function LoginPage() {
         }
       `}</style>
       
-
+      {/* 语言切换器 - 固定在右上角 */}
+      <div className="absolute top-4 right-4 z-20">
+        <LanguageSwitcher />
+      </div>
 
       {/* 主要内容 - 垂直滚动布局 */}
       <div className="relative z-10">
@@ -68,13 +88,13 @@ export default function LoginPage() {
           {/* 系统介绍 - 合并标题和描述 */}
           <div className="text-center mb-4 bg-white/10 backdrop-blur-sm rounded-3xl p-8">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent tracking-wide mb-4">
-              Remote Health Care
+              {i18n.t('app.title')}
             </h1>
             <p className="text-lg text-gray-700 font-medium mb-3">
-              智能健康管理系統
+              {i18n.t('app.subtitle')}
             </p>
             <p className="text-lg text-gray-700 font-medium leading-relaxed max-w-3xl mx-auto">
-              為辦公大樓、機構等場所提供便捷的健康監測服務，結合專業醫護團隊的遠程診斷
+              {i18n.t('app.description')}
             </p>
           </div>
 
@@ -85,9 +105,9 @@ export default function LoginPage() {
                 <div className="flex justify-center mb-3">
                   <Monitor className="w-8 h-8 text-blue-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">智能測量設備</h3>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">{i18n.t('features.smart_measurement')}</h3>
                 <p className="text-sm text-gray-700 leading-relaxed">
-                  配備先進的生命體徵監測設備，支持血壓、心率、體溫、血氧等多項重要指標的精準測量
+                  {i18n.t('features.smart_measurement_desc')}
                 </p>
               </div>
 
@@ -95,9 +115,9 @@ export default function LoginPage() {
                 <div className="flex justify-center mb-3">
                   <Users className="w-8 h-8 text-indigo-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">專業醫護團隊</h3>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">{i18n.t('features.professional_diagnosis')}</h3>
                 <p className="text-sm text-gray-700 leading-relaxed">
-                  由經驗豐富的註冊醫護人員組成的專業團隊，提供24小時遠程診斷和健康指導服務
+                  {i18n.t('features.professional_diagnosis_desc')}
                 </p>
               </div>
 
@@ -105,9 +125,9 @@ export default function LoginPage() {
                 <div className="flex justify-center mb-3">
                   <Shield className="w-8 h-8 text-purple-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">數據安全保障</h3>
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">{i18n.t('features.secure_reliable')}</h3>
                 <p className="text-sm text-gray-700 leading-relaxed">
-                  採用銀行級加密技術和嚴格的隱私保護措施，確保您的健康數據安全無憂
+                  {i18n.t('features.secure_reliable_desc')}
                 </p>
               </div>
             </div>
@@ -124,10 +144,10 @@ export default function LoginPage() {
                 <div className="relative z-10">
                   <div className="text-center mb-4">
                     <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-2">
-                      歡迎回來
+                      {i18n.t('auth.get_started')}
                     </h3>
                     <p className="text-gray-700/80">
-                      登錄您的賬戶以繼續使用
+                      {i18n.t('auth.register_or_login')}
                     </p>
                   </div>
 
@@ -137,12 +157,12 @@ export default function LoginPage() {
                   {/* 注册链接 */}
                   <div className="text-center mt-4">
                     <p className="text-gray-600 text-sm">
-                      還沒有賬戶？{' '}
+                      {i18n.t('auth.no_account')}{' '}
                       <button
                         onClick={navigateToRegister}
                         className="text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors duration-200"
                       >
-                        立即註冊
+                        {i18n.t('auth.register')}
                       </button>
                     </p>
                   </div>
@@ -154,8 +174,8 @@ export default function LoginPage() {
           {/* 底部信息 */}
           <div className="text-center text-sm" style={{ marginTop: '0' }}>
             <div className="inline-block bg-white/10 backdrop-blur-sm rounded-2xl px-4 py-2 text-white">
-              <p>© 2024 Remote Health Care System</p>
-              <p>專業 · 安全 · 便捷</p>
+              <p>© 2024 {i18n.t('app.title')}</p>
+              <p>{i18n.t('features.professional_diagnosis')} · {i18n.t('features.secure_reliable')} · {i18n.t('features.smart_measurement')}</p>
             </div>
           </div>
         </div>

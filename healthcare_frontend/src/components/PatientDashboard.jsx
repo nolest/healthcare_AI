@@ -178,7 +178,7 @@ export default function PatientDashboard() {
                 window.location.href = '/login'
               }}>
                 <LogOut className="h-4 w-4 mr-2" />
-                登出
+                {i18n.t('auth.logout')}
               </Button>
             </div>
           </div>

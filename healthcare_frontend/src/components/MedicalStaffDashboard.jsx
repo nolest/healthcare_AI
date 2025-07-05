@@ -214,7 +214,7 @@ export default function MedicalStaffDashboard() {
                 navigate('/login')
               }}>
                 <LogOut className="h-4 w-4 mr-2" />
-                登出
+                {t('auth.logout')}
               </Button>
             </div>
           </div>

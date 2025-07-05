@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
-
 import { Eye, EyeOff, User, Lock, LogIn } from 'lucide-react'
 import apiService from '../services/api.js'
+import i18n from '../utils/i18n'
 
 export default function LoginForm({ onLogin }) {
   const [formData, setFormData] = useState({
@@ -13,6 +13,20 @@ export default function LoginForm({ onLogin }) {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    // 监听语言变化
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    
+    i18n.addListener(handleLanguageChange)
+    
+    return () => {
+      i18n.removeListener(handleLanguageChange)
+    }
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -29,11 +43,11 @@ export default function LoginForm({ onLogin }) {
         apiService.setCurrentUser(authResult.user)
         onLogin(authResult.user)
       } else {
-        setError(authResult.message || '登錄失敗')
+        setError(authResult.message || i18n.t('auth.login_failed'))
       }
     } catch (error) {
       console.error('Login error:', error)
-      setError(error.message || '登錄失敗，請檢查網絡連接')
+      setError(error.message || i18n.t('auth.login_failed'))
     } finally {
       setLoading(false)
     }
@@ -69,7 +83,7 @@ export default function LoginForm({ onLogin }) {
             id="username"
             name="username"
             type="text"
-            placeholder="請輸入用戶名"
+            placeholder={i18n.t('auth.placeholder.username')}
             value={formData.username}
             onChange={handleChange}
             required
@@ -88,7 +102,7 @@ export default function LoginForm({ onLogin }) {
               id="password"
               name="password"
               type={showPassword ? "text" : "password"}
-              placeholder="請輸入密碼"
+              placeholder={i18n.t('auth.placeholder.password')}
               value={formData.password}
               onChange={handleChange}
               required
@@ -121,12 +135,12 @@ export default function LoginForm({ onLogin }) {
               {loading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
-                  登錄中...
+                  {i18n.t('common.loading')}
                 </>
               ) : (
                 <>
                   <LogIn className="w-5 h-5 mr-2" />
-                  登錄
+                  {i18n.t('auth.login')}
                 </>
               )}
             </div>
