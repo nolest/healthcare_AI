@@ -931,6 +931,28 @@ class I18n {
         'pages.confirm_dialog_test.tips_description': '您可以通過點擊右上角的設置按鈕來自定義您的偏好設置，包括主題、語言等選項。',
         'pages.confirm_dialog_test.understand': '明白了',
 
+        // 404页面
+        'pages.not_found.title': '頁面不存在',
+        'pages.not_found.description': '抱歉，您訪問的頁面不存在或已被移除。',
+        'pages.not_found.back_to_home': '返回首頁',
+        'pages.not_found.back_to_previous': '返回上一頁',
+
+        // 患者诊断页面
+        'pages.patient_diagnoses.title': '診斷報告',
+        'pages.patient_diagnoses.new_reports': '{count} 新報告',
+        'pages.patient_diagnoses.no_diagnoses_title': '暫無診斷報告',
+        'pages.patient_diagnoses.no_diagnoses_description': '您目前還沒有任何診斷報告',
+        'pages.patient_diagnoses.total_diagnoses': '總診斷數',
+        'pages.patient_diagnoses.new_reports_title': '新報告',
+        'pages.patient_diagnoses.high_risk_diagnoses': '高風險診斷',
+        'pages.patient_diagnoses.medical_staff': '醫護人員',
+        'pages.patient_diagnoses.new_report': '新報告',
+        'pages.patient_diagnoses.mark_as_read': '標記已讀',
+        'pages.patient_diagnoses.diagnosis_result': '診斷結果',
+        'pages.patient_diagnoses.treatment_plan': '治療建議',
+        'pages.patient_diagnoses.notes': '備註',
+        'pages.patient_diagnoses.next_follow_up': '下次復診：{date}',
+
         // Common additions
         'common.not_set': '未設定',
         'common.please_wait': '請稍候',
@@ -938,7 +960,7 @@ class I18n {
         'common.today': '今天',
         'common.yesterday': '昨天',
         'common.days_ago': '天前',
-        'common.date_format_error': '日期格式錯誤'
+        'common.date_format_error': '日期格式錯誤',
       },
       
       'zh-CN': {
@@ -1878,7 +1900,29 @@ class I18n {
         'common.today': '今天',
         'common.yesterday': '昨天',
         'common.days_ago': '天前',
-        'common.date_format_error': '日期格式错误'
+        'common.date_format_error': '日期格式错误',
+
+        // 404页面
+        'pages.not_found.title': '页面不存在',
+        'pages.not_found.description': '抱歉，您访问的页面不存在或已被移除。',
+        'pages.not_found.back_to_home': '返回首页',
+        'pages.not_found.back_to_previous': '返回上一页',
+
+        // 患者诊断页面
+        'pages.patient_diagnoses.title': '诊断报告',
+        'pages.patient_diagnoses.new_reports': '{count} 新报告',
+        'pages.patient_diagnoses.no_diagnoses_title': '暂无诊断报告',
+        'pages.patient_diagnoses.no_diagnoses_description': '您目前还没有任何诊断报告',
+        'pages.patient_diagnoses.total_diagnoses': '总诊断数',
+        'pages.patient_diagnoses.new_reports_title': '新报告',
+        'pages.patient_diagnoses.high_risk_diagnoses': '高风险诊断',
+        'pages.patient_diagnoses.medical_staff': '医护人员',
+        'pages.patient_diagnoses.new_report': '新报告',
+        'pages.patient_diagnoses.mark_as_read': '标记已读',
+        'pages.patient_diagnoses.diagnosis_result': '诊断结果',
+        'pages.patient_diagnoses.treatment_plan': '治疗建议',
+        'pages.patient_diagnoses.notes': '备注',
+        'pages.patient_diagnoses.next_follow_up': '下次复诊：{date}'
       },
       
       'en': {
@@ -2802,7 +2846,29 @@ class I18n {
         'common.today': 'Today',
         'common.yesterday': 'Yesterday',
         'common.days_ago': ' days ago',
-        'common.date_format_error': 'Date Format Error'
+        'common.date_format_error': 'Date Format Error',
+
+        // 404页面
+        'pages.not_found.title': 'Page Not Found',
+        'pages.not_found.description': 'Sorry, the page you are looking for does not exist or has been removed.',
+        'pages.not_found.back_to_home': 'Back to Home',
+        'pages.not_found.back_to_previous': 'Back to Previous',
+
+        // 患者诊断页面
+        'pages.patient_diagnoses.title': 'Diagnosis Reports',
+        'pages.patient_diagnoses.new_reports': '{count} New Reports',
+        'pages.patient_diagnoses.no_diagnoses_title': 'No Diagnosis Reports',
+        'pages.patient_diagnoses.no_diagnoses_description': 'You currently have no diagnosis reports',
+        'pages.patient_diagnoses.total_diagnoses': 'Total Diagnoses',
+        'pages.patient_diagnoses.new_reports_title': 'New Reports',
+        'pages.patient_diagnoses.high_risk_diagnoses': 'High Risk Diagnoses',
+        'pages.patient_diagnoses.medical_staff': 'Medical Staff',
+        'pages.patient_diagnoses.new_report': 'New Report',
+        'pages.patient_diagnoses.mark_as_read': 'Mark as Read',
+        'pages.patient_diagnoses.diagnosis_result': 'Diagnosis Result',
+        'pages.patient_diagnoses.treatment_plan': 'Treatment Plan',
+        'pages.patient_diagnoses.notes': 'Notes',
+        'pages.patient_diagnoses.next_follow_up': 'Next Follow-up: {date}'
       }
     }
   }

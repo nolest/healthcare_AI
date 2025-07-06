@@ -1,9 +1,20 @@
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button.jsx'
 import { Home, ArrowLeft } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import i18n from '../utils/i18n.js'
 
 export default function NotFoundPage() {
   const navigate = useNavigate()
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    i18n.addListener(handleLanguageChange)
+    return () => i18n.removeListener(handleLanguageChange)
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -12,10 +23,10 @@ export default function NotFoundPage() {
           <div className="mb-6">
             <div className="text-6xl text-blue-600 mb-4">404</div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              頁面不存在
+              {i18n.t('pages.not_found.title')}
             </h1>
             <p className="text-gray-600">
-              抱歉，您訪問的頁面不存在或已被移除。
+              {i18n.t('pages.not_found.description')}
             </p>
           </div>
           
@@ -25,7 +36,7 @@ export default function NotFoundPage() {
               className="w-full"
             >
               <Home className="h-4 w-4 mr-2" />
-              返回首頁
+              {i18n.t('pages.not_found.back_to_home')}
             </Button>
             
             <Button 
@@ -34,7 +45,7 @@ export default function NotFoundPage() {
               className="w-full"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              返回上一頁
+              {i18n.t('pages.not_found.back_to_previous')}
             </Button>
           </div>
         </div>

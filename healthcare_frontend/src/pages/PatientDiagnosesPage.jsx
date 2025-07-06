@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/badge.jsx'
 import { ArrowLeft, FileText, User, LogOut, Clock, AlertCircle, Eye } from 'lucide-react'
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx'
 import apiService from '../services/api.js'
+import i18n from '../utils/i18n.js'
 
 export default function PatientDiagnosesPage() {
   const navigate = useNavigate()
@@ -13,6 +14,15 @@ export default function PatientDiagnosesPage() {
   const [diagnoses, setDiagnoses] = useState([])
   const [loading, setLoading] = useState(true)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    i18n.addListener(handleLanguageChange)
+    return () => i18n.removeListener(handleLanguageChange)
+  }, [])
 
   useEffect(() => {
     const currentUser = apiService.getCurrentUser()
@@ -69,15 +79,15 @@ export default function PatientDiagnosesPage() {
   const getRiskLevelText = (riskLevel) => {
     switch (riskLevel) {
       case 'low':
-        return '低風險'
+        return i18n.t('risk_levels.low')
       case 'medium':
-        return '中風險'
+        return i18n.t('risk_levels.medium')
       case 'high':
-        return '高風險'
+        return i18n.t('risk_levels.high')
       case 'critical':
-        return '緊急'
+        return i18n.t('risk_levels.critical')
       default:
-        return '未知'
+        return i18n.t('risk_levels.unknown')
     }
   }
 
@@ -108,13 +118,13 @@ export default function PatientDiagnosesPage() {
                 className="mr-4"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                返回菜單
+                {i18n.t('common.back_to_menu')}
               </Button>
               <FileText className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">診斷報告</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{i18n.t('pages.patient_diagnoses.title')}</h1>
               {unreadCount > 0 && (
                 <Badge variant="destructive" className="ml-3">
-                  {unreadCount} 新報告
+                  {i18n.t('pages.patient_diagnoses.new_reports', { count: unreadCount })}
                 </Badge>
               )}
             </div>
@@ -129,7 +139,7 @@ export default function PatientDiagnosesPage() {
                 window.location.href = '/login'
               }}>
                 <LogOut className="h-4 w-4 mr-2" />
-                登出
+                {i18n.t('common.logout')}
               </Button>
             </div>
           </div>
@@ -142,8 +152,8 @@ export default function PatientDiagnosesPage() {
           <Card>
             <CardContent className="text-center py-12">
               <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">暫無診斷報告</h3>
-              <p className="text-gray-500">您目前還沒有任何診斷報告</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{i18n.t('pages.patient_diagnoses.no_diagnoses_title')}</h3>
+              <p className="text-gray-500">{i18n.t('pages.patient_diagnoses.no_diagnoses_description')}</p>
             </CardContent>
           </Card>
         ) : (
@@ -152,7 +162,7 @@ export default function PatientDiagnosesPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">總診斷數</CardTitle>
+                  <CardTitle className="text-sm font-medium">{i18n.t('pages.patient_diagnoses.total_diagnoses')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{diagnoses.length}</div>
@@ -161,7 +171,7 @@ export default function PatientDiagnosesPage() {
               
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">新報告</CardTitle>
+                  <CardTitle className="text-sm font-medium">{i18n.t('pages.patient_diagnoses.new_reports_title')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-red-600">{unreadCount}</div>
@@ -170,7 +180,7 @@ export default function PatientDiagnosesPage() {
               
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">高風險診斷</CardTitle>
+                  <CardTitle className="text-sm font-medium">{i18n.t('pages.patient_diagnoses.high_risk_diagnoses')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-orange-600">
@@ -188,11 +198,11 @@ export default function PatientDiagnosesPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <CardTitle className="text-lg">{diagnosis.doctor_name || '醫護人員'}</CardTitle>
+                          <CardTitle className="text-lg">{diagnosis.doctor_name || i18n.t('pages.patient_diagnoses.medical_staff')}</CardTitle>
                           {isNewDiagnosis(diagnosis) && (
                             <Badge variant="destructive" className="text-xs">
                               <AlertCircle className="h-3 w-3 mr-1" />
-                              新報告
+                              {i18n.t('pages.patient_diagnoses.new_report')}
                             </Badge>
                           )}
                           <Badge className={getRiskLevelColor(diagnosis.risk_level)}>
@@ -201,7 +211,7 @@ export default function PatientDiagnosesPage() {
                         </div>
                         <CardDescription className="flex items-center text-sm text-gray-500">
                           <Clock className="h-4 w-4 mr-1" />
-                          {new Date(diagnosis.created_at).toLocaleString('zh-TW', {
+                          {new Date(diagnosis.created_at).toLocaleString(language === 'zh-CN' ? 'zh-CN' : 'zh-TW', {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',
@@ -217,7 +227,7 @@ export default function PatientDiagnosesPage() {
                           onClick={() => markAsRead(diagnosis.id)}
                         >
                           <Eye className="h-4 w-4 mr-1" />
-                          標記已讀
+                          {i18n.t('pages.patient_diagnoses.mark_as_read')}
                         </Button>
                       )}
                     </div>
@@ -225,20 +235,20 @@ export default function PatientDiagnosesPage() {
                   <CardContent>
                     <div className="space-y-4">
                       <div>
-                        <h4 className="font-medium text-gray-900 mb-2">診斷結果</h4>
+                        <h4 className="font-medium text-gray-900 mb-2">{i18n.t('pages.patient_diagnoses.diagnosis_result')}</h4>
                         <p className="text-gray-700">{diagnosis.diagnosis}</p>
                       </div>
                       
                       {diagnosis.treatment_plan && (
                         <div>
-                          <h4 className="font-medium text-gray-900 mb-2">治療建議</h4>
+                          <h4 className="font-medium text-gray-900 mb-2">{i18n.t('pages.patient_diagnoses.treatment_plan')}</h4>
                           <p className="text-gray-700">{diagnosis.treatment_plan}</p>
                         </div>
                       )}
                       
                       {diagnosis.notes && (
                         <div>
-                          <h4 className="font-medium text-gray-900 mb-2">備註</h4>
+                          <h4 className="font-medium text-gray-900 mb-2">{i18n.t('pages.patient_diagnoses.notes')}</h4>
                           <p className="text-gray-700">{diagnosis.notes}</p>
                         </div>
                       )}
@@ -246,7 +256,9 @@ export default function PatientDiagnosesPage() {
                       {diagnosis.follow_up_date && (
                         <div className="flex items-center text-sm text-blue-600">
                           <Clock className="h-4 w-4 mr-1" />
-                          下次復診：{new Date(diagnosis.follow_up_date).toLocaleDateString('zh-TW')}
+                          {i18n.t('pages.patient_diagnoses.next_follow_up', { 
+                            date: new Date(diagnosis.follow_up_date).toLocaleDateString(language === 'zh-CN' ? 'zh-CN' : 'zh-TW') 
+                          })}
                         </div>
                       )}
                     </div>
