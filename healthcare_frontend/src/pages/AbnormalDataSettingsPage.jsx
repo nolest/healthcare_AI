@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '../components/ui/alert'
 import { Activity, Heart, Thermometer, Zap, Settings, Save, RotateCcw } from 'lucide-react'
 import apiService from '../services/api'
 import MedicalHeader from '../components/ui/MedicalHeader'
+import i18n from '../utils/i18n'
 
 export default function AbnormalDataSettingsPage() {
   const navigate = useNavigate()
@@ -17,18 +18,28 @@ export default function AbnormalDataSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+
+    i18n.addListener(handleLanguageChange)
+    return () => i18n.removeListener(handleLanguageChange)
+  }, [])
 
   // 預設分界點配置 - 用戶只需要設定這些關鍵分界點
   const defaultBoundaries = {
     blood_pressure: {
       measurementType: 'blood_pressure',
-      name: '血壓',
+      name: i18n.t('measurement.blood_pressure'),
       unit: 'mmHg',
       icon: Activity,
       color: 'blue',
       parameters: {
         systolic: {
-          name: '收縮壓',
+          name: i18n.t('pages.abnormal_settings.systolic_pressure'),
           boundaries: {
             severe_low_max: 70,    // 嚴重低血壓上限
             low_max: 90,           // 低血壓上限 (正常下限)
@@ -40,7 +51,7 @@ export default function AbnormalDataSettingsPage() {
           absoluteMax: 250
         },
         diastolic: {
-          name: '舒張壓',
+          name: i18n.t('pages.abnormal_settings.diastolic_pressure'),
           boundaries: {
             severe_low_max: 40,
             low_max: 60,
@@ -55,13 +66,13 @@ export default function AbnormalDataSettingsPage() {
     },
     heart_rate: {
       measurementType: 'heart_rate',
-      name: '心率',
+      name: i18n.t('measurement.heart_rate'),
       unit: 'bpm',
       icon: Heart,
       color: 'red',
       parameters: {
         rate: {
-          name: '心率',
+          name: i18n.t('measurement.heart_rate'),
           boundaries: {
             severe_low_max: 40,    // 嚴重心動過緩上限
             low_max: 60,           // 心動過緩上限 (正常下限)
@@ -76,13 +87,13 @@ export default function AbnormalDataSettingsPage() {
     },
     temperature: {
       measurementType: 'temperature',
-      name: '體溫',
+      name: i18n.t('measurement.temperature'),
       unit: '°C',
       icon: Thermometer,
       color: 'orange',
       parameters: {
         temperature: {
-          name: '體溫',
+          name: i18n.t('measurement.temperature'),
           boundaries: {
             severe_low_max: 35.0,
             low_max: 36.1,
@@ -97,13 +108,13 @@ export default function AbnormalDataSettingsPage() {
     },
     oxygen_saturation: {
       measurementType: 'oxygen_saturation',
-      name: '血氧飽和度',
+      name: i18n.t('measurement.oxygen_saturation'),
       unit: '%',
       icon: Zap,
       color: 'purple',
       parameters: {
         oxygen_saturation: {
-          name: '血氧飽和度',
+          name: i18n.t('measurement.oxygen_saturation'),
           boundaries: {
             severe_low_max: 85,
             low_max: 95,  // 匹配數據庫中的min值
@@ -288,7 +299,10 @@ export default function AbnormalDataSettingsPage() {
       const next = boundaries[orderedKeys[i + 1]]
       
       if (current >= next) {
-        errors.push(`${getBoundaryLabel(orderedKeys[i])} 必須小於 ${getBoundaryLabel(orderedKeys[i + 1])}`)
+        errors.push(i18n.t('pages.abnormal_settings.validation_error', { 
+          current: getBoundaryLabel(orderedKeys[i]), 
+          next: getBoundaryLabel(orderedKeys[i + 1]) 
+        }))
       }
     }
     
@@ -297,11 +311,11 @@ export default function AbnormalDataSettingsPage() {
 
   const getBoundaryLabel = (boundaryKey) => {
     const labels = {
-      severe_low_max: '嚴重偏低上限',
-      low_max: '偏低上限',
-      normal_max: '正常上限',
-      high_max: '偏高上限',
-      severe_high_max: '嚴重偏高上限'
+      severe_low_max: i18n.t('pages.abnormal_settings.severe_low_max'),
+      low_max: i18n.t('pages.abnormal_settings.low_max'),
+      normal_max: i18n.t('pages.abnormal_settings.normal_max'),
+      high_max: i18n.t('pages.abnormal_settings.high_max'),
+      severe_high_max: i18n.t('pages.abnormal_settings.severe_high_max')
     }
     return labels[boundaryKey] || boundaryKey
   }
@@ -320,12 +334,12 @@ export default function AbnormalDataSettingsPage() {
 
   const getRangeLabel = (rangeType) => {
     const labels = {
-      critical: '危急',
-      severe_high: '嚴重偏高',
-      high: '偏高',
-      normal: '正常',
-      low: '偏低',
-      severe_low: '嚴重偏低'
+      critical: i18n.t('pages.abnormal_settings.critical'),
+      severe_high: i18n.t('pages.abnormal_settings.severe_high'),
+      high: i18n.t('pages.abnormal_settings.high'),
+      normal: i18n.t('pages.abnormal_settings.normal'),
+      low: i18n.t('pages.abnormal_settings.low'),
+      severe_low: i18n.t('pages.abnormal_settings.severe_low')
     }
     return labels[rangeType] || rangeType
   }
@@ -425,7 +439,7 @@ export default function AbnormalDataSettingsPage() {
         console.log(`✅ ${measurementType} 處理完成`)
       }
 
-      setMessage('✅ 異常範圍設定已成功儲存！')
+      setMessage(i18n.t('pages.abnormal_settings.save_success'))
       setTimeout(() => setMessage(''), 3000)
       
       // 重新載入設定以確保同步
@@ -433,7 +447,7 @@ export default function AbnormalDataSettingsPage() {
     } catch (error) {
       console.error('儲存異常範圍設定失敗:', error)
       console.error('錯誤詳情:', error.response?.data || error.message)
-      setMessage(`❌ 儲存設定失敗: ${error.response?.data?.message || error.message}`)
+      setMessage(i18n.t('pages.abnormal_settings.save_failed', { error: error.response?.data?.message || error.message }))
       setTimeout(() => setMessage(''), 5000)
     } finally {
       setSaving(false)
@@ -456,7 +470,7 @@ export default function AbnormalDataSettingsPage() {
             </Badge>
           </CardTitle>
           <CardDescription className="text-gray-600">
-            設定 {config.name} 的關鍵分界點，系統將自動生成完整的異常範圍
+            {i18n.t('pages.abnormal_settings.config_description', { name: config.name })}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -478,11 +492,11 @@ export default function AbnormalDataSettingsPage() {
                       className="px-3 py-1 text-xs bg-white/80 backdrop-blur-sm text-gray-700 rounded-lg hover:bg-white/90 shadow-sm hover:shadow-md transition-all duration-200 border-0 ring-1 ring-gray-200/50 hover:ring-gray-300/60"
                     >
                       <RotateCcw className="h-3 w-3 mr-1 inline" />
-                      重置預設
+                      {i18n.t('pages.abnormal_settings.reset_defaults')}
                     </button>
-                    <div className="text-sm text-gray-500">
-                      正常範圍: {ranges.normal[0]} - {ranges.normal[1]} {config.unit}
-                    </div>
+                                          <div className="text-sm text-gray-500">
+                        {i18n.t('pages.abnormal_settings.normal_range')}: {ranges.normal[0]} - {ranges.normal[1]} {config.unit}
+                      </div>
                   </div>
                 </div>
                 
@@ -540,7 +554,7 @@ export default function AbnormalDataSettingsPage() {
                 <div className="bg-gradient-to-br from-blue-50/50 to-indigo-50/30 backdrop-blur-sm rounded-xl p-5 shadow-sm">
                   <h5 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    生成的範圍預覽
+                    {i18n.t('pages.abnormal_settings.generated_ranges_preview')}
                   </h5>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
                     {Object.entries(ranges).map(([rangeType, values]) => (
@@ -559,7 +573,7 @@ export default function AbnormalDataSettingsPage() {
                   <div className="bg-gradient-to-br from-red-50/80 to-pink-50/60 backdrop-blur-sm rounded-xl p-4 shadow-sm">
                     <div className="flex items-center gap-2 text-red-800 text-sm font-semibold mb-3">
                       <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs">!</div>
-                      設定錯誤
+                      {i18n.t('pages.abnormal_settings.configuration_error')}
                     </div>
                     <ul className="text-sm text-red-700 space-y-1">
                       {validationErrors.map((error, index) => (
@@ -590,7 +604,7 @@ export default function AbnormalDataSettingsPage() {
               </div>
             </div>
           </div>
-          <p className="mt-4 text-gray-600">載入設定中...</p>
+          <p className="mt-4 text-gray-600">{i18n.t('pages.abnormal_settings.loading')}</p>
         </div>
       </div>
     )
@@ -607,8 +621,8 @@ export default function AbnormalDataSettingsPage() {
 
       {/* 標題 */}
       <MedicalHeader 
-        title="異常範圍設定"
-        subtitle="設定關鍵分界點，系統自動生成完整的異常檢測範圍"
+        title={i18n.t('pages.abnormal_settings.title')}
+        subtitle={i18n.t('pages.abnormal_settings.subtitle')}
         icon={Settings}
         showBackButton={true}
         user={currentUser}
@@ -622,7 +636,7 @@ export default function AbnormalDataSettingsPage() {
           <Alert className="bg-gradient-to-br from-blue-50/90 to-blue-100/70 backdrop-blur-lg shadow-lg shadow-blue-500/10 hover:shadow-xl hover:shadow-blue-500/15 transition-all duration-300 border-0 ring-1 ring-blue-200/30">
             <Settings className="h-4 w-4 text-blue-600" />
             <AlertDescription className="text-blue-800">
-              <strong>分界點設定</strong> - 只需設定幾個關鍵分界點，系統將自動生成完整的異常範圍。這種方式更直觀，確保範圍邏輯正確。
+              <strong>{i18n.t('pages.abnormal_settings.boundary_settings')}</strong> - {i18n.t('pages.abnormal_settings.boundary_description')}
             </AlertDescription>
           </Alert>
         </div>
@@ -642,7 +656,7 @@ export default function AbnormalDataSettingsPage() {
             className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-8 py-3 rounded-xl shadow-lg shadow-green-500/25 hover:shadow-xl hover:shadow-green-500/30 transition-all duration-300 transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             <Save className={`h-5 w-5 mr-2 ${saving ? 'animate-spin' : ''}`} />
-            {saving ? '儲存中...' : '儲存所有設定'}
+            {saving ? i18n.t('pages.abnormal_settings.saving') : i18n.t('pages.abnormal_settings.save_all_settings')}
           </Button>
         </div>
 

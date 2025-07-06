@@ -34,6 +34,7 @@ import ImageViewer from '../components/ImageViewer.jsx'
 import ImagePreview from '../components/ui/ImagePreview.jsx'
 import apiService from '../services/api.js'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
+import i18n from '../utils/i18n.js'
 
 export default function CovidDiagnosisFormPage() {
   const navigate = useNavigate()
@@ -46,6 +47,16 @@ export default function CovidDiagnosisFormPage() {
   const [loading, setLoading] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+
+    i18n.addListener(handleLanguageChange)
+    return () => i18n.removeListener(handleLanguageChange)
+  }, [])
   
   // 图片查看器状态
   const [imageViewerOpen, setImageViewerOpen] = useState(false)
@@ -85,18 +96,18 @@ export default function CovidDiagnosisFormPage() {
 
   // 症状选项
   const symptomOptions = [
-    { value: 'fever', label: '發燒' },
-    { value: 'cough', label: '咳嗽' },
-    { value: 'shortness_breath', label: '呼吸困難' },
-    { value: 'loss_taste_smell', label: '味覺嗅覺喪失' },
-    { value: 'fatigue', label: '疲勞' },
-    { value: 'body_aches', label: '肌肉疼痛' },
-    { value: 'headache', label: '頭痛' },
-    { value: 'sore_throat', label: '喉嚨痛' },
-    { value: 'runny_nose', label: '流鼻涕' },
-    { value: 'nausea', label: '噁心' },
-    { value: 'diarrhea', label: '腹瀉' },
-    { value: 'chills', label: '寒顫' }
+    { value: 'fever', label: i18n.t('symptoms.fever') },
+    { value: 'cough', label: i18n.t('symptoms.cough') },
+    { value: 'shortness_breath', label: i18n.t('symptoms.shortness_breath') },
+    { value: 'loss_taste_smell', label: i18n.t('symptoms.loss_taste_smell') },
+    { value: 'fatigue', label: i18n.t('symptoms.fatigue') },
+    { value: 'body_aches', label: i18n.t('symptoms.body_aches') },
+    { value: 'headache', label: i18n.t('symptoms.headache') },
+    { value: 'sore_throat', label: i18n.t('symptoms.sore_throat') },
+    { value: 'runny_nose', label: i18n.t('symptoms.runny_nose') },
+    { value: 'nausea', label: i18n.t('symptoms.nausea') },
+    { value: 'diarrhea', label: i18n.t('symptoms.diarrhea') },
+    { value: 'chills', label: i18n.t('symptoms.chills') }
   ]
 
   // 用于动态高度调整的refs
@@ -439,13 +450,13 @@ export default function CovidDiagnosisFormPage() {
   // 获取风险等级标签
   const getRiskLevelLabel = (riskLevel) => {
     const riskLevels = {
-      'very_low': '極低風險',
-      'low': '低風險',
-      'medium': '中風險',
-      'high': '高風險',
-      'very_high': '極高風險'
+      'very_low': i18n.t('risk_levels.very_low'),
+      'low': i18n.t('risk_levels.low'),
+      'medium': i18n.t('risk_levels.medium'),
+      'high': i18n.t('risk_levels.high'),
+      'very_high': i18n.t('risk_levels.very_high')
     }
-    return riskLevels[riskLevel] || '未知風險'
+    return riskLevels[riskLevel] || i18n.t('risk_levels.unknown')
   }
 
   // 获取风险等级颜色
@@ -467,7 +478,7 @@ export default function CovidDiagnosisFormPage() {
 
   // 格式化日期
   const formatDate = (dateString) => {
-    if (!dateString) return '未知時間'
+    if (!dateString) return i18n.t('common.unknown_time')
     
     try {
       const date = new Date(dateString)
@@ -475,7 +486,8 @@ export default function CovidDiagnosisFormPage() {
       const diffTime = Math.abs(now - date)
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
       
-      const formatter = new Intl.DateTimeFormat('zh-TW', {
+      const locale = language === 'en' ? 'en-US' : language === 'zh-CN' ? 'zh-CN' : 'zh-TW'
+      const formatter = new Intl.DateTimeFormat(locale, {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -487,17 +499,17 @@ export default function CovidDiagnosisFormPage() {
       const formattedDate = formatter.format(date)
       
       if (diffDays === 1) {
-        return `${formattedDate} (今天)`
+        return `${formattedDate} (${i18n.t('common.today')})`
       } else if (diffDays === 2) {
-        return `${formattedDate} (昨天)`
+        return `${formattedDate} (${i18n.t('common.yesterday')})`
       } else if (diffDays <= 7) {
-        return `${formattedDate} (${diffDays-1}天前)`
+        return `${formattedDate} (${diffDays-1}${i18n.t('common.days_ago')})`
       } else {
         return formattedDate
       }
     } catch (error) {
       console.error('日期格式化失败:', error)
-      return '日期格式錯誤'
+      return i18n.t('common.date_format_error')
     }
   }
 
@@ -583,11 +595,11 @@ export default function CovidDiagnosisFormPage() {
   // 获取状态标签
   const getStatusLabel = (status) => {
     const statusLabels = {
-      'pending': '待處理',
-      'processed': '已處理',
-      'reviewed': '已審核'
+      'pending': i18n.t('status.pending'),
+      'processed': i18n.t('status.processed'),
+      'reviewed': i18n.t('status.reviewed')
     }
-    return statusLabels[status] || '未知狀態'
+    return statusLabels[status] || i18n.t('status.unknown')
   }
 
   // 获取状态颜色样式
@@ -1308,12 +1320,12 @@ export default function CovidDiagnosisFormPage() {
                 
                 {/* 诊断结果 */}
                 <div className="space-y-2">
-                  <Label htmlFor="diagnosis" className="text-sm font-medium text-gray-700">COVID/流感診斷結果 *</Label>
+                  <Label htmlFor="diagnosis" className="text-sm font-medium text-gray-700">{i18n.t('pages.covid_diagnosis_form.diagnosis_result')} *</Label>
                   <Textarea
                     id="diagnosis"
                     value={diagnosis}
                     onChange={(e) => setDiagnosis(e.target.value)}
-                    placeholder="請輸入詳細的COVID/流感診斷結果和分析..."
+                    placeholder={i18n.t('pages.covid_diagnosis_form.diagnosis_placeholder')}
                     className="min-h-[120px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
                     required
                   />
@@ -1322,18 +1334,18 @@ export default function CovidDiagnosisFormPage() {
                 {/* 风险等级 */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-700">
-                    風險等級 <span className="text-red-500">*</span>
+                    {i18n.t('pages.covid_diagnosis_form.risk_level')} <span className="text-red-500">*</span>
                   </Label>
                   <Select value={riskLevel} onValueChange={(value) => setRiskLevel(value)}>
                     <SelectTrigger className="bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300">
-                      <SelectValue placeholder="選擇風險等級" />
+                      <SelectValue placeholder={i18n.t('pages.covid_diagnosis_form.select_risk_level')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="very_low">極低風險</SelectItem>
-                      <SelectItem value="low">低風險</SelectItem>
-                      <SelectItem value="medium">中風險</SelectItem>
-                      <SelectItem value="high">高風險</SelectItem>
-                      <SelectItem value="very_high">極高風險</SelectItem>
+                      <SelectItem value="very_low">{i18n.t('risk_levels.very_low')}</SelectItem>
+                      <SelectItem value="low">{i18n.t('risk_levels.low')}</SelectItem>
+                      <SelectItem value="medium">{i18n.t('risk_levels.medium')}</SelectItem>
+                      <SelectItem value="high">{i18n.t('risk_levels.high')}</SelectItem>
+                      <SelectItem value="very_high">{i18n.t('risk_levels.very_high')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1341,23 +1353,23 @@ export default function CovidDiagnosisFormPage() {
                 {/* 治疗建议 */}
                 <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="medications" className="text-sm font-medium text-gray-700">用藥建議</Label>
+                    <Label htmlFor="medications" className="text-sm font-medium text-gray-700">{i18n.t('pages.covid_diagnosis_form.medication_advice')}</Label>
                     <Textarea
                       id="medications"
                       value={medications}
                       onChange={(e) => setMedications(e.target.value)}
-                      placeholder="請輸入推薦的藥物治療方案..."
+                      placeholder={i18n.t('pages.covid_diagnosis_form.medication_placeholder')}
                       className="min-h-[80px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="lifestyle" className="text-sm font-medium text-gray-700">生活方式建議</Label>
+                    <Label htmlFor="lifestyle" className="text-sm font-medium text-gray-700">{i18n.t('pages.covid_diagnosis_form.lifestyle_advice')}</Label>
                     <Textarea
                       id="lifestyle"
                       value={lifestyle}
                       onChange={(e) => setLifestyle(e.target.value)}
-                      placeholder="請輸入生活方式調整建議..."
+                      placeholder={i18n.t('pages.covid_diagnosis_form.lifestyle_placeholder')}
                       className="min-h-[80px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
                     />
                   </div>
@@ -1365,48 +1377,48 @@ export default function CovidDiagnosisFormPage() {
 
                 {/* 隔离建议 */}
                 <div className="space-y-2">
-                  <Label htmlFor="isolationAdvice" className="text-sm font-medium text-gray-700">隔離建議</Label>
+                  <Label htmlFor="isolationAdvice" className="text-sm font-medium text-gray-700">{i18n.t('pages.covid_diagnosis_form.isolation_advice')}</Label>
                   <Textarea
                     id="isolationAdvice"
                     value={isolationAdvice}
                     onChange={(e) => setIsolationAdvice(e.target.value)}
-                    placeholder="請輸入隔離期間和注意事項..."
+                    placeholder={i18n.t('pages.covid_diagnosis_form.isolation_placeholder')}
                     className="min-h-[80px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
                   />
                 </div>
 
                 {/* 检测建议 */}
                 <div className="space-y-2">
-                  <Label htmlFor="testingRecommendation" className="text-sm font-medium text-gray-700">檢測建議</Label>
+                  <Label htmlFor="testingRecommendation" className="text-sm font-medium text-gray-700">{i18n.t('pages.covid_diagnosis_form.testing_recommendation')}</Label>
                   <Textarea
                     id="testingRecommendation"
                     value={testingRecommendation}
                     onChange={(e) => setTestingRecommendation(e.target.value)}
-                    placeholder="請輸入後續檢測建議..."
+                    placeholder={i18n.t('pages.covid_diagnosis_form.testing_placeholder')}
                     className="min-h-[80px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
                   />
                 </div>
 
                 {/* 复查建议 */}
                 <div className="space-y-2">
-                  <Label htmlFor="followUp" className="text-sm font-medium text-gray-700">復查建議</Label>
+                  <Label htmlFor="followUp" className="text-sm font-medium text-gray-700">{i18n.t('pages.covid_diagnosis_form.follow_up')}</Label>
                   <Textarea
                     id="followUp"
                     value={followUp}
                     onChange={(e) => setFollowUp(e.target.value)}
-                    placeholder="請輸入復查時間和注意事項..."
+                    placeholder={i18n.t('pages.covid_diagnosis_form.follow_up_placeholder')}
                     className="min-h-[80px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
                   />
                 </div>
 
                 {/* 其他备注 */}
                 <div className="space-y-2">
-                  <Label htmlFor="notes" className="text-sm font-medium text-gray-700">其他備註</Label>
+                  <Label htmlFor="notes" className="text-sm font-medium text-gray-700">{i18n.t('pages.covid_diagnosis_form.notes')}</Label>
                   <Textarea
                     id="notes"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="請輸入其他需要注意的事項..."
+                    placeholder={i18n.t('pages.covid_diagnosis_form.notes_placeholder')}
                     className="min-h-[80px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
                   />
                 </div>
@@ -1421,12 +1433,12 @@ export default function CovidDiagnosisFormPage() {
                     {loading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        提交中...
+                        {i18n.t('pages.covid_diagnosis_form.submitting')}
                       </>
                     ) : (
                       <>
                         <Save className="h-4 w-4 mr-2" />
-                        提交COVID診斷報告
+                        {i18n.t('pages.covid_diagnosis_form.submit_diagnosis')}
                       </>
                     )}
                   </Button>
@@ -1436,7 +1448,7 @@ export default function CovidDiagnosisFormPage() {
                     className="border-gray-300 text-gray-600 hover:bg-gray-50"
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    返回列表
+                    {i18n.t('pages.covid_diagnosis_form.back_to_list')}
                   </Button>
                 </div>
 
@@ -1472,10 +1484,10 @@ export default function CovidDiagnosisFormPage() {
         onOpenChange={setConfirmDialogOpen}
         onCancel={cancelNavigation}
         onConfirm={confirmNavigation}
-        title="確認離開"
-        description="您有未保存的診斷內容，確定要離開嗎？"
-        confirmText="確定離開"
-        cancelText="繼續編輯"
+        title={i18n.t('pages.covid_diagnosis_form.confirm_leave_title')}
+        description={i18n.t('pages.covid_diagnosis_form.confirm_leave_description')}
+        confirmText={i18n.t('pages.covid_diagnosis_form.confirm_leave')}
+        cancelText={i18n.t('pages.covid_diagnosis_form.continue_editing')}
         type="warning"
       />
     </div>
