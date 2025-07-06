@@ -9,9 +9,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert.jsx'
 import { Loader2, Heart, Activity, Thermometer, Droplets, CheckCircle } from 'lucide-react'
 import ImageUpload from './ui/ImageUpload.jsx'
 import apiService from '../services/api.js'
+import i18n from '../utils/i18n'
 
 export default function MeasurementForm({ onMeasurementAdded }) {
   const navigate = useNavigate()
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
   const [formData, setFormData] = useState({
     systolic: '',
     diastolic: '',
@@ -27,6 +29,19 @@ export default function MeasurementForm({ onMeasurementAdded }) {
   const [imagePreviewUrls, setImagePreviewUrls] = useState([])
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
+
+  useEffect(() => {
+    // 监听语言变化
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    
+    i18n.addListener(handleLanguageChange)
+    
+    return () => {
+      i18n.removeListener(handleLanguageChange)
+    }
+  }, [])
 
   // 设置默认测量时间为当前时间
   useEffect(() => {
@@ -62,29 +77,29 @@ export default function MeasurementForm({ onMeasurementAdded }) {
                              formData.temperature || formData.oxygenSaturation
     
     if (!hasAnyMeasurement) {
-      errors.push('请至少填写一个生理指标')
+      errors.push(i18n.t('measurement.at_least_one_required'))
     }
     
     // 测量时间必填
     if (!formData.measurementTime) {
-      errors.push('测量时间必须填写')
+      errors.push(i18n.t('measurement.time_required'))
     }
     
     // 只检查基本的数据类型和极端值（防止明显错误输入）
     if (formData.systolic && (isNaN(formData.systolic) || formData.systolic <= 0)) {
-      errors.push('收縮壓必須是有效數字')
+      errors.push(i18n.t('measurement.systolic_invalid'))
     }
     if (formData.diastolic && (isNaN(formData.diastolic) || formData.diastolic <= 0)) {
-      errors.push('舒張壓必須是有效數字')
+      errors.push(i18n.t('measurement.diastolic_invalid'))
     }
     if (formData.heartRate && (isNaN(formData.heartRate) || formData.heartRate <= 0)) {
-      errors.push('心率必須是有效數字')
+      errors.push(i18n.t('measurement.heart_rate_invalid'))
     }
     if (formData.temperature && (isNaN(formData.temperature) || formData.temperature <= 0)) {
-      errors.push('體溫必須是有效數字')
+      errors.push(i18n.t('measurement.temperature_invalid'))
     }
     if (formData.oxygenSaturation && (isNaN(formData.oxygenSaturation) || formData.oxygenSaturation <= 0)) {
-      errors.push('血氧飽和度必須是有效數字')
+      errors.push(i18n.t('measurement.oxygen_saturation_invalid'))
     }
     
     return errors
@@ -134,7 +149,7 @@ export default function MeasurementForm({ onMeasurementAdded }) {
       const isAuthenticated = apiService.isAuthenticated()
       console.log('🔐 用户认证状态:', isAuthenticated)
       if (!isAuthenticated) {
-        throw new Error('用户未登录，请重新登录')
+        throw new Error(i18n.t('auth.login_required'))
       }
 
       // 設置上傳狀態
@@ -185,7 +200,7 @@ export default function MeasurementForm({ onMeasurementAdded }) {
 
     } catch (error) {
       console.error('Submit error:', error)
-      setError(error.message || '保存測量記錄失敗，請檢查網絡連接')
+      setError(error.message || i18n.t('measurement.save_failed'))
     } finally {
       setLoading(false)
       setIsUploading(false)
@@ -198,196 +213,184 @@ export default function MeasurementForm({ onMeasurementAdded }) {
       <div className="bg-gradient-to-br from-white/90 via-white/85 to-white/90 backdrop-blur-md rounded-3xl shadow-2xl shadow-green-500/20 border-0 p-6 relative overflow-hidden">
         {/* 装饰性背景元素 */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-green-200/20 to-transparent rounded-full blur-2xl"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-emerald-200/20 to-transparent rounded-full blur-2xl"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-200/20 to-transparent rounded-full blur-2xl"></div>
         
         <div className="relative z-10">
           <div className="text-center mb-6">
-            <h3 className="text-lg font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent mb-2">
-              生理指標測量
-            </h3>
-            <p className="text-gray-700/80 text-sm">
-              請輸入您的生理指標測量數據（至少填寫一項）
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+              {i18n.t('measurement.new_measurement')}
+            </h2>
+            <p className="text-gray-600">
+              {i18n.t('measurement.form_description')}
             </p>
           </div>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="bg-gradient-to-r from-red-50/80 to-red-100/80 border-0 text-red-700 px-4 py-3 rounded-2xl shadow-inner backdrop-blur-sm">
-                <div className="flex items-center">
-                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mr-3 shadow-sm">
-                    <span className="text-white text-xs font-bold">!</span>
-                  </div>
-                  <span className="text-sm">{error}</span>
-                </div>
-              </div>
-            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-xl shadow-sm">
-                  <Heart className="h-5 w-5 text-red-500" />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <Label htmlFor="systolic" className="text-sm font-medium text-gray-700">
-                    收縮壓 (mmHg) <span className="text-gray-400 text-xs">可選</span>
-                  </Label>
+          {error && (
+            <Alert className="mb-6 bg-gradient-to-r from-red-50/80 to-red-100/80 border-red-200">
+              <AlertDescription className="text-red-700">
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* 测量时间 */}
+            <div className="space-y-2">
+              <Label htmlFor="measurementTime" className="text-sm font-medium text-gray-700">
+                {i18n.t('measurement.measured_at')} *
+              </Label>
+              <Input
+                id="measurementTime"
+                type="datetime-local"
+                value={formData.measurementTime}
+                onChange={(e) => handleChange('measurementTime', e.target.value)}
+                className="w-full h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
+                required
+              />
+            </div>
+
+            {/* 血压测量 */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <Heart className="h-4 w-4 text-red-500" />
+                {i18n.t('measurement.blood_pressure')} (mmHg)
+              </Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="systolic" className="text-xs text-gray-600">{i18n.t('measurement.systolic')}</Label>
                   <Input
                     id="systolic"
                     type="number"
                     placeholder="120"
                     value={formData.systolic}
                     onChange={(e) => handleChange('systolic', e.target.value)}
-                    disabled={loading}
-                    className="h-11 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
+                    className="h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-red-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
                   />
                 </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-xl shadow-sm">
-                  <Heart className="h-5 w-5 text-blue-500" />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <Label htmlFor="diastolic" className="text-sm font-medium text-gray-700">
-                    舒張壓 (mmHg) <span className="text-gray-400 text-xs">可選</span>
-                  </Label>
+                <div>
+                  <Label htmlFor="diastolic" className="text-xs text-gray-600">{i18n.t('measurement.diastolic')}</Label>
                   <Input
                     id="diastolic"
                     type="number"
                     placeholder="80"
                     value={formData.diastolic}
                     onChange={(e) => handleChange('diastolic', e.target.value)}
-                    disabled={loading}
-                    className="h-11 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl shadow-sm">
-                  <Activity className="h-5 w-5 text-green-500" />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <Label htmlFor="heartRate" className="text-sm font-medium text-gray-700">
-                    心率 (次/分) <span className="text-gray-400 text-xs">可選</span>
-                  </Label>
-                  <Input
-                    id="heartRate"
-                    type="number"
-                    placeholder="72"
-                    value={formData.heartRate}
-                    onChange={(e) => handleChange('heartRate', e.target.value)}
-                    disabled={loading}
-                    className="h-11 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-xl shadow-sm">
-                  <Thermometer className="h-5 w-5 text-orange-500" />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <Label htmlFor="temperature" className="text-sm font-medium text-gray-700">
-                    體溫 (°C) <span className="text-gray-400 text-xs">可選</span>
-                  </Label>
-                  <Input
-                    id="temperature"
-                    type="number"
-                    step="0.1"
-                    placeholder="36.5"
-                    value={formData.temperature}
-                    onChange={(e) => handleChange('temperature', e.target.value)}
-                    disabled={loading}
-                    className="h-11 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-xl shadow-sm">
-                  <Droplets className="h-5 w-5 text-blue-600" />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <Label htmlFor="oxygenSaturation" className="text-sm font-medium text-gray-700">
-                    血氧飽和度 (%) <span className="text-gray-400 text-xs">可選</span>
-                  </Label>
-                  <Input
-                    id="oxygenSaturation"
-                    type="number"
-                    placeholder="98"
-                    value={formData.oxygenSaturation}
-                    onChange={(e) => handleChange('oxygenSaturation', e.target.value)}
-                    disabled={loading}
-                    className="h-11 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-br from-purple-500/10 to-indigo-500/10 rounded-xl shadow-sm">
-                  <CheckCircle className="h-5 w-5 text-purple-500" />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <Label htmlFor="measurementTime" className="text-sm font-medium text-gray-700">
-                    測量時間 <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="measurementTime"
-                    type="datetime-local"
-                    value={formData.measurementTime}
-                    onChange={(e) => handleChange('measurementTime', e.target.value)}
-                    disabled={loading}
-                    required
-                    className="h-11 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
+                    className="h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-red-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
                   />
                 </div>
               </div>
             </div>
 
+            {/* 心率 */}
             <div className="space-y-2">
-              <Label htmlFor="notes" className="text-sm font-medium text-gray-700">備註（可選）</Label>
-              <Textarea
-                id="notes"
-                placeholder="記錄任何相關的症狀或特殊情況..."
-                value={formData.notes}
-                onChange={(e) => handleChange('notes', e.target.value)}
-                disabled={loading}
-                rows={3}
-                className="bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 resize-none"
+              <Label htmlFor="heartRate" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <Activity className="h-4 w-4 text-pink-500" />
+                {i18n.t('measurement.heart_rate')} (bpm)
+              </Label>
+              <Input
+                id="heartRate"
+                type="number"
+                placeholder="72"
+                value={formData.heartRate}
+                onChange={(e) => handleChange('heartRate', e.target.value)}
+                className="h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-pink-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
               />
             </div>
 
-            {/* 图片上传区域 */}
-            <ImageUpload
-              selectedImages={selectedImages}
-              onImagesChange={handleImagesChange}
-              disabled={loading}
-              uploading={isUploading}
-              uploadProgress={uploadProgress}
-              accentColor="green"
-            />
-
-            <div className="pt-2">
-              <Button 
-                type="submit" 
-                disabled={loading || isUploading}
-                className="w-full h-12 bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 text-white font-semibold rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border-0"
-              >
-                <div className="flex items-center justify-center">
-                  {loading || isUploading ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
-                      {isUploading ? '上傳中...' : '提交中...'}
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="w-5 h-5 mr-2" />
-                      提交測量記錄
-                    </>
-                  )}
-                </div>
-              </Button>
+            {/* 体温 */}
+            <div className="space-y-2">
+              <Label htmlFor="temperature" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <Thermometer className="h-4 w-4 text-orange-500" />
+                {i18n.t('measurement.temperature')} (°C)
+              </Label>
+              <Input
+                id="temperature"
+                type="number"
+                step="0.1"
+                placeholder="36.5"
+                value={formData.temperature}
+                onChange={(e) => handleChange('temperature', e.target.value)}
+                className="h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-orange-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
+              />
             </div>
+
+            {/* 血氧饱和度 */}
+            <div className="space-y-2">
+              <Label htmlFor="oxygenSaturation" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                <Droplets className="h-4 w-4 text-blue-500" />
+                {i18n.t('measurement.oxygen_saturation')} (%)
+              </Label>
+              <Input
+                id="oxygenSaturation"
+                type="number"
+                placeholder="98"
+                value={formData.oxygenSaturation}
+                onChange={(e) => handleChange('oxygenSaturation', e.target.value)}
+                className="h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
+              />
+            </div>
+
+            {/* 图片上传 */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">
+                {i18n.t('measurement.upload_images')}
+              </Label>
+              <ImageUpload
+                onImagesChange={handleImagesChange}
+                maxImages={5}
+                acceptedTypes={['image/jpeg', 'image/png', 'image/webp']}
+                maxSizePerImage={10 * 1024 * 1024} // 10MB
+              />
+            </div>
+
+            {/* 备注 */}
+            <div className="space-y-2">
+              <Label htmlFor="notes" className="text-sm font-medium text-gray-700">
+                {i18n.t('measurement.notes')}
+              </Label>
+              <Textarea
+                id="notes"
+                placeholder={i18n.t('measurement.notes_placeholder')}
+                value={formData.notes}
+                onChange={(e) => handleChange('notes', e.target.value)}
+                className="min-h-[80px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-purple-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300 resize-none"
+              />
+            </div>
+
+            {/* 上传进度 */}
+            {isUploading && (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">{i18n.t('measurement.uploading')}</span>
+                  <span className="text-blue-600">{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+
+            {/* 提交按钮 */}
+            <Button
+              type="submit"
+              disabled={loading || isUploading}
+              className="w-full h-12 bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 hover:from-green-700 hover:via-blue-700 hover:to-purple-700 text-white font-semibold rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border-0"
+            >
+              {loading || isUploading ? (
+                <div className="flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin mr-3" />
+                  {isUploading ? i18n.t('measurement.uploading') : i18n.t('common.loading')}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  {i18n.t('measurement.submit')}
+                </div>
+              )}
+            </Button>
           </form>
         </div>
       </div>

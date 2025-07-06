@@ -96,7 +96,7 @@ export default function PatientList({ onViewCovidAssessments }) {
       setPatients(patientsWithStats)
     } catch (error) {
       console.error('Error fetching patients:', error)
-      setError('获取患者列表失败')
+      setError(t('patient.fetch_failed'))
     } finally {
       setLoading(false)
     }
@@ -109,7 +109,7 @@ export default function PatientList({ onViewCovidAssessments }) {
       await fetchPatients()
     } catch (error) {
       console.error('Error processing patient measurements:', error)
-      setError('处理患者测量记录失败')
+      setError(t('patient.process_failed'))
     }
   }
 
@@ -159,7 +159,7 @@ export default function PatientList({ onViewCovidAssessments }) {
         {filteredPatients.length === 0 ? (
           <div className="text-center py-8">
             <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">{searchTerm ? '未找到匹配的患者' : '暂无患者数据'}</p>
+            <p className="text-gray-500">{searchTerm ? t('patient.no_search_results') : t('patient.no_patients')}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -177,13 +177,13 @@ export default function PatientList({ onViewCovidAssessments }) {
                           {patient.needsDiagnosis && (
                             <Badge variant="destructive" className="animate-pulse">
                               <AlertTriangle className="h-3 w-3 mr-1" />
-                              急需診斷
+                              {t('patient.urgent_diagnosis')}
                             </Badge>
                           )}
                           {patient.hasAbnormal && !patient.needsDiagnosis && (
                             <Badge variant="secondary">
                               <AlertTriangle className="h-3 w-3 mr-1" />
-                              有異常記錄
+                              {t('patient.has_abnormal')}
                             </Badge>
                           )}
                         </div>
@@ -197,28 +197,28 @@ export default function PatientList({ onViewCovidAssessments }) {
                         </div>
                         <div className="flex items-center gap-2">
                           <Phone className="h-4 w-4 text-gray-500" />
-                          <span className="text-gray-600">電話:</span>
+                          <span className="text-gray-600">{t('patient.phone')}:</span>
                           <span className="font-medium">{patient.phone || 'N/A'}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-gray-500" />
-                          <span className="text-gray-600">異常測量:</span>
-                          <span className="font-medium">{patient.abnormalCount} 次</span>
+                          <span className="text-gray-600">{t('patient.abnormal_measurements')}:</span>
+                          <span className="font-medium">{patient.abnormalCount} {t('patient.times')}</span>
                           {patient.pendingAbnormalCount > 0 && (
                             <span className="text-red-600 font-medium">
-                              ({patient.pendingAbnormalCount} 待處理)
+                              ({patient.pendingAbnormalCount} {t('patient.pending')})
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-gray-600">郵箱:</span>
+                          <span className="text-gray-600">{t('patient.email')}:</span>
                           <span className="font-medium text-xs">{patient.email}</span>
                         </div>
                       </div>
                       
                       {patient.lastMeasurement && (
                         <div className="mt-3 pt-3 border-t text-sm text-gray-600">
-                          <span>最後測量: {new Date(patient.lastMeasurement).toLocaleString('zh-TW')}</span>
+                          <span>{t('patient.last_measurement')}: {new Date(patient.lastMeasurement).toLocaleString('zh-TW')}</span>
                         </div>
                       )}
                     </div>
@@ -229,7 +229,7 @@ export default function PatientList({ onViewCovidAssessments }) {
                         size="sm"
                         onClick={() => navigate(`/medical-staff/patient/${patient.id}`)}
                       >
-                        查看詳情
+{t('patient.view_details')}
                       </Button>
                       
                       {patient.needsDiagnosis && (
@@ -238,7 +238,7 @@ export default function PatientList({ onViewCovidAssessments }) {
                           size="sm"
                           onClick={() => handleProcessPatient(patient.id)}
                         >
-                          處理異常
+{t('patient.process_abnormal')}
                         </Button>
                       )}
                       
@@ -248,7 +248,7 @@ export default function PatientList({ onViewCovidAssessments }) {
                           size="sm"
                           onClick={() => onViewCovidAssessments(patient.id)}
                         >
-                          COVID評估
+{t('patient.covid_assessment')}
                         </Button>
                       )}
                     </div>

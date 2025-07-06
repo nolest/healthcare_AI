@@ -1,7 +1,9 @@
 // 國際化系統
 class I18n {
   constructor() {
-    this.currentLanguage = localStorage.getItem('language') || 'zh-TW'
+    // 检查是否在浏览器环境中
+    const hasLocalStorage = typeof localStorage !== 'undefined'
+    this.currentLanguage = hasLocalStorage ? (localStorage.getItem('language') || 'zh-TW') : 'zh-TW'
     this.listeners = []
     this.translations = {
       'zh-TW': {
@@ -173,6 +175,30 @@ class I18n {
         'measurement.add_success': '測量記錄已成功添加！',
         'measurement.abnormal': '異常',
         'measurement.normal': '正常',
+        'measurement.new_measurement': '生理指標測量',
+        'measurement.form_description': '請輸入您的生理指標測量數據（至少填寫一項）',
+        'measurement.notes_placeholder': '記錄任何相關的症狀或特殊情況...',
+        'measurement.upload_images': '上傳圖片',
+        'measurement.uploading': '上傳中...',
+        'measurement.submit': '提交測量記錄',
+        'measurement.save_failed': '保存測量記錄失敗，請檢查網絡連接',
+        'measurement.at_least_one_required': '請至少填寫一個生理指標',
+        'measurement.time_required': '測量時間必須填寫',
+        'measurement.systolic_invalid': '收縮壓必須是有效數字',
+        'measurement.diastolic_invalid': '舒張壓必須是有效數字',
+        'measurement.heart_rate_invalid': '心率必須是有效數字',
+        'measurement.temperature_invalid': '體溫必須是有效數字',
+        'measurement.oxygen_saturation_invalid': '血氧飽和度必須是有效數字',
+        'measurement.history_title': '測量歷史記錄',
+        'measurement.history_description': '查看您的所有測量數據',
+        'measurement.load_failed': '加載測量記錄失敗',
+        'measurement.pending': '待處理',
+        'measurement.processed': '已處理',
+        'measurement.reviewed': '已審核',
+        'measurement.unknown': '未知',
+        'measurement.vital_signs': '生命體徵測量',
+        'measurement.data': '測量數據',
+        'measurement.no_records': '暫無測量記錄',
         
         // 醫護人員控制台
         'medical.dashboard': '醫護人員控制台',
@@ -241,6 +267,18 @@ class I18n {
         'patient.latest_measurement': '最近測量',
         'patient.has_abnormal': '有異常',
         'patient.loading': '載入患者列表中...',
+        'patient.fetch_failed': '獲取患者列表失敗',
+        'patient.process_failed': '處理患者測量記錄失敗',
+        'patient.no_search_results': '未找到匹配的患者',
+        'patient.urgent_diagnosis': '急需診斷',
+        'patient.phone': '電話',
+        'patient.email': '郵箱',
+        'patient.abnormal_measurements': '異常測量',
+        'patient.times': '次',
+        'patient.pending': '待處理',
+        'patient.last_measurement': '最後測量',
+        'patient.process_abnormal': '處理異常',
+        'patient.covid_assessment': 'COVID評估',
         
         // 健康狀態
         'health.excellent': '優秀',
@@ -259,7 +297,69 @@ class I18n {
         'test.patient_account': '患者賬戶',
         'test.medical_account': '醫護人員賬戶',
         'test.username': '用戶名',
-        'test.password': '密碼'
+        'test.password': '密碼',
+        
+        // 菜單相關
+        'menu.patient_center': '患者中心',
+        'menu.welcome_back': '歡迎回來，{username}',
+        'menu.select_function': '選擇您需要的功能來管理您的健康狀態',
+        'menu.new_measurement': '新測量',
+        'menu.new_measurement_desc': '記錄生命體徵與查看歷史',
+        'menu.covid_flu': 'COVID/流感',
+        'menu.covid_flu_desc': '症狀評估與健康指導',
+        'menu.diagnosis_reports': '診斷報告',
+        'menu.diagnosis_reports_desc': '查看醫護人員診斷',
+        'menu.quick_tips': '健康提醒',
+        'menu.tip_1': '建議每天定時測量生命體徵',
+        'menu.tip_2': '如有不適症狀，請及時進行COVID/流感評估',
+        'menu.tip_3': '定期查看診斷報告，遵循醫護人員建議',
+        
+        // 頁面相關
+        'pages.patient_measurement.title': '生命體徵管理',
+        'pages.patient_measurement.subtitle': '記錄和監測您的健康數據',
+        'pages.patient_measurement.new_measurement_title': '記錄新的生命體徵測量',
+        'pages.patient_measurement.view_history': '查看歷史',
+        'pages.patient_measurement.description': '記錄您的生命體徵測量數據，追蹤健康狀態變化',
+        
+        'pages.medical_staff.title': '醫護人員中心',
+        'pages.medical_staff.subtitle': '專業醫療管理平台',
+        'pages.medical_staff.welcome_back': '歡迎回來，{username}',
+        'pages.medical_staff.select_function': '選擇您需要的功能來管理患者健康狀態',
+        'pages.medical_staff.current_status': '當前診療狀態',
+        'pages.medical_staff.total_diagnoses': '總診斷數',
+        'pages.medical_staff.pending_patients': '待處理患者',
+        'pages.medical_staff.pending_measurements': '待處理測量',
+        'pages.medical_staff.high_risk_patients': '高風險患者',
+        'pages.medical_staff.patient_management': '患者管理',
+        'pages.medical_staff.patient_management_desc': '查看患者列表與異常數據',
+        'pages.medical_staff.diagnosis_evaluation': '診斷評估',
+        'pages.medical_staff.diagnosis_evaluation_desc': '進行患者診斷與治療建議',
+        'pages.medical_staff.covid_management': 'COVID/流感管理',
+        'pages.medical_staff.covid_management_desc': '管理COVID與流感評估',
+        'pages.medical_staff.abnormal_settings': '異常值設置',
+        'pages.medical_staff.abnormal_settings_desc': '配置測量數據異常範圍',
+        'pages.medical_staff.test_guidance': '測試指導',
+        'pages.medical_staff.test_guidance_desc': '提供檢測與隔離指導',
+        
+        'pages.diagnosis.title': '診斷患者',
+        'pages.diagnosis.patient_not_found': '找不到患者 ID: {patientId}',
+        'pages.diagnosis.fetch_patient_failed': '獲取患者信息失敗',
+        'pages.diagnosis.load_failed': '無法載入頁面，請重新登錄',
+        'pages.diagnosis.back_to_login': '返回登錄',
+        'pages.diagnosis.doctor': '醫師',
+        'pages.diagnosis.patient_diagnosis': '患者診斷',
+        'pages.diagnosis.patient_info': '患者信息',
+        'pages.diagnosis.name': '姓名',
+        'pages.diagnosis.username': '用戶名',
+        'pages.diagnosis.patient_id': '患者ID',
+        'pages.diagnosis.role': '角色',
+        'pages.diagnosis.debug_info': '調試信息 (開發環境)',
+        
+        // 導航相關
+        'navigation.back': '返回',
+        
+        'pages.patient_measurement_history.title': '測量歷史記錄',
+        'pages.patient_measurement_history.subtitle': '查看您過往的生命體徵測量記錄'
       },
       
       'zh-CN': {
@@ -436,6 +536,30 @@ class I18n {
         'measurement.add_success': '测量记录已成功添加！',
         'measurement.abnormal': '异常',
         'measurement.normal': '正常',
+        'measurement.new_measurement': '生理指标测量',
+        'measurement.form_description': '请输入您的生理指标测量数据（至少填写一项）',
+        'measurement.notes_placeholder': '记录任何相关的症状或特殊情况...',
+        'measurement.upload_images': '上传图片',
+        'measurement.uploading': '上传中...',
+        'measurement.submit': '提交测量记录',
+        'measurement.save_failed': '保存测量记录失败，请检查网络连接',
+        'measurement.at_least_one_required': '请至少填写一个生理指标',
+        'measurement.time_required': '测量时间必须填写',
+        'measurement.systolic_invalid': '收缩压必须是有效数字',
+        'measurement.diastolic_invalid': '舒张压必须是有效数字',
+        'measurement.heart_rate_invalid': '心率必须是有效数字',
+        'measurement.temperature_invalid': '体温必须是有效数字',
+        'measurement.oxygen_saturation_invalid': '血氧饱和度必须是有效数字',
+        'measurement.history_title': '测量历史记录',
+        'measurement.history_description': '查看您的所有测量数据',
+        'measurement.load_failed': '加载测量记录失败',
+        'measurement.pending': '待处理',
+        'measurement.processed': '已处理',
+        'measurement.reviewed': '已审核',
+        'measurement.unknown': '未知',
+        'measurement.vital_signs': '生命体征测量',
+        'measurement.data': '测量数据',
+        'measurement.no_records': '暂无测量记录',
         
         // 医护人员控制台
         'medical.dashboard': '医护人员控制台',
@@ -504,6 +628,18 @@ class I18n {
         'patient.latest_measurement': '最近测量',
         'patient.has_abnormal': '有异常',
         'patient.loading': '加载患者列表中...',
+        'patient.fetch_failed': '获取患者列表失败',
+        'patient.process_failed': '处理患者测量记录失败',
+        'patient.no_search_results': '未找到匹配的患者',
+        'patient.urgent_diagnosis': '急需诊断',
+        'patient.phone': '电话',
+        'patient.email': '邮箱',
+        'patient.abnormal_measurements': '异常测量',
+        'patient.times': '次',
+        'patient.pending': '待处理',
+        'patient.last_measurement': '最后测量',
+        'patient.process_abnormal': '处理异常',
+        'patient.covid_assessment': 'COVID评估',
         
         // 健康状态
         'health.excellent': '优秀',
@@ -522,7 +658,69 @@ class I18n {
         'test.patient_account': '患者账户',
         'test.medical_account': '医护人员账户',
         'test.username': '用户名',
-        'test.password': '密码'
+        'test.password': '密码',
+        
+        // 菜单相关
+        'menu.patient_center': '患者中心',
+        'menu.welcome_back': '欢迎回来，{username}',
+        'menu.select_function': '选择您需要的功能来管理您的健康状态',
+        'menu.new_measurement': '新测量',
+        'menu.new_measurement_desc': '记录生命体征与查看历史',
+        'menu.covid_flu': 'COVID/流感',
+        'menu.covid_flu_desc': '症状评估与健康指导',
+        'menu.diagnosis_reports': '诊断报告',
+        'menu.diagnosis_reports_desc': '查看医护人员诊断',
+        'menu.quick_tips': '健康提醒',
+        'menu.tip_1': '建议每天定时测量生命体征',
+        'menu.tip_2': '如有不适症状，请及时进行COVID/流感评估',
+        'menu.tip_3': '定期查看诊断报告，遵循医护人员建议',
+        
+        // 页面相关
+        'pages.patient_measurement.title': '生命体征管理',
+        'pages.patient_measurement.subtitle': '记录和监测您的健康数据',
+        'pages.patient_measurement.new_measurement_title': '记录新的生命体征测量',
+        'pages.patient_measurement.view_history': '查看历史',
+        'pages.patient_measurement.description': '记录您的生命体征测量数据，追踪健康状态变化',
+        
+        'pages.medical_staff.title': '医护人员中心',
+        'pages.medical_staff.subtitle': '专业医疗管理平台',
+        'pages.medical_staff.welcome_back': '欢迎回来，{username}',
+        'pages.medical_staff.select_function': '选择您需要的功能来管理患者健康状态',
+        'pages.medical_staff.current_status': '当前诊疗状态',
+        'pages.medical_staff.total_diagnoses': '总诊断数',
+        'pages.medical_staff.pending_patients': '待处理患者',
+        'pages.medical_staff.pending_measurements': '待处理测量',
+        'pages.medical_staff.high_risk_patients': '高风险患者',
+        'pages.medical_staff.patient_management': '患者管理',
+        'pages.medical_staff.patient_management_desc': '查看患者列表与异常数据',
+        'pages.medical_staff.diagnosis_evaluation': '诊断评估',
+        'pages.medical_staff.diagnosis_evaluation_desc': '进行患者诊断与治疗建议',
+        'pages.medical_staff.covid_management': 'COVID/流感管理',
+        'pages.medical_staff.covid_management_desc': '管理COVID与流感评估',
+        'pages.medical_staff.abnormal_settings': '异常值设置',
+        'pages.medical_staff.abnormal_settings_desc': '配置测量数据异常范围',
+        'pages.medical_staff.test_guidance': '测试指导',
+        'pages.medical_staff.test_guidance_desc': '提供检测与隔离指导',
+        
+        'pages.diagnosis.title': '诊断患者',
+        'pages.diagnosis.patient_not_found': '找不到患者 ID: {patientId}',
+        'pages.diagnosis.fetch_patient_failed': '获取患者信息失败',
+        'pages.diagnosis.load_failed': '无法载入页面，请重新登录',
+        'pages.diagnosis.back_to_login': '返回登录',
+        'pages.diagnosis.doctor': '医师',
+        'pages.diagnosis.patient_diagnosis': '患者诊断',
+        'pages.diagnosis.patient_info': '患者信息',
+        'pages.diagnosis.name': '姓名',
+        'pages.diagnosis.username': '用户名',
+        'pages.diagnosis.patient_id': '患者ID',
+        'pages.diagnosis.role': '角色',
+        'pages.diagnosis.debug_info': '调试信息 (开发环境)',
+        
+        // 导航相关
+        'navigation.back': '返回',
+        
+        'pages.patient_measurement_history.title': '测量历史记录',
+        'pages.patient_measurement_history.subtitle': '查看您过往的生命体征测量记录'
       },
       
       'en': {
@@ -698,6 +896,30 @@ class I18n {
         'measurement.add_success': 'Measurement record added successfully!',
         'measurement.abnormal': 'Abnormal',
         'measurement.normal': 'Normal',
+        'measurement.new_measurement': 'Vital Signs Measurement',
+        'measurement.form_description': 'Please enter your vital signs measurement data (at least one item required)',
+        'measurement.notes_placeholder': 'Record any relevant symptoms or special circumstances...',
+        'measurement.upload_images': 'Upload Images',
+        'measurement.uploading': 'Uploading...',
+        'measurement.submit': 'Submit Measurement Record',
+        'measurement.save_failed': 'Failed to save measurement record, please check network connection',
+        'measurement.at_least_one_required': 'Please fill in at least one vital sign',
+        'measurement.time_required': 'Measurement time is required',
+        'measurement.systolic_invalid': 'Systolic pressure must be a valid number',
+        'measurement.diastolic_invalid': 'Diastolic pressure must be a valid number',
+        'measurement.heart_rate_invalid': 'Heart rate must be a valid number',
+        'measurement.temperature_invalid': 'Temperature must be a valid number',
+        'measurement.oxygen_saturation_invalid': 'Oxygen saturation must be a valid number',
+        'measurement.history_title': 'Measurement History',
+        'measurement.history_description': 'View all your measurement data',
+        'measurement.load_failed': 'Failed to load measurement records',
+        'measurement.pending': 'Pending',
+        'measurement.processed': 'Processed',
+        'measurement.reviewed': 'Reviewed',
+        'measurement.unknown': 'Unknown',
+        'measurement.vital_signs': 'Vital Signs Measurement',
+        'measurement.data': 'Measurement Data',
+        'measurement.no_records': 'No measurement records',
         
         // Medical Staff Dashboard
         'medical.dashboard': 'Medical Staff Dashboard',
@@ -766,6 +988,18 @@ class I18n {
         'patient.latest_measurement': 'Latest Measurement',
         'patient.has_abnormal': 'Has Abnormal',
         'patient.loading': 'Loading patient list...',
+        'patient.fetch_failed': 'Failed to fetch patient list',
+        'patient.process_failed': 'Failed to process patient measurements',
+        'patient.no_search_results': 'No matching patients found',
+        'patient.urgent_diagnosis': 'Urgent Diagnosis',
+        'patient.phone': 'Phone',
+        'patient.email': 'Email',
+        'patient.abnormal_measurements': 'Abnormal Measurements',
+        'patient.times': 'times',
+        'patient.pending': 'pending',
+        'patient.last_measurement': 'Last Measurement',
+        'patient.process_abnormal': 'Process Abnormal',
+        'patient.covid_assessment': 'COVID Assessment',
         
         // Health Status
         'health.excellent': 'Excellent',
@@ -784,7 +1018,69 @@ class I18n {
         'test.patient_account': 'Patient Account',
         'test.medical_account': 'Medical Staff Account',
         'test.username': 'Username',
-        'test.password': 'Password'
+        'test.password': 'Password',
+        
+        // Menu Related
+        'menu.patient_center': 'Patient Center',
+        'menu.welcome_back': 'Welcome back, {username}',
+        'menu.select_function': 'Select the function you need to manage your health status',
+        'menu.new_measurement': 'New Measurement',
+        'menu.new_measurement_desc': 'Record vital signs and view history',
+        'menu.covid_flu': 'COVID/Flu',
+        'menu.covid_flu_desc': 'Symptom assessment and health guidance',
+        'menu.diagnosis_reports': 'Diagnosis Reports',
+        'menu.diagnosis_reports_desc': 'View medical staff diagnoses',
+        'menu.quick_tips': 'Health Reminders',
+        'menu.tip_1': 'Recommend measuring vital signs regularly every day',
+        'menu.tip_2': 'If you have symptoms, please conduct COVID/flu assessment in time',
+        'menu.tip_3': 'Check diagnosis reports regularly and follow medical staff recommendations',
+        
+        // Pages Related
+        'pages.patient_measurement.title': 'Vital Signs Management',
+        'pages.patient_measurement.subtitle': 'Record and monitor your health data',
+        'pages.patient_measurement.new_measurement_title': 'Record New Vital Signs Measurement',
+        'pages.patient_measurement.view_history': 'View History',
+        'pages.patient_measurement.description': 'Record your vital signs measurement data and track health status changes',
+        
+        'pages.medical_staff.title': 'Medical Staff Center',
+        'pages.medical_staff.subtitle': 'Professional Medical Management Platform',
+        'pages.medical_staff.welcome_back': 'Welcome back, {username}',
+        'pages.medical_staff.select_function': 'Select the function you need to manage patient health status',
+        'pages.medical_staff.current_status': 'Current Medical Status',
+        'pages.medical_staff.total_diagnoses': 'Total Diagnoses',
+        'pages.medical_staff.pending_patients': 'Pending Patients',
+        'pages.medical_staff.pending_measurements': 'Pending Measurements',
+        'pages.medical_staff.high_risk_patients': 'High Risk Patients',
+        'pages.medical_staff.patient_management': 'Patient Management',
+        'pages.medical_staff.patient_management_desc': 'View patient list and abnormal data',
+        'pages.medical_staff.diagnosis_evaluation': 'Diagnosis Evaluation',
+        'pages.medical_staff.diagnosis_evaluation_desc': 'Conduct patient diagnosis and treatment recommendations',
+        'pages.medical_staff.covid_management': 'COVID/Flu Management',
+        'pages.medical_staff.covid_management_desc': 'Manage COVID and flu assessments',
+        'pages.medical_staff.abnormal_settings': 'Abnormal Settings',
+        'pages.medical_staff.abnormal_settings_desc': 'Configure measurement data abnormal ranges',
+        'pages.medical_staff.test_guidance': 'Test Guidance',
+        'pages.medical_staff.test_guidance_desc': 'Provide testing and isolation guidance',
+        
+        'pages.diagnosis.title': 'Diagnose Patient',
+        'pages.diagnosis.patient_not_found': 'Patient not found ID: {patientId}',
+        'pages.diagnosis.fetch_patient_failed': 'Failed to fetch patient information',
+        'pages.diagnosis.load_failed': 'Unable to load page, please log in again',
+        'pages.diagnosis.back_to_login': 'Back to Login',
+        'pages.diagnosis.doctor': 'Doctor',
+        'pages.diagnosis.patient_diagnosis': 'Patient Diagnosis',
+        'pages.diagnosis.patient_info': 'Patient Information',
+        'pages.diagnosis.name': 'Name',
+        'pages.diagnosis.username': 'Username',
+        'pages.diagnosis.patient_id': 'Patient ID',
+        'pages.diagnosis.role': 'Role',
+        'pages.diagnosis.debug_info': 'Debug Info (Development Environment)',
+        
+        // Navigation Related
+        'navigation.back': 'Back',
+        
+        'pages.patient_measurement_history.title': 'Measurement History',
+        'pages.patient_measurement_history.subtitle': 'View your past vital signs measurement records'
       }
     }
   }
@@ -803,7 +1099,10 @@ class I18n {
   setLanguage(language) {
     if (this.translations[language]) {
       this.currentLanguage = language
-      localStorage.setItem('language', language)
+      // 只在浏览器环境中使用localStorage
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('language', language)
+      }
       this.notifyListeners()
     }
   }

@@ -5,10 +5,25 @@ import { History } from 'lucide-react'
 import PatientHeader from '../components/ui/PatientHeader.jsx'
 import MeasurementHistory from '../components/MeasurementHistory.jsx'
 import apiService from '../services/api.js'
+import i18n from '../utils/i18n'
 
 export default function PatientMeasurementHistoryPage() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    // 监听语言变化
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    
+    i18n.addListener(handleLanguageChange)
+    
+    return () => {
+      i18n.removeListener(handleLanguageChange)
+    }
+  }, [])
 
   useEffect(() => {
     const currentUser = apiService.getCurrentUser()
@@ -38,8 +53,8 @@ export default function PatientMeasurementHistoryPage() {
 
       {/* Header */}
       <PatientHeader 
-        title="測量歷史記錄"
-        subtitle="查看您過往的生命體徵測量記錄"
+        title={i18n.t('pages.patient_measurement_history.title')}
+        subtitle={i18n.t('pages.patient_measurement_history.subtitle')}
         icon={History}
         showBackButton={true}
         backPath="/patient/measurement"

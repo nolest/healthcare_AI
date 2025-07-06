@@ -5,10 +5,25 @@ import { Activity, Plus, History } from 'lucide-react'
 import PatientHeader from '../components/ui/PatientHeader.jsx'
 import MeasurementForm from '../components/MeasurementForm.jsx'
 import apiService from '../services/api.js'
+import i18n from '../utils/i18n'
 
 export default function PatientMeasurementPage() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    // 监听语言变化
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    
+    i18n.addListener(handleLanguageChange)
+    
+    return () => {
+      i18n.removeListener(handleLanguageChange)
+    }
+  }, [])
 
   useEffect(() => {
     const currentUser = apiService.getCurrentUser()
@@ -24,7 +39,7 @@ export default function PatientMeasurementPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <p className="mt-4 text-gray-600">{i18n.t('common.loading')}</p>
         </div>
       </div>
     )
@@ -41,8 +56,8 @@ export default function PatientMeasurementPage() {
 
       {/* Header */}
       <PatientHeader 
-        title="生命體徵管理"
-        subtitle="記錄和監測您的健康數據"
+        title={i18n.t('pages.patient_measurement.title')}
+        subtitle={i18n.t('pages.patient_measurement.subtitle')}
         icon={Activity}
         showBackButton={true}
         user={user}
@@ -54,7 +69,7 @@ export default function PatientMeasurementPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">
-              記錄新的生命體徵測量
+              {i18n.t('pages.patient_measurement.new_measurement_title')}
             </h3>
             <Button
               variant="outline"
@@ -62,11 +77,11 @@ export default function PatientMeasurementPage() {
               className="flex items-center gap-2 bg-gradient-to-br from-white/70 to-white/50 backdrop-blur-md border-blue-200 hover:border-blue-300 hover:bg-white/80 text-blue-700 hover:text-blue-800 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl"
             >
               <History className="h-4 w-4" />
-              查看歷史
+              {i18n.t('pages.patient_measurement.view_history')}
             </Button>
           </div>
           <p className="text-gray-600/80 text-sm mb-6">
-            記錄您的生命體徵測量數據，追蹤健康狀態變化
+            {i18n.t('pages.patient_measurement.description')}
           </p>
           <MeasurementForm />
         </div>

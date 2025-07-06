@@ -12,11 +12,26 @@ import {
 } from 'lucide-react'
 import PatientHeader from '../components/ui/PatientHeader.jsx'
 import apiService from '../services/api.js'
+import i18n from '../utils/i18n'
 
 export default function PatientMenuPage() {
   const navigate = useNavigate()
   const [currentUser, setCurrentUser] = useState(null)
   const [unreadDiagnoses, setUnreadDiagnoses] = useState(0)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    // 监听语言变化
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    
+    i18n.addListener(handleLanguageChange)
+    
+    return () => {
+      i18n.removeListener(handleLanguageChange)
+    }
+  }, [])
 
   useEffect(() => {
     // 检查用户是否已登录
@@ -54,8 +69,8 @@ export default function PatientMenuPage() {
 
   const menuItems = [
     {
-      title: '新測量',
-      description: '記錄生命體徵與查看歷史',
+      title: i18n.t('menu.new_measurement'),
+      description: i18n.t('menu.new_measurement_desc'),
       icon: Plus,
       color: 'text-green-600',
       bgColor: 'bg-green-50 hover:bg-green-100',
@@ -63,8 +78,8 @@ export default function PatientMenuPage() {
       path: '/patient/measurement'
     },
     {
-      title: 'COVID/流感',
-      description: '症狀評估與健康指導',
+      title: i18n.t('menu.covid_flu'),
+      description: i18n.t('menu.covid_flu_desc'),
       icon: Shield,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50 hover:bg-purple-100',
@@ -72,8 +87,8 @@ export default function PatientMenuPage() {
       path: '/patient/covid-assessment'
     },
     {
-      title: '診斷報告',
-      description: '查看醫護人員診斷',
+      title: i18n.t('menu.diagnosis_reports'),
+      description: i18n.t('menu.diagnosis_reports_desc'),
       icon: FileText,
       color: 'text-orange-600',
       bgColor: 'bg-orange-50 hover:bg-orange-100',
@@ -88,7 +103,7 @@ export default function PatientMenuPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <p className="mt-4 text-gray-600">{i18n.t('common.loading')}</p>
         </div>
       </div>
     )
@@ -105,7 +120,7 @@ export default function PatientMenuPage() {
 
       {/* Header */}
       <PatientHeader 
-        title="患者中心"
+        title={i18n.t('menu.patient_center')}
         subtitle=""
         icon={Heart}
         showBackButton={false}
@@ -117,10 +132,10 @@ export default function PatientMenuPage() {
         {/* 欢迎信息 */}
         <div className="mb-8 text-left">
           <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-3">
-            歡迎回來，{currentUser?.username}
+            {i18n.t('menu.welcome_back', { username: currentUser?.username })}
           </h2>
           <p className="text-gray-700/80 text-lg">
-            選擇您需要的功能來管理您的健康狀態
+            {i18n.t('menu.select_function')}
           </p>
         </div>
 
@@ -130,8 +145,12 @@ export default function PatientMenuPage() {
             const IconComponent = item.icon
             // 根据不同按钮设置不同的颜色主题
             const getColorTheme = (title) => {
+              const newMeasurementTitle = i18n.t('menu.new_measurement')
+              const covidFluTitle = i18n.t('menu.covid_flu')
+              const diagnosisReportsTitle = i18n.t('menu.diagnosis_reports')
+              
               switch(title) {
-                case '新測量':
+                case newMeasurementTitle:
                   return {
                     bg: 'from-green-50/80 to-green-100/60',
                     hoverBg: 'hover:from-green-100/90 hover:to-green-200/70',
@@ -140,7 +159,7 @@ export default function PatientMenuPage() {
                     textHover: 'group-hover:from-green-700 group-hover:to-green-600',
                     cardShadow: 'shadow-green-500/15 hover:shadow-green-500/25'
                   }
-                case 'COVID/流感':
+                case covidFluTitle:
                   return {
                     bg: 'from-purple-50/80 to-purple-100/60',
                     hoverBg: 'hover:from-purple-100/90 hover:to-purple-200/70',
@@ -149,7 +168,7 @@ export default function PatientMenuPage() {
                     textHover: 'group-hover:from-purple-700 group-hover:to-purple-600',
                     cardShadow: 'shadow-purple-500/15 hover:shadow-purple-500/25'
                   }
-                case '診斷報告':
+                case diagnosisReportsTitle:
                   return {
                     bg: 'from-orange-50/80 to-orange-100/60',
                     hoverBg: 'hover:from-orange-100/90 hover:to-orange-200/70',
@@ -201,7 +220,8 @@ export default function PatientMenuPage() {
                         </div>
                       )}
                     </div>
-                    <p className="text-sm text-gray-700/80 group-hover:text-gray-700 transition-colors duration-300 leading-relaxed">
+                    
+                    <p className="text-gray-600 text-sm leading-relaxed">
                       {item.description}
                     </p>
                   </div>
@@ -211,29 +231,20 @@ export default function PatientMenuPage() {
           })}
         </div>
 
-        {/* 健康提醒 */}
-        <div className="mt-12">
-          <div className="flex items-start">
-            <div className="p-3 bg-gradient-to-br from-blue-400/60 via-indigo-400/60 to-purple-400/60 rounded-2xl shadow-lg shadow-blue-500/20 mr-6 mt-1 flex-shrink-0">
-              <AlertCircle className="h-6 w-6 text-white/90" />
+        {/* 快速操作提示 */}
+        <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 backdrop-blur-md rounded-2xl p-6 border border-blue-200/50 shadow-lg shadow-blue-500/10">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/30">
+              <AlertCircle className="h-5 w-5 text-white" />
             </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 bg-clip-text text-transparent mb-4">健康提醒</h3>
-              <ul className="text-gray-700/90 space-y-3">
-                <li className="flex items-center group">
-                  <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full mr-4 flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-200"></div>
-                  <span className="group-hover:text-blue-700 transition-colors duration-200">建議每天定時測量生命體徵</span>
-                </li>
-                <li className="flex items-center group">
-                  <div className="w-2 h-2 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full mr-4 flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-200"></div>
-                  <span className="group-hover:text-indigo-700 transition-colors duration-200">如有不適症狀，請及時進行COVID/流感評估</span>
-                </li>
-                <li className="flex items-center group">
-                  <div className="w-2 h-2 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full mr-4 flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-200"></div>
-                  <span className="group-hover:text-purple-700 transition-colors duration-200">定期查看診斷報告，遵循醫護人員建議</span>
-                </li>
-              </ul>
-            </div>
+            <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
+              {i18n.t('menu.quick_tips')}
+            </h3>
+          </div>
+          <div className="text-gray-700 text-sm space-y-2">
+            <p>• {i18n.t('menu.tip_1')}</p>
+            <p>• {i18n.t('menu.tip_2')}</p>
+            <p>• {i18n.t('menu.tip_3')}</p>
           </div>
         </div>
       </main>

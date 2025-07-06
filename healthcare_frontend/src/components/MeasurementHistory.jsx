@@ -3,11 +3,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge.jsx'
 import { Heart, Activity, Thermometer, Droplets, RefreshCw, Calendar, Stethoscope } from 'lucide-react'
 import apiService from '../services/api.js'
+import i18n from '../utils/i18n'
 
 export default function MeasurementHistory({ measurements: propMeasurements, onRefresh }) {
   const [measurements, setMeasurements] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    // 监听语言变化
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    
+    i18n.addListener(handleLanguageChange)
+    
+    return () => {
+      i18n.removeListener(handleLanguageChange)
+    }
+  }, [])
 
   // 如果有传入的measurements属性，使用它；否则从API获取
   useEffect(() => {
@@ -49,7 +64,7 @@ export default function MeasurementHistory({ measurements: propMeasurements, onR
       setMeasurements(userMeasurements)
     } catch (error) {
       console.error('Error loading measurements:', error)
-      setError('加載測量記錄失敗')
+      setError(i18n.t('measurement.load_failed'))
       setMeasurements([])
     } finally {
       setLoading(false)
@@ -58,18 +73,18 @@ export default function MeasurementHistory({ measurements: propMeasurements, onR
 
   const getStatusBadge = (measurement) => {
     if (measurement.isAbnormal) {
-      return <Badge className="bg-red-500 text-white text-xs px-2 py-1 h-5">異常</Badge>
+      return <Badge className="bg-red-500 text-white text-xs px-2 py-1 h-5">{i18n.t('measurement.abnormal')}</Badge>
     }
     
     switch (measurement.status) {
       case 'pending':
-        return <Badge className="bg-yellow-500 text-white text-xs px-2 py-1 h-5">待處理</Badge>
+        return <Badge className="bg-yellow-500 text-white text-xs px-2 py-1 h-5">{i18n.t('measurement.pending')}</Badge>
       case 'processed':
-        return <Badge className="bg-green-500 text-white text-xs px-2 py-1 h-5">已處理</Badge>
+        return <Badge className="bg-green-500 text-white text-xs px-2 py-1 h-5">{i18n.t('measurement.processed')}</Badge>
       case 'reviewed':
-        return <Badge className="bg-blue-500 text-white text-xs px-2 py-1 h-5">已審核</Badge>
+        return <Badge className="bg-blue-500 text-white text-xs px-2 py-1 h-5">{i18n.t('measurement.reviewed')}</Badge>
       default:
-        return <Badge className="bg-gray-500 text-white text-xs px-2 py-1 h-5">未知</Badge>
+        return <Badge className="bg-gray-500 text-white text-xs px-2 py-1 h-5">{i18n.t('measurement.unknown')}</Badge>
     }
   }
 
@@ -114,8 +129,8 @@ export default function MeasurementHistory({ measurements: propMeasurements, onR
       <Card className="bg-white/40 backdrop-blur-xl ring-1 ring-white/30 shadow-2xl shadow-blue-500/10">
         <CardHeader>
           <div>
-            <CardTitle className="text-xl bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">測量歷史記錄</CardTitle>
-            <CardDescription className="text-gray-600">查看您的所有測量數據</CardDescription>
+            <CardTitle className="text-xl bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">{i18n.t('measurement.history_title')}</CardTitle>
+            <CardDescription className="text-gray-600">{i18n.t('measurement.history_description')}</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
@@ -129,12 +144,12 @@ export default function MeasurementHistory({ measurements: propMeasurements, onR
           {loading ? (
             <div className="text-center py-8">
               <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-              <p className="text-gray-500">加載中...</p>
+              <p className="text-gray-500">{i18n.t('common.loading')}</p>
             </div>
           ) : sortedMeasurements.length === 0 ? (
             <div className="text-center py-8">
               <Stethoscope className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">暫無測量記錄</p>
+              <p className="text-gray-500 text-lg">{i18n.t('measurement.no_records')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -144,7 +159,7 @@ export default function MeasurementHistory({ measurements: propMeasurements, onR
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1">
                         <Activity className={`h-4 w-4 ${getIconColor(measurement)}`} />
-                        <CardTitle className="text-sm text-gray-800">生命體徵測量</CardTitle>
+                        <CardTitle className="text-sm text-gray-800">{i18n.t('measurement.vital_signs')}</CardTitle>
                       </div>
                       <div className="flex items-center gap-1">
                         {getStatusBadge(measurement)}
@@ -159,12 +174,12 @@ export default function MeasurementHistory({ measurements: propMeasurements, onR
                     <div className="space-y-1.5">
                       {/* 测量数据 */}
                       <div>
-                        <h4 className="font-medium text-gray-700 mb-1 text-xs">測量數據</h4>
+                        <h4 className="font-medium text-gray-700 mb-1 text-xs">{i18n.t('measurement.data')}</h4>
                         <div className="grid grid-cols-2 gap-1">
                           {measurement.systolic && measurement.diastolic && (
                             <div className="text-center p-1 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-red-200/30 shadow-sm">
                               <Heart className="h-3 w-3 text-red-500 mx-auto mb-0.5" />
-                              <p className="text-xs text-gray-600">血壓</p>
+                              <p className="text-xs text-gray-600">{i18n.t('measurement.blood_pressure')}</p>
                               <p className="font-semibold text-xs text-gray-800">
                                 {measurement.systolic}/{measurement.diastolic}
                               </p>
@@ -173,21 +188,21 @@ export default function MeasurementHistory({ measurements: propMeasurements, onR
                           {measurement.heartRate && (
                             <div className="text-center p-1 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-pink-200/30 shadow-sm">
                               <Activity className="h-3 w-3 text-pink-500 mx-auto mb-0.5" />
-                              <p className="text-xs text-gray-600">心率</p>
+                              <p className="text-xs text-gray-600">{i18n.t('measurement.heart_rate')}</p>
                               <p className="font-semibold text-xs text-gray-800">{measurement.heartRate} bpm</p>
                             </div>
                           )}
                           {measurement.temperature && (
                             <div className="text-center p-1 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-orange-200/30 shadow-sm">
                               <Thermometer className="h-3 w-3 text-orange-500 mx-auto mb-0.5" />
-                              <p className="text-xs text-gray-600">體溫</p>
+                              <p className="text-xs text-gray-600">{i18n.t('measurement.temperature')}</p>
                               <p className="font-semibold text-xs text-gray-800">{measurement.temperature}°C</p>
                             </div>
                           )}
                           {measurement.oxygenSaturation && (
                             <div className="text-center p-1 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-cyan-200/30 shadow-sm">
                               <Droplets className="h-3 w-3 text-cyan-500 mx-auto mb-0.5" />
-                              <p className="text-xs text-gray-600">血氧</p>
+                              <p className="text-xs text-gray-600">{i18n.t('measurement.oxygen_saturation')}</p>
                               <p className="font-semibold text-xs text-gray-800">{measurement.oxygenSaturation}%</p>
                             </div>
                           )}
@@ -197,10 +212,10 @@ export default function MeasurementHistory({ measurements: propMeasurements, onR
                       {/* 备注信息 */}
                       {measurement.notes && (
                         <div>
-                          <h4 className="font-medium text-gray-700 mb-1 text-xs">備註</h4>
-                          <div className="p-2 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-blue-200/30 shadow-sm">
-                            <p className="text-xs text-gray-800 leading-relaxed">{measurement.notes}</p>
-                          </div>
+                          <h4 className="font-medium text-gray-700 mb-1 text-xs">{i18n.t('measurement.notes')}</h4>
+                          <p className="text-xs text-gray-600 bg-gradient-to-br from-white/90 to-white/70 rounded-md p-1 shadow-sm">
+                            {measurement.notes}
+                          </p>
                         </div>
                       )}
                     </div>

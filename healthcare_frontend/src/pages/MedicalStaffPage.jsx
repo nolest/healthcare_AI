@@ -16,12 +16,27 @@ import {
 } from 'lucide-react'
 import MedicalHeader from '../components/ui/MedicalHeader.jsx'
 import apiService from '../services/api.js'
+import i18n from '../utils/i18n'
 
 export default function MedicalStaffPage() {
   const navigate = useNavigate()
   const [currentUser, setCurrentUser] = useState(null)
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    // 监听语言变化
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    
+    i18n.addListener(handleLanguageChange)
+    
+    return () => {
+      i18n.removeListener(handleLanguageChange)
+    }
+  }, [])
 
   useEffect(() => {
     // 检查用户是否已登录
@@ -109,39 +124,39 @@ export default function MedicalStaffPage() {
 
   const menuItems = [
     {
-      title: '患者管理',
-      description: '查看患者列表與異常數據',
+      title: i18n.t('pages.medical_staff.patient_management'),
+      description: i18n.t('pages.medical_staff.patient_management_desc'),
       icon: Users,
       color: 'text-blue-600',
       path: '/medical/patients-management',
       badge: stats?.pendingPatients || null
     },
     {
-      title: '診斷評估',
-      description: '進行患者診斷與治療建議',
+      title: i18n.t('pages.medical_staff.diagnosis_evaluation'),
+      description: i18n.t('pages.medical_staff.diagnosis_evaluation_desc'),
       icon: FileText,
       color: 'text-green-600',  
       path: '/medical/diagnosis',
       badge: stats?.pendingMeasurements > 0 ? stats.pendingMeasurements : null
     },
     {
-      title: 'COVID/流感管理',
-      description: '管理COVID與流感評估',
+      title: i18n.t('pages.medical_staff.covid_management'),
+      description: i18n.t('pages.medical_staff.covid_management_desc'),
       icon: Shield,
       color: 'text-purple-600',
       path: '/medical/covid-management',
       badge: stats?.highRiskPatients || null
     },
     {
-      title: '異常值設置',
-      description: '配置測量數據異常範圍',
+      title: i18n.t('pages.medical_staff.abnormal_settings'),
+      description: i18n.t('pages.medical_staff.abnormal_settings_desc'),
       icon: Settings,
       color: 'text-orange-600',
       path: '/medical/abnormal-settings'
     },
     {
-      title: '測試指導',
-      description: '提供檢測與隔離指導',
+      title: i18n.t('pages.medical_staff.test_guidance'),
+      description: i18n.t('pages.medical_staff.test_guidance_desc'),
       icon: Activity,
       color: 'text-red-600',
       path: '/medical/guidance'
@@ -153,7 +168,7 @@ export default function MedicalStaffPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <p className="mt-4 text-gray-600">{i18n.t('common.loading')}</p>
         </div>
       </div>
     )
@@ -170,8 +185,8 @@ export default function MedicalStaffPage() {
 
       {/* Header */}
       <MedicalHeader 
-        title="醫護人員中心"
-        subtitle="專業醫療管理平台"
+        title={i18n.t('pages.medical_staff.title')}
+        subtitle={i18n.t('pages.medical_staff.subtitle')}
         icon={Stethoscope}
         showBackButton={false}
         user={currentUser}
@@ -182,10 +197,10 @@ export default function MedicalStaffPage() {
         {/* 欢迎信息 - 统一样式 */}
         <div className="mb-8 text-left">
           <h2 className="text-3xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent mb-3">
-            歡迎回來，{currentUser?.username}
+            {i18n.t('pages.medical_staff.welcome_back', { username: currentUser?.username })}
           </h2>
           <p className="text-gray-700/80 text-lg">
-            選擇您需要的功能來管理患者健康狀態
+            {i18n.t('pages.medical_staff.select_function')}
           </p>
         </div>
 
@@ -193,25 +208,25 @@ export default function MedicalStaffPage() {
         {stats && (
           <div className="mb-8">
             <h3 className="text-xl font-bold bg-gradient-to-r from-green-700 to-emerald-700 bg-clip-text text-transparent mb-4">
-              當前診療狀態
+              {i18n.t('pages.medical_staff.current_status')}
             </h3>
             <div className="bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-lg rounded-3xl p-6 shadow-md shadow-gray-200/60">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600 mb-1">{stats.totalDiagnoses}</div>
-                  <p className="text-sm text-gray-600">總診斷數</p>
+                  <div className="text-2xl font-bold text-blue-600">{stats.totalDiagnoses}</div>
+                  <div className="text-sm text-gray-600">{i18n.t('pages.medical_staff.total_diagnoses')}</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600 mb-1">{stats.pendingPatients}</div>
-                  <p className="text-sm text-gray-600">待處理患者</p>
+                  <div className="text-2xl font-bold text-orange-600">{stats.pendingPatients}</div>
+                  <div className="text-sm text-gray-600">{i18n.t('pages.medical_staff.pending_patients')}</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600 mb-1">{stats.highRiskPatients}</div>
-                  <p className="text-sm text-gray-600">高風險患者</p>
+                  <div className="text-2xl font-bold text-red-600">{stats.pendingMeasurements}</div>
+                  <div className="text-sm text-gray-600">{i18n.t('pages.medical_staff.pending_measurements')}</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600 mb-1">{stats.totalAssessments}</div>
-                  <p className="text-sm text-gray-600">總評估數</p>
+                  <div className="text-2xl font-bold text-purple-600">{stats.highRiskPatients}</div>
+                  <div className="text-sm text-gray-600">{i18n.t('pages.medical_staff.high_risk_patients')}</div>
                 </div>
               </div>
             </div>
@@ -219,13 +234,19 @@ export default function MedicalStaffPage() {
         )}
 
         {/* 功能菜单网格 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {menuItems.map((item, index) => {
             const IconComponent = item.icon
             // 根据不同按钮设置不同的颜色主题
             const getColorTheme = (title) => {
+              const patientManagementTitle = i18n.t('pages.medical_staff.patient_management')
+              const diagnosisEvaluationTitle = i18n.t('pages.medical_staff.diagnosis_evaluation')
+              const covidManagementTitle = i18n.t('pages.medical_staff.covid_management')
+              const abnormalSettingsTitle = i18n.t('pages.medical_staff.abnormal_settings')
+              const testGuidanceTitle = i18n.t('pages.medical_staff.test_guidance')
+              
               switch(title) {
-                case '患者管理':
+                case patientManagementTitle:
                   return {
                     bg: 'from-blue-50/80 to-blue-100/60',
                     hoverBg: 'hover:from-blue-100/90 hover:to-blue-200/70',
@@ -234,7 +255,7 @@ export default function MedicalStaffPage() {
                     textHover: 'group-hover:from-blue-700 group-hover:to-blue-600',
                     cardShadow: 'shadow-blue-500/15 hover:shadow-blue-500/25'
                   }
-                case '診斷評估':
+                case diagnosisEvaluationTitle:
                   return {
                     bg: 'from-green-50/80 to-green-100/60',
                     hoverBg: 'hover:from-green-100/90 hover:to-green-200/70',
@@ -243,7 +264,7 @@ export default function MedicalStaffPage() {
                     textHover: 'group-hover:from-green-700 group-hover:to-green-600',
                     cardShadow: 'shadow-green-500/15 hover:shadow-green-500/25'
                   }
-                case 'COVID/流感管理':
+                case covidManagementTitle:
                   return {
                     bg: 'from-purple-50/80 to-purple-100/60',
                     hoverBg: 'hover:from-purple-100/90 hover:to-purple-200/70',
@@ -252,7 +273,7 @@ export default function MedicalStaffPage() {
                     textHover: 'group-hover:from-purple-700 group-hover:to-purple-600',
                     cardShadow: 'shadow-purple-500/15 hover:shadow-purple-500/25'
                   }
-                case '異常值設置':
+                case abnormalSettingsTitle:
                   return {
                     bg: 'from-orange-50/80 to-orange-100/60',
                     hoverBg: 'hover:from-orange-100/90 hover:to-orange-200/70',
@@ -261,7 +282,7 @@ export default function MedicalStaffPage() {
                     textHover: 'group-hover:from-orange-700 group-hover:to-orange-600',
                     cardShadow: 'shadow-orange-500/15 hover:shadow-orange-500/25'
                   }
-                case '測試指導':
+                case testGuidanceTitle:
                   return {
                     bg: 'from-red-50/80 to-red-100/60',
                     hoverBg: 'hover:from-red-100/90 hover:to-red-200/70',
@@ -313,7 +334,8 @@ export default function MedicalStaffPage() {
                         </div>
                       )}
                     </div>
-                    <p className="text-sm text-gray-700/80 group-hover:text-gray-700 transition-colors duration-300 leading-relaxed">
+                    
+                    <p className="text-gray-600 text-sm leading-relaxed">
                       {item.description}
                     </p>
                   </div>
@@ -321,36 +343,6 @@ export default function MedicalStaffPage() {
               </div>
             )
           })}
-        </div>
-
-        {/* 专业提醒 */}
-        <div className="mt-12">
-          <div className="flex items-start">
-            <div className="p-3 bg-gradient-to-br from-green-400/60 via-emerald-400/60 to-teal-400/60 rounded-2xl shadow-lg shadow-green-500/20 mr-6 mt-1 flex-shrink-0">
-              <Stethoscope className="h-6 w-6 text-white/90" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold bg-gradient-to-r from-green-700 via-emerald-700 to-teal-700 bg-clip-text text-transparent mb-4">專業提醒</h3>
-              <ul className="text-gray-700/90 space-y-3">
-                <li className="flex items-center group">
-                  <div className="w-2 h-2 bg-gradient-to-r from-green-500 to-green-600 rounded-full mr-4 flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-200"></div>
-                  <span className="group-hover:text-green-700 transition-colors duration-200">及時處理待診斷的異常測量數據</span>
-                </li>
-                <li className="flex items-center group">
-                  <div className="w-2 h-2 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full mr-4 flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-200"></div>
-                  <span className="group-hover:text-emerald-700 transition-colors duration-200">關注高風險COVID/流感評估患者</span>
-                </li>
-                <li className="flex items-center group">
-                  <div className="w-2 h-2 bg-gradient-to-r from-teal-500 to-teal-600 rounded-full mr-4 flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-200"></div>
-                  <span className="group-hover:text-teal-700 transition-colors duration-200">定期更新異常值範圍設置以提高診斷準確性</span>
-                </li>
-                <li className="flex items-center group">
-                  <div className="w-2 h-2 bg-gradient-to-r from-cyan-500 to-cyan-600 rounded-full mr-4 flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-200"></div>
-                  <span className="group-hover:text-cyan-700 transition-colors duration-200">為患者提供及時的診斷報告和治療建議</span>
-                </li>
-              </ul>
-            </div>
-          </div>
         </div>
       </main>
     </div>

@@ -12,6 +12,20 @@ export default function DiagnosisPage() {
   const [currentUser, setCurrentUser] = useState(null)
   const [patient, setPatient] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    // 监听语言变化
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    
+    i18n.addListener(handleLanguageChange)
+    
+    return () => {
+      i18n.removeListener(handleLanguageChange)
+    }
+  }, [])
 
   useEffect(() => {
     // 检查用户是否已登录
@@ -74,12 +88,12 @@ export default function DiagnosisPage() {
         setPatient(patientWithId)
       } else {
         console.error('Patient not found:', patientId)
-        alert(`找不到患者 ID: ${patientId}`)
+        alert(i18n.t('pages.diagnosis.patient_not_found', { patientId }))
         navigate('/medical')
       }
     } catch (error) {
       console.error('Error fetching patient data:', error)
-      alert('获取患者信息失败')
+      alert(i18n.t('pages.diagnosis.fetch_patient_failed'))
       navigate('/medical')
     }
   }
@@ -103,7 +117,7 @@ export default function DiagnosisPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <p className="mt-4 text-gray-600">{i18n.t('common.loading')}</p>
         </div>
       </div>
     )
@@ -113,9 +127,9 @@ export default function DiagnosisPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600">無法載入頁面，請重新登錄</p>
+          <p className="text-red-600">{i18n.t('pages.diagnosis.load_failed')}</p>
           <Button onClick={() => navigate('/login')} className="mt-4">
-            返回登錄
+            {i18n.t('pages.diagnosis.back_to_login')}
           </Button>
         </div>
       </div>
@@ -136,15 +150,15 @@ export default function DiagnosisPage() {
                 className="flex items-center space-x-2"
               >
                 <ArrowLeft className="h-4 w-4" />
-                <span>返回</span>
+                <span>{i18n.t('navigation.back')}</span>
               </Button>
               <h1 className="text-xl font-semibold text-gray-900">
-                🏥 診斷患者 - {patient.fullName}
+                🏥 {i18n.t('pages.diagnosis.title')} - {patient.fullName}
               </h1>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
-                {currentUser.fullName} 醫師
+                {currentUser.fullName} {i18n.t('pages.diagnosis.doctor')}
               </span>
               <Button
                 onClick={handleLogout}
@@ -152,7 +166,7 @@ export default function DiagnosisPage() {
                 size="sm"
               >
                 <LogOut className="h-4 w-4 mr-2" />
-                登出
+                {i18n.t('auth.logout')}
               </Button>
             </div>
           </div>
@@ -164,26 +178,26 @@ export default function DiagnosisPage() {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              患者診斷
+              {i18n.t('pages.diagnosis.patient_diagnosis')}
             </h2>
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-semibold text-blue-900 mb-2">患者信息</h3>
+              <h3 className="font-semibold text-blue-900 mb-2">{i18n.t('pages.diagnosis.patient_info')}</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="font-medium text-blue-700">姓名：</span>
+                  <span className="font-medium text-blue-700">{i18n.t('pages.diagnosis.name')}：</span>
                   <span className="text-blue-900">{patient.fullName}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-blue-700">用戶名：</span>
+                  <span className="font-medium text-blue-700">{i18n.t('pages.diagnosis.username')}：</span>
                   <span className="text-blue-900">{patient.username}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-blue-700">患者ID：</span>
-                  <span className="text-blue-900">{patient._id || patient.id || patient.username || '未知'}</span>
+                  <span className="font-medium text-blue-700">{i18n.t('pages.diagnosis.patient_id')}：</span>
+                  <span className="text-blue-900">{patient._id || patient.id || patient.username || i18n.t('common.unknown')}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-blue-700">角色：</span>
-                  <span className="text-blue-900">患者</span>
+                  <span className="font-medium text-blue-700">{i18n.t('pages.diagnosis.role')}：</span>
+                  <span className="text-blue-900">{i18n.t('auth.user_type.patient')}</span>
                 </div>
               </div>
             </div>
@@ -192,7 +206,7 @@ export default function DiagnosisPage() {
           {/* 调试信息 */}
           {process.env.NODE_ENV === 'development' && (
             <div className="mb-4 p-4 bg-gray-100 rounded-lg">
-              <h4 className="font-semibold mb-2">调试信息 (开发环境):</h4>
+              <h4 className="font-semibold mb-2">{i18n.t('pages.diagnosis.debug_info')}:</h4>
               <pre className="text-xs overflow-auto">
                 {JSON.stringify(patient, null, 2)}
               </pre>
@@ -201,7 +215,7 @@ export default function DiagnosisPage() {
 
           <DiagnosisForm 
             patient={patient} 
-            onDiagnosisAdded={handleDiagnosisComplete}
+            onComplete={handleDiagnosisComplete}
           />
         </div>
       </main>
