@@ -80,6 +80,79 @@ export default function PatientMeasurementResultPage() {
     return i18n.t(key, params)
   }
 
+  // 将后端返回的繁体中文异常原因转换为国际化文本
+  const translateAbnormalReason = (reason) => {
+    if (!reason || typeof reason !== 'string') {
+      return reason
+    }
+
+    // 提取数值和单位的正则表达式 - 匹配括号内的内容
+    const valuePattern = /\(([^)]+)\)/
+    const valueMatch = reason.match(valuePattern)
+    let valueInfo = valueMatch ? valueMatch[1] : ''
+
+    // 提取严重程度的正则表达式
+    const severityPattern = /嚴重程度:\s*(\w+)/
+    const severityMatch = reason.match(severityPattern)
+    const severity = severityMatch ? severityMatch[1] : ''
+
+    // 如果valueInfo包含严重程度信息，则只保留数值和单位部分
+    if (valueInfo.includes('嚴重程度:')) {
+      const valueOnlyMatch = valueInfo.match(/^([^,]+)/)
+      valueInfo = valueOnlyMatch ? valueOnlyMatch[1] : valueInfo
+    }
+
+    // 根据异常原因的关键词进行匹配和翻译
+    if (reason.includes('收縮壓異常')) {
+      const baseKey = valueInfo.includes('mmHg') && parseInt(valueInfo) > 140 ? 
+        'abnormal_reasons.systolic_high' : 'abnormal_reasons.systolic_low'
+      const translatedReason = t(baseKey)
+      const translatedSeverity = severity ? t(`severity.${severity}`) : ''
+      return `${translatedReason} (${valueInfo}${translatedSeverity ? `, ${translatedSeverity}` : ''})`
+    }
+    
+    if (reason.includes('舒張壓異常')) {
+      const baseKey = valueInfo.includes('mmHg') && parseInt(valueInfo) > 90 ? 
+        'abnormal_reasons.diastolic_high' : 'abnormal_reasons.diastolic_low'
+      const translatedReason = t(baseKey)
+      const translatedSeverity = severity ? t(`severity.${severity}`) : ''
+      return `${translatedReason} (${valueInfo}${translatedSeverity ? `, ${translatedSeverity}` : ''})`
+    }
+    
+    if (reason.includes('心率異常')) {
+      const baseKey = valueInfo.includes('bpm') && parseInt(valueInfo) > 100 ? 
+        'abnormal_reasons.heart_rate_high' : 'abnormal_reasons.heart_rate_low'
+      const translatedReason = t(baseKey)
+      const translatedSeverity = severity ? t(`severity.${severity}`) : ''
+      return `${translatedReason} (${valueInfo}${translatedSeverity ? `, ${translatedSeverity}` : ''})`
+    }
+    
+    if (reason.includes('體溫異常')) {
+      const baseKey = valueInfo.includes('°C') && parseFloat(valueInfo) > 37.2 ? 
+        'abnormal_reasons.temperature_high' : 'abnormal_reasons.temperature_low'
+      const translatedReason = t(baseKey)
+      const translatedSeverity = severity ? t(`severity.${severity}`) : ''
+      return `${translatedReason} (${valueInfo}${translatedSeverity ? `, ${translatedSeverity}` : ''})`
+    }
+    
+    if (reason.includes('血氧飽和度異常')) {
+      const translatedReason = t('abnormal_reasons.oxygen_saturation_low')
+      const translatedSeverity = severity ? t(`severity.${severity}`) : ''
+      return `${translatedReason} (${valueInfo}${translatedSeverity ? `, ${translatedSeverity}` : ''})`
+    }
+    
+    if (reason.includes('血糖異常')) {
+      const baseKey = valueInfo.includes('mg/dL') && parseInt(valueInfo) > 140 ? 
+        'abnormal_reasons.blood_glucose_high' : 'abnormal_reasons.blood_glucose_low'
+      const translatedReason = t(baseKey)
+      const translatedSeverity = severity ? t(`severity.${severity}`) : ''
+      return `${translatedReason} (${valueInfo}${translatedSeverity ? `, ${translatedSeverity}` : ''})`
+    }
+
+    // 如果没有匹配到任何已知模式，返回原始文本
+    return reason
+  }
+
   if (!resultData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -215,7 +288,7 @@ export default function PatientMeasurementResultPage() {
                     {abnormalReasons.map((reason, index) => (
                       <div key={index} className="flex items-start gap-3 p-3 bg-orange-50/80 rounded-xl border border-orange-200/50">
                         <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                        <span className="text-orange-800 text-sm">{reason}</span>
+                        <span className="text-orange-800 text-sm">{translateAbnormalReason(reason)}</span>
                       </div>
                     ))}
                   </div>
