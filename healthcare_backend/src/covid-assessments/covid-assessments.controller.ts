@@ -17,14 +17,18 @@ export class CovidAssessmentsController {
   @Post()
   @UseInterceptors(FilesInterceptor('images', 5, createMulterConfig('covid')))
   @ApiOperation({ summary: '创建COVID评估' })
-  @ApiConsumes('multipart/form-data')
+  @ApiConsumes('multipart/form-data', 'application/json')
   @ApiResponse({ status: 201, description: '创建成功' })
   async create(
     @Request() req, 
     @Body() createCovidAssessmentDto: any, // 使用any类型以便手动处理数据转换
-    @UploadedFiles() files: Express.Multer.File[]
+    @UploadedFiles() files?: Express.Multer.File[]
   ) {
     try {
+      console.log('📥 收到COVID评估请求');
+      console.log('📋 请求体:', createCovidAssessmentDto);
+      console.log('📸 上传文件:', files?.length || 0);
+
       // 处理上传的图片路径
       const imagePaths = files ? files.map(file => {
         // 返回相对于uploads目录的路径
@@ -32,22 +36,44 @@ export class CovidAssessmentsController {
         return relativePath.startsWith('/') ? relativePath : '/' + relativePath;
       }) : [];
 
-      // 手动转换数据类型（multipart/form-data中所有数据都是字符串）
-      const assessmentData: CreateCovidAssessmentDto = {
-        symptoms: createCovidAssessmentDto.symptoms ? JSON.parse(createCovidAssessmentDto.symptoms) : [],
-        riskFactors: createCovidAssessmentDto.riskFactors ? JSON.parse(createCovidAssessmentDto.riskFactors) : [],
-        temperature: createCovidAssessmentDto.temperature ? parseFloat(createCovidAssessmentDto.temperature) : undefined,
-        symptomOnset: createCovidAssessmentDto.symptomOnset || '',
-        exposureHistory: createCovidAssessmentDto.exposureHistory || '',
-        travelHistory: createCovidAssessmentDto.travelHistory || '',
-        contactHistory: createCovidAssessmentDto.contactHistory || '',
-        additionalNotes: createCovidAssessmentDto.additionalNotes || '',
-        riskScore: createCovidAssessmentDto.riskScore ? parseInt(createCovidAssessmentDto.riskScore) : 0,
-        riskLevel: createCovidAssessmentDto.riskLevel || '',
-        riskLevelLabel: createCovidAssessmentDto.riskLevelLabel || '',
-        recommendations: createCovidAssessmentDto.recommendations ? JSON.parse(createCovidAssessmentDto.recommendations) : {},
-        imagePaths
-      };
+      let assessmentData: CreateCovidAssessmentDto;
+
+      // 判断是否为multipart/form-data格式（有文件上传）
+      if (files && files.length > 0) {
+        // multipart/form-data格式 - 需要手动转换数据类型
+        assessmentData = {
+          symptoms: createCovidAssessmentDto.symptoms ? JSON.parse(createCovidAssessmentDto.symptoms) : [],
+          riskFactors: createCovidAssessmentDto.riskFactors ? JSON.parse(createCovidAssessmentDto.riskFactors) : [],
+          temperature: createCovidAssessmentDto.temperature ? parseFloat(createCovidAssessmentDto.temperature) : undefined,
+          symptomOnset: createCovidAssessmentDto.symptomOnset || '',
+          exposureHistory: createCovidAssessmentDto.exposureHistory || '',
+          travelHistory: createCovidAssessmentDto.travelHistory || '',
+          contactHistory: createCovidAssessmentDto.contactHistory || '',
+          additionalNotes: createCovidAssessmentDto.additionalNotes || '',
+          riskScore: createCovidAssessmentDto.riskScore ? parseInt(createCovidAssessmentDto.riskScore) : 0,
+          riskLevel: createCovidAssessmentDto.riskLevel || '',
+          riskLevelLabel: createCovidAssessmentDto.riskLevelLabel || '',
+          recommendations: createCovidAssessmentDto.recommendations ? JSON.parse(createCovidAssessmentDto.recommendations) : {},
+          imagePaths
+        };
+      } else {
+        // JSON格式 - 直接使用数据
+        assessmentData = {
+          symptoms: createCovidAssessmentDto.symptoms || [],
+          riskFactors: createCovidAssessmentDto.riskFactors || [],
+          temperature: createCovidAssessmentDto.temperature || undefined,
+          symptomOnset: createCovidAssessmentDto.symptomOnset || '',
+          exposureHistory: createCovidAssessmentDto.exposureHistory || '',
+          travelHistory: createCovidAssessmentDto.travelHistory || '',
+          contactHistory: createCovidAssessmentDto.contactHistory || '',
+          additionalNotes: createCovidAssessmentDto.additionalNotes || '',
+          riskScore: createCovidAssessmentDto.riskScore || 0,
+          riskLevel: createCovidAssessmentDto.riskLevel || '',
+          riskLevelLabel: createCovidAssessmentDto.riskLevelLabel || '',
+          recommendations: createCovidAssessmentDto.recommendations || {},
+          imagePaths: []
+        };
+      }
 
       // 过滤掉undefined值
       Object.keys(assessmentData).forEach(key => {
@@ -56,9 +82,14 @@ export class CovidAssessmentsController {
         }
       });
 
-      return this.covidAssessmentsService.create(req.user._id, assessmentData);
+      console.log('✅ 处理后的评估数据:', assessmentData);
+      
+      const result = await this.covidAssessmentsService.create(req.user._id, assessmentData);
+      console.log('✅ COVID评估创建成功:', result._id);
+      
+      return result;
     } catch (error) {
-      console.error('创建COVID评估记录时出错:', error);
+      console.error('❌ 创建COVID评估记录时出错:', error);
       throw error;
     }
   }
