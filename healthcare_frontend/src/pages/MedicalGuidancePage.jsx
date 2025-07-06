@@ -7,10 +7,12 @@ import {
 import MedicalHeader from '../components/ui/MedicalHeader.jsx'
 import TestingIsolationGuidance from '../components/TestingIsolationGuidance.jsx'
 import apiService from '../services/api.js'
+import i18n from '../utils/i18n.js'
 
 export default function MedicalGuidancePage() {
   const navigate = useNavigate()
   const [currentUser, setCurrentUser] = useState(null)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
 
   useEffect(() => {
     // 检查用户是否已登录
@@ -29,12 +31,20 @@ export default function MedicalGuidancePage() {
     setCurrentUser(userData)
   }, [navigate])
 
+  useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    i18n.addListener(handleLanguageChange)
+    return () => i18n.removeListener(handleLanguageChange)
+  }, [])
+
   if (!currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <p className="mt-4 text-gray-600">{i18n.t('common.loading')}</p>
         </div>
       </div>
     )
@@ -44,8 +54,8 @@ export default function MedicalGuidancePage() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50">
       {/* Header */}
       <MedicalHeader 
-        title="測試指導"
-        subtitle="檢測與隔離指導建議"
+        title={i18n.t('pages.medical_guidance.title')}
+        subtitle={i18n.t('pages.medical_guidance.subtitle')}
         icon={Activity}
         showBackButton={true}
         user={currentUser}

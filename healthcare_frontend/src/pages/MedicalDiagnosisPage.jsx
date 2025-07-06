@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../components/ui/badge.jsx'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table.jsx'
 import apiService from '../services/api.js'
+import i18n from '../utils/i18n.js'
 
 export default function MedicalDiagnosisPage() {
   const navigate = useNavigate()
@@ -32,6 +33,7 @@ export default function MedicalDiagnosisPage() {
   const [filteredMeasurements, setFilteredMeasurements] = useState([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState(null)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
   
   // 筛选状态
   const [filters, setFilters] = useState({
@@ -59,6 +61,14 @@ export default function MedicalDiagnosisPage() {
     loadAbnormalMeasurements()
   }, [navigate])
 
+  useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    i18n.addListener(handleLanguageChange)
+    return () => i18n.removeListener(handleLanguageChange)
+  }, [])
+
   const loadAbnormalMeasurements = async () => {
     setLoading(true)
     try {
@@ -76,10 +86,10 @@ export default function MedicalDiagnosisPage() {
           return {
             ...measurement,
             patientInfo: userInfo || {
-              fullName: '未知患者',
-              username: typeof measurement.userId === 'string' ? measurement.userId : measurement.userId?._id || '未知',
+              fullName: i18n.t('pages.medical_diagnosis.unknown_patient'),
+              username: typeof measurement.userId === 'string' ? measurement.userId : measurement.userId?._id || i18n.t('common.unknown'),
               age: null,
-              gender: '未知'
+              gender: i18n.t('common.unknown')
             }
           }
         })
@@ -129,13 +139,13 @@ export default function MedicalDiagnosisPage() {
 
   const getMeasurementTypeLabel = (type) => {
     const labels = {
-      blood_pressure: '血壓',
-      heart_rate: '心率',
-      temperature: '體溫',
-      oxygen_saturation: '血氧',
-      unknown: '未知'
+      blood_pressure: i18n.t('measurement.blood_pressure'),
+      heart_rate: i18n.t('measurement.heart_rate'),
+      temperature: i18n.t('measurement.temperature'),
+      oxygen_saturation: i18n.t('measurement.oxygen_saturation'),
+      unknown: i18n.t('common.unknown')
     }
-    return labels[type] || '未知'
+    return labels[type] || i18n.t('common.unknown')
   }
 
   const getMeasurementTypeIcon = (type) => {
@@ -165,7 +175,7 @@ export default function MedicalDiagnosisPage() {
       case 'oxygen_saturation':
         return `${measurement.oxygenSaturation}%`
       default:
-        return '未知'
+        return i18n.t('common.unknown')
     }
   }
 
@@ -174,38 +184,39 @@ export default function MedicalDiagnosisPage() {
     switch (type) {
       case 'blood_pressure':
         if (measurement.systolic > 140 || measurement.diastolic > 90) {
-          return '高血壓'
+          return i18n.t('pages.medical_diagnosis.high_blood_pressure')
         } else if (measurement.systolic < 90 || measurement.diastolic < 60) {
-          return '低血壓'
+          return i18n.t('pages.medical_diagnosis.low_blood_pressure')
         }
         break
       case 'heart_rate':
         if (measurement.heartRate > 100) {
-          return '心動過速'
+          return i18n.t('pages.medical_diagnosis.tachycardia')
         } else if (measurement.heartRate < 60) {
-          return '心動過緩'
+          return i18n.t('pages.medical_diagnosis.bradycardia')
         }
         break
       case 'temperature':
         if (measurement.temperature > 37.5) {
-          return '發燒'
+          return i18n.t('pages.medical_diagnosis.fever')
         } else if (measurement.temperature < 36) {
-          return '體溫過低'
+          return i18n.t('pages.medical_diagnosis.hypothermia')
         }
         break
       case 'oxygen_saturation':
         if (measurement.oxygenSaturation < 95) {
-          return '血氧不足'
+          return i18n.t('pages.medical_diagnosis.hypoxemia')
         }
         break
     }
-    return '異常值'
+    return i18n.t('pages.medical_diagnosis.abnormal_value')
   }
 
   const formatDate = (dateString) => {
-    if (!dateString) return '未知時間'
+    if (!dateString) return i18n.t('common.unknown_time')
     const date = new Date(dateString)
-    return date.toLocaleString('zh-TW', {
+    const locale = language === 'en' ? 'en-US' : language === 'zh-CN' ? 'zh-CN' : 'zh-TW'
+    return date.toLocaleString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -292,7 +303,7 @@ export default function MedicalDiagnosisPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <p className="mt-4 text-gray-600">{i18n.t('common.loading')}</p>
         </div>
       </div>
     )
@@ -308,8 +319,8 @@ export default function MedicalDiagnosisPage() {
 
       {/* Header */}
       <MedicalHeader 
-        title="診斷評估"
-        subtitle="患者異常測量數據診斷與評估"
+        title={i18n.t('pages.medical_diagnosis.title')}
+        subtitle={i18n.t('pages.medical_diagnosis.subtitle')}
         icon={FileText}
         showBackButton={true}
         user={currentUser}
@@ -323,52 +334,52 @@ export default function MedicalDiagnosisPage() {
         {stats && (
           <div className="mb-8">
             <h3 className="text-xl font-bold bg-gradient-to-r from-green-700 to-emerald-700 bg-clip-text text-transparent mb-4">
-              異常測量統計
+              {i18n.t('pages.medical_diagnosis.abnormal_measurement_statistics')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <Card className="bg-gradient-to-br from-blue-50/80 to-blue-100/60 backdrop-blur-md border-0 shadow-2xl shadow-blue-500/15">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-blue-600">總異常數</CardTitle>
+                  <CardTitle className="text-sm font-medium text-blue-600">{i18n.t('pages.medical_diagnosis.total_abnormal')}</CardTitle>
                   <AlertTriangle className="h-4 w-4 text-blue-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-blue-700">{stats.total}</div>
-                  <p className="text-xs text-blue-600/70">需要診斷的異常測量</p>
+                  <p className="text-xs text-blue-600/70">{i18n.t('pages.medical_diagnosis.abnormal_measurements_need_diagnosis')}</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-gradient-to-br from-orange-50/80 to-orange-100/60 backdrop-blur-md border-0 shadow-2xl shadow-orange-500/15">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-orange-600">待處理</CardTitle>
+                  <CardTitle className="text-sm font-medium text-orange-600">{i18n.t('pages.medical_diagnosis.pending')}</CardTitle>
                   <FileText className="h-4 w-4 text-orange-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-orange-700">{stats.pending}</div>
-                  <p className="text-xs text-orange-600/70">等待醫護診斷</p>
+                  <p className="text-xs text-orange-600/70">{i18n.t('pages.medical_diagnosis.waiting_for_diagnosis')}</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-gradient-to-br from-green-50/80 to-green-100/60 backdrop-blur-md border-0 shadow-2xl shadow-green-500/15">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-600">已處理</CardTitle>
+                  <CardTitle className="text-sm font-medium text-green-600">{i18n.t('pages.medical_diagnosis.processed')}</CardTitle>
                   <UserCheck className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-green-700">{stats.processed}</div>
-                  <p className="text-xs text-green-600/70">已完成診斷</p>
+                  <p className="text-xs text-green-600/70">{i18n.t('pages.medical_diagnosis.diagnosis_completed')}</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-gradient-to-br from-purple-50/80 to-purple-100/60 backdrop-blur-md border-0 shadow-2xl shadow-purple-500/15">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-purple-600">處理率</CardTitle>
+                  <CardTitle className="text-sm font-medium text-purple-600">{i18n.t('pages.medical_diagnosis.processing_rate')}</CardTitle>
                   <Activity className="h-4 w-4 text-purple-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-purple-700">
                     {stats.total > 0 ? Math.round((stats.processed / stats.total) * 100) : 0}%
                   </div>
-                  <p className="text-xs text-purple-600/70">診斷完成率</p>
+                  <p className="text-xs text-purple-600/70">{i18n.t('pages.medical_diagnosis.diagnosis_completion_rate')}</p>
                 </CardContent>
               </Card>
             </div>
@@ -381,60 +392,60 @@ export default function MedicalDiagnosisPage() {
             <CardHeader className="pb-4">
               <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
                 <Filter className="h-5 w-5 text-green-600" />
-                篩選異常測量
+                {i18n.t('pages.medical_diagnosis.filter_abnormal_measurements')}
               </CardTitle>
               <CardDescription className="text-gray-600">
-                使用多個條件來篩選需要診斷的異常測量記錄
+                {i18n.t('pages.medical_diagnosis.filter_description')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 <div>
-                  <Label htmlFor="patientId" className="text-sm font-medium text-gray-700">患者ID</Label>
+                  <Label htmlFor="patientId" className="text-sm font-medium text-gray-700">{i18n.t('pages.medical_diagnosis.patient_id')}</Label>
                   <Input
                     id="patientId"
-                    placeholder="輸入患者ID..."
+                    placeholder={i18n.t('pages.medical_diagnosis.patient_id_placeholder')}
                     className="mt-1 bg-white/70 border-green-200 focus:border-green-400"
                     value={filters.patientId}
                     onChange={(e) => setFilters(prev => ({ ...prev, patientId: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="patientName" className="text-sm font-medium text-gray-700">患者姓名</Label>
+                  <Label htmlFor="patientName" className="text-sm font-medium text-gray-700">{i18n.t('pages.medical_diagnosis.patient_name')}</Label>
                   <Input
                     id="patientName"
-                    placeholder="輸入患者姓名..."
+                    placeholder={i18n.t('pages.medical_diagnosis.patient_name_placeholder')}
                     className="mt-1 bg-white/70 border-green-200 focus:border-green-400"
                     value={filters.patientName}
                     onChange={(e) => setFilters(prev => ({ ...prev, patientName: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">異常類型</Label>
+                  <Label className="text-sm font-medium text-gray-700">{i18n.t('pages.medical_diagnosis.abnormal_type')}</Label>
                   <Select value={filters.measurementType} onValueChange={(value) => setFilters(prev => ({ ...prev, measurementType: value }))}>
                     <SelectTrigger className="mt-1 bg-white/70 border-green-200 focus:border-green-400">
-                      <SelectValue placeholder="選擇異常類型" />
+                      <SelectValue placeholder={i18n.t('pages.medical_diagnosis.select_abnormal_type')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">全部類型</SelectItem>
-                      <SelectItem value="blood_pressure">血壓異常</SelectItem>
-                      <SelectItem value="heart_rate">心率異常</SelectItem>
-                      <SelectItem value="temperature">體溫異常</SelectItem>
-                      <SelectItem value="oxygen_saturation">血氧異常</SelectItem>
+                      <SelectItem value="all">{i18n.t('pages.medical_diagnosis.all_types')}</SelectItem>
+                      <SelectItem value="blood_pressure">{i18n.t('pages.medical_diagnosis.blood_pressure_abnormal')}</SelectItem>
+                      <SelectItem value="heart_rate">{i18n.t('pages.medical_diagnosis.heart_rate_abnormal')}</SelectItem>
+                      <SelectItem value="temperature">{i18n.t('pages.medical_diagnosis.temperature_abnormal')}</SelectItem>
+                      <SelectItem value="oxygen_saturation">{i18n.t('pages.medical_diagnosis.oxygen_saturation_abnormal')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">時間範圍</Label>
+                  <Label className="text-sm font-medium text-gray-700">{i18n.t('pages.medical_diagnosis.time_range')}</Label>
                   <Select value={filters.dateRange} onValueChange={(value) => setFilters(prev => ({ ...prev, dateRange: value }))}>
                     <SelectTrigger className="mt-1 bg-white/70 border-green-200 focus:border-green-400">
-                      <SelectValue placeholder="選擇時間範圍" />
+                      <SelectValue placeholder={i18n.t('pages.medical_diagnosis.select_time_range')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">全部時間</SelectItem>
-                      <SelectItem value="today">今天</SelectItem>
-                      <SelectItem value="week">最近一週</SelectItem>
-                      <SelectItem value="month">最近一月</SelectItem>
+                      <SelectItem value="all">{i18n.t('pages.medical_diagnosis.all_time')}</SelectItem>
+                      <SelectItem value="today">{i18n.t('pages.medical_diagnosis.today')}</SelectItem>
+                      <SelectItem value="week">{i18n.t('pages.medical_diagnosis.recent_week')}</SelectItem>
+                      <SelectItem value="month">{i18n.t('pages.medical_diagnosis.recent_month')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -445,14 +456,14 @@ export default function MedicalDiagnosisPage() {
                   className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
                 >
                   <Search className="h-4 w-4 mr-2" />
-                  應用篩選
+                  {i18n.t('pages.medical_diagnosis.apply_filter')}
                 </Button>
                 <Button
                   onClick={resetFilters}
                   variant="outline"
                   className="border-green-200 hover:bg-green-50"
                 >
-                  重置篩選
+                  {i18n.t('pages.medical_diagnosis.reset_filter')}
                 </Button>
               </div>
             </CardContent>
@@ -464,36 +475,36 @@ export default function MedicalDiagnosisPage() {
           <CardHeader className="pb-4">
             <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-600" />
-              異常測量列表 ({filteredMeasurements.length})
+              {i18n.t('pages.medical_diagnosis.abnormal_measurement_list')} ({filteredMeasurements.length})
             </CardTitle>
             <CardDescription className="text-gray-600">
-              點擊"查看詳情"按鈕查看患者異常測量詳情並進行診斷
+              {i18n.t('pages.medical_diagnosis.click_view_details')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600">載入異常測量數據中...</p>
+                <p className="mt-4 text-gray-600">{i18n.t('pages.medical_diagnosis.loading_abnormal_data')}</p>
               </div>
             ) : filteredMeasurements.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <AlertTriangle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">暫無異常測量數據</h3>
-                <p>目前沒有需要診斷的異常測量記錄</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">{i18n.t('pages.medical_diagnosis.no_abnormal_data')}</h3>
+                <p>{i18n.t('pages.medical_diagnosis.no_abnormal_data_desc')}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>患者信息</TableHead>
-                      <TableHead>異常類型</TableHead>
-                      <TableHead>異常值</TableHead>
-                      <TableHead>異常原因</TableHead>
-                      <TableHead>測量時間</TableHead>
-                      <TableHead>狀態</TableHead>
-                      <TableHead>操作</TableHead>
+                      <TableHead>{i18n.t('pages.medical_diagnosis.patient_info')}</TableHead>
+                      <TableHead>{i18n.t('pages.medical_diagnosis.abnormal_type_col')}</TableHead>
+                      <TableHead>{i18n.t('pages.medical_diagnosis.abnormal_value_col')}</TableHead>
+                      <TableHead>{i18n.t('pages.medical_diagnosis.abnormal_reason')}</TableHead>
+                      <TableHead>{i18n.t('pages.medical_diagnosis.measurement_time')}</TableHead>
+                      <TableHead>{i18n.t('pages.medical_diagnosis.status')}</TableHead>
+                      <TableHead>{i18n.t('pages.medical_diagnosis.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -508,19 +519,19 @@ export default function MedicalDiagnosisPage() {
                               </div>
                               <div>
                                 <p className="font-medium text-gray-900">
-                                  {measurement.patientInfo?.fullName || measurement.patientInfo?.username || '未知患者'}
+                                  {measurement.patientInfo?.fullName || measurement.patientInfo?.username || i18n.t('pages.medical_diagnosis.unknown_patient')}
                                 </p>
                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                   <span>ID: {(typeof measurement.userId === 'string' ? measurement.userId : measurement.userId?._id || '').slice(-8)}</span>
                                   {measurement.patientInfo?.gender && (
                                     <Badge variant="outline" className="text-xs">
-                                      {measurement.patientInfo.gender === 'male' ? '男' : 
-                                       measurement.patientInfo.gender === 'female' ? '女' : '未知'}
+                                      {measurement.patientInfo.gender === 'male' ? i18n.t('pages.medical_diagnosis.male') : 
+                                       measurement.patientInfo.gender === 'female' ? i18n.t('pages.medical_diagnosis.female') : i18n.t('common.unknown')}
                                     </Badge>
                                   )}
                                   {measurement.patientInfo?.age && (
                                     <Badge variant="outline" className="text-xs">
-                                      {measurement.patientInfo.age}歲
+                                      {measurement.patientInfo.age}{i18n.t('pages.medical_diagnosis.years_old')}
                                     </Badge>
                                   )}
                                 </div>
@@ -560,9 +571,9 @@ export default function MedicalDiagnosisPage() {
                                   : 'bg-green-100 text-green-700 border-green-200'
                               }
                             >
-                              {measurement.status === 'pending' ? '待處理' : 
-                               measurement.status === 'processed' ? '已處理' :
-                               measurement.status === 'reviewed' ? '已審核' : '已處理'}
+                              {measurement.status === 'pending' ? i18n.t('pages.medical_diagnosis.pending_status') : 
+                               measurement.status === 'processed' ? i18n.t('pages.medical_diagnosis.processed_status') :
+                               measurement.status === 'reviewed' ? i18n.t('pages.medical_diagnosis.reviewed_status') : i18n.t('pages.medical_diagnosis.processed_status')}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -572,7 +583,7 @@ export default function MedicalDiagnosisPage() {
                               className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
                             >
                               <Eye className="h-4 w-4 mr-1" />
-                              查看詳情
+                              {i18n.t('pages.medical_diagnosis.view_details')}
                             </Button>
                           </TableCell>
                         </TableRow>
