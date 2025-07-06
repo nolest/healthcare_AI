@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import MedicalHeader from '../components/ui/MedicalHeader.jsx'
 import apiService from '../services/api.js'
+import i18n from '../utils/i18n.js'
 
 export default function PatientDetailPage() {
   const navigate = useNavigate()
@@ -30,6 +31,16 @@ export default function PatientDetailPage() {
   const [covidAssessments, setCovidAssessments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+
+    i18n.addListener(handleLanguageChange)
+    return () => i18n.removeListener(handleLanguageChange)
+  }, [])
 
   useEffect(() => {
     // 检查用户是否已登录
@@ -48,7 +59,7 @@ export default function PatientDetailPage() {
 
     // 检查是否有患者ID参数
     if (!patientId) {
-      setError('缺少患者ID参数')
+      setError(i18n.t('pages.patient_detail.missing_patient_id'))
       return
     }
 
@@ -65,7 +76,7 @@ export default function PatientDetailPage() {
       const patientData = await apiService.getUserById(patientId)
 
       if (!patientData) {
-        throw new Error('未找到患者信息')
+        throw new Error(i18n.t('pages.patient_detail.patient_not_found'))
       }
       
       // 获取患者的测量记录
@@ -139,13 +150,13 @@ export default function PatientDetailPage() {
       )
 
     } catch (error) {
-      setError(`加载患者数据失败: ${error.message}`)
+      setError(i18n.t('pages.patient_detail.load_failed', { error: error.message }))
       
       // 如果患者基本信息获取失败，设置一个默认患者对象
       if (!patient) {
         setPatient({
           _id: patientId,
-          fullName: '未知患者',
+          fullName: i18n.t('pages.patient_detail.unknown_patient'),
           username: patientId,
           age: null,
           createdAt: new Date().toISOString()
@@ -167,7 +178,7 @@ export default function PatientDetailPage() {
   }
 
   const formatDate = (dateString) => {
-    if (!dateString) return '未設定'
+    if (!dateString) return i18n.t('common.not_set')
     return new Date(dateString).toLocaleDateString('zh-TW', {
       year: 'numeric',
       month: '2-digit',
@@ -204,14 +215,14 @@ export default function PatientDetailPage() {
 
   const getSeverityText = (severity) => {
     const severityMap = {
-      'normal': '正常',
-      'low': '偏低',
-      'high': '偏高',
-      'severeLow': '嚴重偏低',
-      'severeHigh': '嚴重偏高',
-      'critical': '危急'
+      'normal': i18n.t('pages.patient_detail.severity.normal'),
+      'low': i18n.t('pages.patient_detail.severity.low'),
+      'high': i18n.t('pages.patient_detail.severity.high'),
+      'severeLow': i18n.t('pages.patient_detail.severity.severe_low'),
+      'severeHigh': i18n.t('pages.patient_detail.severity.severe_high'),
+      'critical': i18n.t('pages.patient_detail.severity.critical')
     }
-    return severityMap[severity] || '正常'
+    return severityMap[severity] || i18n.t('pages.patient_detail.severity.normal')
   }
 
   const getSeverityColor = (severity) => {
@@ -258,18 +269,18 @@ export default function PatientDetailPage() {
 
   // 获取风险等级显示文本
   const getRiskLevelText = (riskLevel) => {
-    if (!riskLevel) return '未知風險'
+    if (!riskLevel) return i18n.t('pages.patient_detail.risk.unknown')
     
     if (typeof riskLevel === 'string') {
       switch (riskLevel) {
-        case 'high': return '高風險'
-        case 'medium': return '中風險'
-        case 'low': return '低風險'
+        case 'high': return i18n.t('pages.patient_detail.risk.high')
+        case 'medium': return i18n.t('pages.patient_detail.risk.medium')
+        case 'low': return i18n.t('pages.patient_detail.risk.low')
         default: return riskLevel
       }
     }
     
-    return riskLevel.label || '未知風險'
+    return riskLevel.label || i18n.t('pages.patient_detail.risk.unknown')
   }
 
   // 获取风险等级颜色
@@ -279,13 +290,13 @@ export default function PatientDetailPage() {
     const level = typeof riskLevel === 'string' ? riskLevel : (riskLevel.label || riskLevel)
     
     switch (level) {
-      case '高風險':
+      case i18n.t('pages.patient_detail.risk.high'):
       case 'high':
         return 'bg-red-500'
-      case '中等風險':
+      case i18n.t('pages.patient_detail.risk.medium'):
       case 'medium':
         return 'bg-yellow-500'
-      case '低風險':
+      case i18n.t('pages.patient_detail.risk.low'):
       case 'low':
         return 'bg-green-500'
       default:
@@ -296,34 +307,34 @@ export default function PatientDetailPage() {
   // 症狀翻譯函數
   const translateSymptom = (symptom) => {
     const symptomMap = {
-      'fever': '發燒',
-      'cough': '咳嗽',
-      'shortness_of_breath': '呼吸困難',
-      'fatigue': '疲勞',
-      'body_aches': '身體疼痛',
-      'headache': '頭痛',
-      'sore_throat': '喉嚨痛',
-      'loss_of_taste': '失去味覺',
-      'loss_of_smell': '失去嗅覺',
-      'nausea': '噁心',
-      'vomiting': '嘔吐',
-      'diarrhea': '腹瀉',
-      'congestion': '鼻塞',
-      'runny_nose': '流鼻涕',
-      'chills': '發冷',
-      'muscle_pain': '肌肉痛',
-      'joint_pain': '關節痛',
-      'chest_pain': '胸痛',
-      'difficulty_breathing': '呼吸困難',
-      'persistent_cough': '持續咳嗽',
-      'high_fever': '高燒',
-      'severe_headache': '嚴重頭痛',
-      'abdominal_pain': '腹痛',
-      'skin_rash': '皮疹',
-      'confusion': '意識混亂',
-      'dizziness': '頭暈',
-      'weakness': '虛弱',
-      'loss_of_appetite': '食慾不振'
+      'fever': i18n.t('pages.covid_management.fever'),
+      'cough': i18n.t('pages.covid_management.cough'),
+      'shortness_of_breath': i18n.t('pages.covid_management.shortness_breath'),
+      'fatigue': i18n.t('pages.covid_management.fatigue'),
+      'body_aches': i18n.t('pages.covid_management.body_aches'),
+      'headache': i18n.t('pages.covid_management.headache'),
+      'sore_throat': i18n.t('pages.covid_management.sore_throat'),
+      'loss_of_taste': i18n.t('pages.covid_management.loss_taste_smell'),
+      'loss_of_smell': i18n.t('pages.covid_management.loss_taste_smell'),
+      'nausea': i18n.t('pages.covid_management.nausea'),
+      'vomiting': i18n.t('pages.patient_detail.symptoms.vomiting'),
+      'diarrhea': i18n.t('pages.covid_management.diarrhea'),
+      'congestion': i18n.t('pages.patient_detail.symptoms.congestion'),
+      'runny_nose': i18n.t('pages.covid_management.runny_nose'),
+      'chills': i18n.t('pages.covid_management.chills'),
+      'muscle_pain': i18n.t('pages.patient_detail.symptoms.muscle_pain'),
+      'joint_pain': i18n.t('pages.patient_detail.symptoms.joint_pain'),
+      'chest_pain': i18n.t('pages.patient_detail.symptoms.chest_pain'),
+      'difficulty_breathing': i18n.t('pages.patient_detail.symptoms.difficulty_breathing'),
+      'persistent_cough': i18n.t('pages.patient_detail.symptoms.persistent_cough'),
+      'high_fever': i18n.t('pages.patient_detail.symptoms.high_fever'),
+      'severe_headache': i18n.t('pages.patient_detail.symptoms.severe_headache'),
+      'abdominal_pain': i18n.t('pages.patient_detail.symptoms.abdominal_pain'),
+      'skin_rash': i18n.t('pages.patient_detail.symptoms.skin_rash'),
+      'confusion': i18n.t('pages.patient_detail.symptoms.confusion'),
+      'dizziness': i18n.t('pages.patient_detail.symptoms.dizziness'),
+      'weakness': i18n.t('pages.patient_detail.symptoms.weakness'),
+      'loss_of_appetite': i18n.t('pages.patient_detail.symptoms.loss_of_appetite')
     }
     
     // 如果是英文症狀，翻譯成中文
@@ -366,7 +377,7 @@ export default function PatientDetailPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
               <Activity className="h-4 w-4 text-blue-600" />
-              <CardTitle className="text-sm text-gray-800">生命體徵</CardTitle>
+              <CardTitle className="text-sm text-gray-800">{i18n.t('pages.patient_detail.vital_signs')}</CardTitle>
             </div>
             <div className="flex items-center gap-1">
               {status.isAbnormal ? (
@@ -377,7 +388,7 @@ export default function PatientDetailPage() {
               ) : (
                 <Badge className="flex items-center gap-0.5 bg-green-100 text-green-700 ring-1 ring-green-200/50 text-xs px-2 py-1 h-5 shadow-sm">
                   <CheckCircle className="h-3 w-3" />
-                  正常
+                  {i18n.t('pages.patient_detail.normal')}
                 </Badge>
               )}
               <Button
@@ -386,7 +397,7 @@ export default function PatientDetailPage() {
                 className="h-6 px-2 text-xs ml-1 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 hover:from-blue-100 hover:to-blue-200 ring-1 ring-blue-200/50 shadow-sm transition-all duration-200"
               >
                 <Eye className="h-3 w-3 mr-1" />
-                詳情
+                {i18n.t('pages.patient_detail.view_details')}
               </Button>
             </div>
           </div>
@@ -400,7 +411,7 @@ export default function PatientDetailPage() {
             {measurement.systolic && measurement.diastolic && (
               <div className="text-center p-2 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-blue-200/30 shadow-sm">
                 <Heart className="h-4 w-4 text-red-500 mx-auto mb-1" />
-                <p className="text-xs text-gray-600">血壓</p>
+                <p className="text-xs text-gray-600">{i18n.t('measurement.blood_pressure')}</p>
                 <p className="font-semibold text-sm text-gray-800">
                   {measurement.systolic}/{measurement.diastolic}
                 </p>
@@ -409,21 +420,21 @@ export default function PatientDetailPage() {
             {measurement.heartRate && (
               <div className="text-center p-2 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-pink-200/30 shadow-sm">
                 <Activity className="h-4 w-4 text-pink-500 mx-auto mb-1" />
-                <p className="text-xs text-gray-600">心率</p>
+                <p className="text-xs text-gray-600">{i18n.t('measurement.heart_rate')}</p>
                 <p className="font-semibold text-sm text-gray-800">{measurement.heartRate} bpm</p>
               </div>
             )}
             {measurement.temperature && (
               <div className="text-center p-2 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-orange-200/30 shadow-sm">
                 <Thermometer className="h-4 w-4 text-orange-500 mx-auto mb-1" />
-                <p className="text-xs text-gray-600">體溫</p>
+                <p className="text-xs text-gray-600">{i18n.t('measurement.temperature')}</p>
                 <p className="font-semibold text-sm text-gray-800">{measurement.temperature}°C</p>
               </div>
             )}
             {measurement.oxygenSaturation && (
               <div className="text-center p-2 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-cyan-200/30 shadow-sm">
                 <Droplets className="h-4 w-4 text-cyan-500 mx-auto mb-1" />
-                <p className="text-xs text-gray-600">血氧</p>
+                <p className="text-xs text-gray-600">{i18n.t('measurement.oxygen_saturation')}</p>
                 <p className="font-semibold text-sm text-gray-800">{measurement.oxygenSaturation}%</p>
               </div>
             )}
@@ -431,7 +442,7 @@ export default function PatientDetailPage() {
           {status.isAbnormal && status.conditions.length > 0 && (
             <div className="mt-2 p-2 bg-gradient-to-r from-red-50/80 to-pink-50/80 rounded-md ring-1 ring-red-200/30 shadow-sm">
               <p className="text-xs text-red-600 font-medium">
-                <strong>異常原因:</strong>
+                <strong>{i18n.t('pages.patient_detail.abnormal_reasons')}:</strong>
               </p>
               <ul className="text-xs text-red-600 mt-1 list-disc list-inside space-y-0.5">
                 {status.conditions.map((reason, index) => (
@@ -474,7 +485,7 @@ export default function PatientDetailPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
               <Shield className="h-4 w-4 text-purple-600" />
-              <CardTitle className="text-sm text-gray-800">COVID/流感評估</CardTitle>
+              <CardTitle className="text-sm text-gray-800">{i18n.t('pages.patient_detail.covid_assessments')}</CardTitle>
             </div>
             <div className="flex items-center gap-1">
               <Badge className={`text-white ${riskColor} text-xs px-2 py-1 h-5`}>
@@ -486,7 +497,7 @@ export default function PatientDetailPage() {
                 className="h-6 px-2 text-xs ml-1 bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 hover:from-purple-100 hover:to-purple-200 ring-1 ring-purple-200/50 shadow-sm transition-all duration-200"
               >
                 <Eye className="h-3 w-3 mr-1" />
-                詳情
+                {i18n.t('pages.patient_detail.view_details')}
               </Button>
             </div>
           </div>
@@ -499,7 +510,7 @@ export default function PatientDetailPage() {
           <div className="space-y-1.5">
             {assessment.symptoms && assessment.symptoms.length > 0 && (
               <div>
-                <h4 className="font-medium text-gray-700 mb-1 text-xs">症狀</h4>
+                <h4 className="font-medium text-gray-700 mb-1 text-xs">{i18n.t('pages.patient_detail.symptoms_label')}</h4>
                 <div className="flex flex-wrap gap-1">
                   {assessment.symptoms.map((symptom, index) => (
                     <Badge key={index} className="text-xs px-2 py-1 bg-purple-100/80 text-purple-700 ring-1 ring-purple-200/50 shadow-sm">
@@ -512,19 +523,19 @@ export default function PatientDetailPage() {
             {assessment.temperature && (
               <div className="flex items-center gap-2 p-2 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-orange-200/30 shadow-sm">
                 <Thermometer className="h-4 w-4 text-orange-500" />
-                <span className="text-xs text-gray-600">體溫:</span>
+                <span className="text-xs text-gray-600">{i18n.t('pages.patient_detail.temperature_label')}:</span>
                 <span className="font-semibold text-sm text-gray-800">{assessment.temperature}°C</span>
               </div>
             )}
             {assessment.contactHistory && (
               <div className="p-2 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-yellow-200/30 shadow-sm">
-                <p className="text-xs font-medium text-gray-700 mb-1">接觸史:</p>
+                <p className="text-xs font-medium text-gray-700 mb-1">{i18n.t('pages.patient_detail.contact_history')}:</p>
                 <p className="text-xs text-gray-600 leading-relaxed">{assessment.contactHistory}</p>
               </div>
             )}
             {assessment.travelHistory && (
               <div className="p-2 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-blue-200/30 shadow-sm">
-                <p className="text-xs font-medium text-gray-700 mb-1">旅行史:</p>
+                <p className="text-xs font-medium text-gray-700 mb-1">{i18n.t('pages.patient_detail.travel_history')}:</p>
                 <p className="text-xs text-gray-600 leading-relaxed">{assessment.travelHistory}</p>
               </div>
             )}
@@ -550,8 +561,8 @@ export default function PatientDetailPage() {
             </div>
           </div>
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl">
-            <p className="text-gray-700 font-medium">載入患者資料中...</p>
-            <p className="text-sm text-gray-500 mt-2">請稍候</p>
+            <p className="text-gray-700 font-medium">{i18n.t('pages.patient_detail.loading')}</p>
+            <p className="text-sm text-gray-500 mt-2">{i18n.t('common.please_wait')}</p>
           </div>
         </div>
       </div>
@@ -567,8 +578,8 @@ export default function PatientDetailPage() {
         </div>
         
         <MedicalHeader 
-          title="患者詳情"
-          subtitle="查看患者的詳細醫療記錄"
+          title={i18n.t('pages.patient_detail.title')}
+          subtitle={i18n.t('pages.patient_detail.subtitle')}
           icon={User}
           showBackButton={true}
           user={currentUser}
@@ -580,7 +591,7 @@ export default function PatientDetailPage() {
             <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <p className="text-red-600">{error}</p>
             <Button onClick={() => navigate('/medical/patients-management')} className="mt-4">
-              返回患者列表
+              {i18n.t('pages.patient_detail.back_to_list')}
             </Button>
           </div>
         </main>
@@ -598,8 +609,10 @@ export default function PatientDetailPage() {
 
       {/* Header */}
       <MedicalHeader 
-        title="患者詳情"
-        subtitle={`${patient?.fullName || patient?.username || '未知患者'} 的醫療記錄`}
+        title={i18n.t('pages.patient_detail.title')}
+        subtitle={i18n.t('pages.patient_detail.medical_records', { 
+          patientName: patient?.fullName || patient?.username || i18n.t('pages.patient_detail.unknown_patient') 
+        })}
         icon={User}
         showBackButton={true}
         user={currentUser}
@@ -615,35 +628,35 @@ export default function PatientDetailPage() {
             <CardHeader className="pb-4">
               <CardTitle className="text-xl text-gray-800 flex items-center gap-2">
                 <User className="h-6 w-6 text-green-600" />
-                患者基本信息
+                {i18n.t('pages.patient_detail.basic_info')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="text-center p-4 bg-blue-50/70 rounded-xl ring-1 ring-blue-200/30 shadow-sm hover:shadow-md transition-all duration-200">
-                  <p className="text-sm text-gray-600 mb-1">姓名</p>
-                  <p className="font-semibold text-gray-800">{patient?.fullName || patient?.username || '未知'}</p>
+                  <p className="text-sm text-gray-600 mb-1">{i18n.t('pages.patient_detail.name')}</p>
+                  <p className="font-semibold text-gray-800">{patient?.fullName || patient?.username || i18n.t('common.unknown')}</p>
                 </div>
                 <div className="text-center p-4 bg-green-50/70 rounded-xl ring-1 ring-green-200/30 shadow-sm hover:shadow-md transition-all duration-200">
-                  <p className="text-sm text-gray-600 mb-1">年齡</p>
-                  <p className="font-semibold text-gray-800">{patient?.age ? `${patient.age}歲` : '未知'}</p>
+                  <p className="text-sm text-gray-600 mb-1">{i18n.t('pages.patient_detail.age')}</p>
+                  <p className="font-semibold text-gray-800">{patient?.age ? `${patient.age}${i18n.t('pages.patient_detail.years_old')}` : i18n.t('common.unknown')}</p>
                 </div>
                 <div className="text-center p-4 bg-purple-50/70 rounded-xl ring-1 ring-purple-200/30 shadow-sm hover:shadow-md transition-all duration-200">
-                  <p className="text-sm text-gray-600 mb-1">註冊時間</p>
+                  <p className="text-sm text-gray-600 mb-1">{i18n.t('pages.patient_detail.registration_date')}</p>
                   <p className="font-semibold text-gray-800">{formatDate(patient?.createdAt)}</p>
                 </div>
                 <div className="text-center p-4 bg-orange-50/70 rounded-xl ring-1 ring-orange-200/30 shadow-sm hover:shadow-md transition-all duration-200">
-                  <p className="text-sm text-gray-600 mb-1">記錄統計</p>
+                  <p className="text-sm text-gray-600 mb-1">{i18n.t('pages.patient_detail.records_statistics')}</p>
                   <div className="flex justify-center gap-2 text-xs">
-                    <span className="text-blue-600 font-semibold">{measurements.length} 測量</span>
-                    <span className="text-purple-600 font-semibold">{covidAssessments.length} 評估</span>
+                    <span className="text-blue-600 font-semibold">{measurements.length} {i18n.t('pages.patient_detail.measurements')}</span>
+                    <span className="text-purple-600 font-semibold">{covidAssessments.length} {i18n.t('pages.patient_detail.assessments')}</span>
                   </div>
                 </div>
               </div>
               
               {patient?.email && (
                 <div className="mt-4 p-3 bg-gray-50/70 rounded-xl ring-1 ring-gray-200/30 shadow-sm">
-                  <p className="text-sm text-gray-600">聯絡方式: {patient.email}</p>
+                  <p className="text-sm text-gray-600">{i18n.t('pages.patient_detail.contact')}: {patient.email}</p>
                 </div>
               )}
             </CardContent>
@@ -658,13 +671,13 @@ export default function PatientDetailPage() {
               <CardHeader>
                 <CardTitle className="text-xl text-gray-800 flex items-center gap-2">
                   <Activity className="h-6 w-6 text-blue-600" />
-                  生命體徵測量記錄
+                  {i18n.t('pages.patient_detail.vital_signs_records')}
                   <Badge className="ml-2 bg-blue-100 text-blue-700 ring-1 ring-blue-200/50 shadow-sm">
                     {measurements.length}
                   </Badge>
                 </CardTitle>
                 <CardDescription className="text-gray-600">
-                  患者的生命體徵測量歷史記錄
+                  {i18n.t('pages.patient_detail.vital_signs_history')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -689,10 +702,10 @@ export default function PatientDetailPage() {
                                 <Activity className="h-8 w-8 text-blue-500" />
                               </div>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-700 mb-2">暫無測量記錄</h3>
+                            <h3 className="text-lg font-semibold text-gray-700 mb-2">{i18n.t('pages.patient_detail.no_measurements')}</h3>
                             <p className="text-sm text-gray-500 text-center leading-relaxed">
-                              該患者尚未進行任何生命體徵測量<br />
-                              <span className="text-blue-500 font-medium">建議提醒患者定期進行健康檢測</span>
+                              {i18n.t('pages.patient_detail.no_measurements_desc')}<br />
+                              <span className="text-blue-500 font-medium">{i18n.t('pages.patient_detail.no_measurements_suggestion')}</span>
                             </p>
                           </div>
                         </div>
@@ -710,13 +723,13 @@ export default function PatientDetailPage() {
               <CardHeader>
                 <CardTitle className="text-xl text-gray-800 flex items-center gap-2">
                   <Shield className="h-6 w-6 text-purple-600" />
-                  COVID/流感評估記錄
+                  {i18n.t('pages.patient_detail.covid_assessments')}
                   <Badge className="ml-2 bg-purple-100 text-purple-700 ring-1 ring-purple-200/50 shadow-sm">
                     {covidAssessments.length}
                   </Badge>
                 </CardTitle>
                 <CardDescription className="text-gray-600">
-                  患者的COVID/流感風險評估歷史記錄
+                  {i18n.t('pages.patient_detail.covid_assessments_history')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -741,10 +754,10 @@ export default function PatientDetailPage() {
                                 <Shield className="h-8 w-8 text-purple-500" />
                               </div>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-700 mb-2">暫無評估記錄</h3>
+                            <h3 className="text-lg font-semibold text-gray-700 mb-2">{i18n.t('pages.patient_detail.no_assessments')}</h3>
                             <p className="text-sm text-gray-500 text-center leading-relaxed">
-                              該患者尚未進行COVID/流感風險評估<br />
-                              <span className="text-purple-500 font-medium">建議患者定期進行健康評估</span>
+                              {i18n.t('pages.patient_detail.no_assessments_desc')}<br />
+                              <span className="text-purple-500 font-medium">{i18n.t('pages.patient_detail.no_assessments_suggestion')}</span>
                             </p>
                           </div>
                         </div>

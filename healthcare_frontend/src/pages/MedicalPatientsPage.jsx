@@ -583,7 +583,7 @@ export default function MedicalPatientsPage() {
                     />
                   </div>
                   <div className="text-sm text-gray-600 mb-3">
-                    總計: {stats.measurementStats.total} 次測量
+                    {i18n.t('pages.medical_patients.total_measurements')}: {stats.measurementStats.total} {i18n.t('pages.medical_patients.times')}
                   </div>
                 </div>
               </div>
@@ -593,7 +593,7 @@ export default function MedicalPatientsPage() {
                 <div className="flex flex-col items-center">
                   <div className="flex items-center gap-2 mt-3 mb-1">
                     <Stethoscope className="h-6 w-6 text-gray-700" />
-                    <span className="text-lg font-medium text-gray-700">COVID評估</span>
+                    <span className="text-lg font-medium text-gray-700">{i18n.t('pages.medical_patients.covid_chart_title')}</span>
                   </div>
                   <div className="w-full h-52">
                     <ReactECharts 
@@ -603,7 +603,7 @@ export default function MedicalPatientsPage() {
                     />
                   </div>
                   <div className="text-sm text-gray-600 mb-3">
-                    總計: {stats.covidStats.total} 次評估
+                    {i18n.t('pages.medical_patients.total_covid_assessments')}: {stats.covidStats.total} {i18n.t('pages.medical_patients.times')}
                   </div>
                 </div>
               </div>
@@ -617,47 +617,47 @@ export default function MedicalPatientsPage() {
             <CardHeader className="pb-4">
               <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
                 <Filter className="h-5 w-5 text-green-600" />
-                篩選患者
+                {i18n.t('pages.medical_patients.filter_patients')}
               </CardTitle>
               <CardDescription className="text-gray-600">
-                使用多個條件來篩選患者記錄
+                {i18n.t('pages.medical_patients.use_multiple_conditions')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 <div>
-                  <Label htmlFor="name" className="text-sm font-medium text-gray-700">患者姓名</Label>
+                  <Label htmlFor="name" className="text-sm font-medium text-gray-700">{i18n.t('pages.medical_patients.patient_name')}</Label>
                   <Input
                     id="name"
-                    placeholder="輸入姓名..."
+                    placeholder={i18n.t('pages.medical_patients.search_placeholder')}
                     className="mt-1 bg-white/70 border-green-200 focus:border-green-400"
                     value={filters.name}
                     onChange={(e) => setFilters(prev => ({ ...prev, name: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="patientId" className="text-sm font-medium text-gray-700">患者ID</Label>
+                  <Label htmlFor="patientId" className="text-sm font-medium text-gray-700">{i18n.t('pages.medical_patients.patient_id')}</Label>
                   <Input
                     id="patientId"
-                    placeholder="輸入患者ID..."
+                    placeholder={i18n.t('pages.medical_patients.search_placeholder')}
                     className="mt-1 bg-white/70 border-green-200 focus:border-green-400"
                     value={filters.patientId}
                     onChange={(e) => setFilters(prev => ({ ...prev, patientId: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">年齡範圍</Label>
+                  <Label className="text-sm font-medium text-gray-700">{i18n.t('pages.medical_patients.filter_by_age')}</Label>
                   <div className="flex gap-2 mt-1">
                     <Input
                       type="number"
-                      placeholder="最小"
+                      placeholder={i18n.t('pages.medical_patients.age_min')}
                       className="bg-white/70 border-green-200 focus:border-green-400"
                       value={filters.ageMin}
                       onChange={(e) => setFilters(prev => ({ ...prev, ageMin: e.target.value }))}
                     />
                     <Input
                       type="number"
-                      placeholder="最大"
+                      placeholder={i18n.t('pages.medical_patients.age_max')}
                       className="bg-white/70 border-green-200 focus:border-green-400"
                       value={filters.ageMax}
                       onChange={(e) => setFilters(prev => ({ ...prev, ageMax: e.target.value }))}
@@ -665,7 +665,7 @@ export default function MedicalPatientsPage() {
                   </div>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">注冊時間</Label>
+                  <Label className="text-sm font-medium text-gray-700">{i18n.t('pages.medical_patients.filter_by_registration')}</Label>
                   <div className="flex gap-2 mt-1">
                     <Input
                       type="date"
@@ -688,14 +688,14 @@ export default function MedicalPatientsPage() {
                   className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
                 >
                   <Search className="h-4 w-4 mr-2" />
-                  應用篩選
+                  {i18n.t('pages.medical_patients.apply_filters')}
                 </Button>
                 <Button
                   onClick={resetFilters}
                   variant="outline"
                   className="border-green-200 hover:bg-green-50"
                 >
-                  重置篩選
+                  {i18n.t('pages.medical_patients.reset_filters')}
                 </Button>
               </div>
             </CardContent>
@@ -708,10 +708,10 @@ export default function MedicalPatientsPage() {
             <CardHeader className="pb-4">
               <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
                 <Users className="h-5 w-5 text-green-600" />
-                患者列表 ({filteredPatients.length})
+                {i18n.t('pages.medical_patients.patient_list')} ({filteredPatients.length})
               </CardTitle>
               <CardDescription className="text-gray-600">
-                點擊患者記錄查看詳細信息
+                {i18n.t('pages.medical_patients.click_to_view_details')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -719,21 +719,21 @@ export default function MedicalPatientsPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>患者ID</TableHead>
-                      <TableHead>患者姓名</TableHead>
-                      <TableHead>年齡</TableHead>
-                      <TableHead>注冊時間</TableHead>
-                      <TableHead>測量次數</TableHead>
-                      <TableHead>健康狀態</TableHead>
-                      <TableHead>下次檢查時間</TableHead>
-                      <TableHead>操作</TableHead>
+                      <TableHead>{i18n.t('pages.medical_patients.patient_id')}</TableHead>
+                      <TableHead>{i18n.t('pages.medical_patients.patient_name')}</TableHead>
+                      <TableHead>{i18n.t('pages.medical_patients.age')}</TableHead>
+                      <TableHead>{i18n.t('pages.medical_patients.registration_date')}</TableHead>
+                      <TableHead>{i18n.t('pages.medical_patients.measurement_count')}</TableHead>
+                      <TableHead>{i18n.t('pages.medical_patients.health_status')}</TableHead>
+                      <TableHead>{i18n.t('pages.medical_patients.next_checkup')}</TableHead>
+                      <TableHead>{i18n.t('pages.medical_patients.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredPatients.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                          暫無符合條件的患者記錄
+                          {i18n.t('pages.medical_patients.no_patients_found')}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -750,26 +750,26 @@ export default function MedicalPatientsPage() {
                             {patient.fullName || patient.username}
                           </TableCell>
                           <TableCell>
-                            {patient.age ? `${patient.age}歲` : '未知'}
+                            {patient.age ? `${patient.age}${i18n.t('pages.medical_patients.years_old')}` : i18n.t('common.unknown')}
                           </TableCell>
                           <TableCell>
                             {formatDate(patient.createdAt)}
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="text-blue-600 border-blue-200">
-                              {patient.measurementCount} 次
+                              {patient.measurementCount} {i18n.t('pages.medical_patients.times')}
                             </Badge>
                           </TableCell>
                           <TableCell>
                             {patient.hasAbnormalMeasurements ? (
                               <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-200">
                                 <AlertTriangle className="h-3 w-3 mr-1" />
-                                異常
+                                {i18n.t('pages.medical_patients.abnormal')}
                               </Badge>
                             ) : (
                               <Badge variant="default" className="bg-green-100 text-green-700 border-green-200">
                                 <CheckCircle className="h-3 w-3 mr-1" />
-                                正常
+                                {i18n.t('pages.medical_patients.normal')}
                               </Badge>
                             )}
                           </TableCell>
