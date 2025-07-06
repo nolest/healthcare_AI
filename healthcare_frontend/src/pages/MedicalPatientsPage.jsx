@@ -22,6 +22,7 @@ import {
 import ReactECharts from 'echarts-for-react'
 import MedicalHeader from '../components/ui/MedicalHeader.jsx'
 import apiService from '../services/api.js'
+import i18n from '../utils/i18n.js'
 
 export default function MedicalPatientsPage() {
   const navigate = useNavigate()
@@ -30,6 +31,7 @@ export default function MedicalPatientsPage() {
   const [filteredPatients, setFilteredPatients] = useState([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState(null)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
   const [filters, setFilters] = useState({
     name: '',
     patientId: '',
@@ -40,6 +42,14 @@ export default function MedicalPatientsPage() {
     nextCheckupStart: '',
     nextCheckupEnd: ''
   })
+
+  useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    i18n.addListener(handleLanguageChange)
+    return () => i18n.removeListener(handleLanguageChange)
+  }, [])
 
   useEffect(() => {
     // 检查用户是否已登录
@@ -444,7 +454,7 @@ export default function MedicalPatientsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <p className="mt-4 text-gray-600">{i18n.t('pages.medical_patients.loading')}</p>
         </div>
       </div>
     )
@@ -460,8 +470,8 @@ export default function MedicalPatientsPage() {
 
       {/* Header */}
       <MedicalHeader 
-        title="患者管理"
-        subtitle="查看患者列表與異常數據管理"
+        title={i18n.t('pages.medical_patients.title')}
+        subtitle={i18n.t('pages.medical_patients.subtitle')}
         icon={Users}
         showBackButton={true}
         user={currentUser}
@@ -474,7 +484,7 @@ export default function MedicalPatientsPage() {
         {stats && (
           <div className="mb-8">
             <h3 className="text-xl font-bold bg-gradient-to-r from-green-700 to-emerald-700 bg-clip-text text-transparent mb-6">
-              患者統計概覽
+              {i18n.t('pages.medical_patients.statistics')}
             </h3>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* 第一列：患者综合统计 */}
@@ -482,26 +492,26 @@ export default function MedicalPatientsPage() {
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex items-center gap-2 mb-3">
                     <Users className="h-6 w-6 text-blue-600" />
-                    <span className="text-lg font-medium text-gray-700">患者統計</span>
+                    <span className="text-lg font-medium text-gray-700">{i18n.t('pages.medical_patients.overview')}</span>
                   </div>
                   
                   {/* 统计数据网格 */}
                   <div className="grid grid-cols-2 gap-4 w-full">
                     <div className="text-center">
                       <div className="text-2xl font-bold text-blue-600 mb-1">{stats.totalPatients}</div>
-                      <p className="text-xs text-gray-600">患者總數</p>
+                      <p className="text-xs text-gray-600">{i18n.t('pages.medical_patients.total_patients')}</p>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-red-600 mb-1">
                         {patients.filter(p => p.hasAbnormalMeasurements).length}
                       </div>
-                      <p className="text-xs text-gray-600">異常患者</p>
+                      <p className="text-xs text-gray-600">{i18n.t('pages.medical_patients.patients_with_abnormal')}</p>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-orange-600 mb-1">
                         {patients.filter(p => p.nextCheckupDate && new Date(p.nextCheckupDate) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)).length}
                       </div>
-                      <p className="text-xs text-gray-600">待檢查</p>
+                      <p className="text-xs text-gray-600">{i18n.t('pages.medical_patients.patients_need_followup')}</p>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl font-bold text-green-600 mb-1">
@@ -512,7 +522,7 @@ export default function MedicalPatientsPage() {
                         }).length}
                       </div>
                       <div className="flex items-center justify-center gap-1">
-                        <p className="text-xs text-gray-600">定期監測</p>
+                        <p className="text-xs text-gray-600">{i18n.t('pages.medical_patients.active_patients')}</p>
                         <div className="relative group">
                           <Info className="h-3 w-3 text-gray-400 cursor-help" />
                           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 hidden group-hover:block z-50">

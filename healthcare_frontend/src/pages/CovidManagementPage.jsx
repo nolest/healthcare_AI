@@ -26,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../components/ui/badge.jsx'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table.jsx'
 import apiService from '../services/api.js'
+import i18n from '../utils/i18n.js'
 
 export default function CovidManagementPage() {
   const navigate = useNavigate()
@@ -34,6 +35,7 @@ export default function CovidManagementPage() {
   const [filteredAssessments, setFilteredAssessments] = useState([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState(null)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
   
   // 筛选状态
   const [filters, setFilters] = useState({
@@ -46,19 +48,27 @@ export default function CovidManagementPage() {
 
   // 可选症状列表（多选）
   const symptomOptions = [
-    { value: 'fever', label: '發燒' },
-    { value: 'cough', label: '咳嗽' },
-    { value: 'shortness_breath', label: '呼吸困難' },
-    { value: 'loss_taste_smell', label: '味覺嗅覺喪失' },
-    { value: 'fatigue', label: '疲勞' },
-    { value: 'body_aches', label: '肌肉疼痛' },
-    { value: 'headache', label: '頭痛' },
-    { value: 'sore_throat', label: '喉嚨痛' },
-    { value: 'runny_nose', label: '流鼻涕' },
-    { value: 'nausea', label: '噁心' },
-    { value: 'diarrhea', label: '腹瀉' },
-    { value: 'chills', label: '寒顫' }
+    { value: 'fever', label: i18n.t('pages.covid_management.fever') },
+    { value: 'cough', label: i18n.t('pages.covid_management.cough') },
+    { value: 'shortness_breath', label: i18n.t('pages.covid_management.shortness_breath') },
+    { value: 'loss_taste_smell', label: i18n.t('pages.covid_management.loss_taste_smell') },
+    { value: 'fatigue', label: i18n.t('pages.covid_management.fatigue') },
+    { value: 'body_aches', label: i18n.t('pages.covid_management.body_aches') },
+    { value: 'headache', label: i18n.t('pages.covid_management.headache') },
+    { value: 'sore_throat', label: i18n.t('pages.covid_management.sore_throat') },
+    { value: 'runny_nose', label: i18n.t('pages.covid_management.runny_nose') },
+    { value: 'nausea', label: i18n.t('pages.covid_management.nausea') },
+    { value: 'diarrhea', label: i18n.t('pages.covid_management.diarrhea') },
+    { value: 'chills', label: i18n.t('pages.covid_management.chills') }
   ]
+
+  useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    i18n.addListener(handleLanguageChange)
+    return () => i18n.removeListener(handleLanguageChange)
+  }, [])
 
   useEffect(() => {
     // 检查用户是否已登录
@@ -263,13 +273,13 @@ export default function CovidManagementPage() {
 
   const getRiskLevelLabel = (riskLevel) => {
     const labels = {
-      'very_high': '極高風險',
-      'high': '高風險',
-      'medium': '中風險',
-      'low': '低風險',
-      'very_low': '極低風險'
+      'very_high': i18n.t('risk.critical'),
+      'high': i18n.t('risk.high'),
+      'medium': i18n.t('risk.medium'),
+      'low': i18n.t('risk.low'),
+      'very_low': i18n.t('risk.low')
     }
-    return labels[riskLevel] || '未知風險'
+    return labels[riskLevel] || i18n.t('measurement.unknown')
   }
 
   const getRiskLevelColor = (riskLevel) => {
@@ -291,11 +301,11 @@ export default function CovidManagementPage() {
 
   const getStatusLabel = (status) => {
     const labels = {
-      'pending': '待處理',
-      'processed': '已處理',
-      'reviewed': '已審核'
+      'pending': i18n.t('pages.covid_management.status_pending'),
+      'processed': i18n.t('pages.covid_management.status_processed'),
+      'reviewed': i18n.t('pages.covid_management.status_completed')
     }
-    return labels[status] || '未知狀態'
+    return labels[status] || i18n.t('measurement.unknown')
   }
 
   const getStatusColor = (status) => {
@@ -318,11 +328,11 @@ export default function CovidManagementPage() {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     
     if (diffDays === 1) {
-      return '昨天'
+      return i18n.t('common.yesterday') || '昨天'
     } else if (diffDays <= 7) {
-      return `${diffDays} 天前`
+      return `${diffDays} ${i18n.t('common.days_ago') || '天前'}`
     } else {
-      return date.toLocaleDateString('zh-TW', {
+      return date.toLocaleDateString(i18n.getCurrentLanguage() === 'en' ? 'en-US' : 'zh-TW', {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
@@ -417,7 +427,7 @@ export default function CovidManagementPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <p className="mt-4 text-gray-600">{i18n.t('pages.covid_management.loading')}</p>
         </div>
       </div>
     )
@@ -433,8 +443,8 @@ export default function CovidManagementPage() {
 
       {/* Header */}
       <MedicalHeader 
-        title="COVID管理"
-        subtitle="COVID/流感評估數據管理與診斷"
+        title={i18n.t('pages.covid_management.title')}
+        subtitle={i18n.t('pages.covid_management.subtitle')}
         icon={Shield}
         showBackButton={true}
         user={currentUser}
@@ -448,50 +458,50 @@ export default function CovidManagementPage() {
         {stats && (
           <div className="mb-8">
             <h3 className="text-xl font-bold bg-gradient-to-r from-green-700 to-emerald-700 bg-clip-text text-transparent mb-4">
-              COVID/流感測量統計
+              {i18n.t('pages.covid_management.assessment_stats')}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <Card className="bg-gradient-to-br from-blue-50/80 to-blue-100/60 backdrop-blur-md border-0 shadow-2xl shadow-blue-500/15">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-blue-600">總記錄數</CardTitle>
+                  <CardTitle className="text-sm font-medium text-blue-600">{i18n.t('pages.covid_management.total_assessments')}</CardTitle>
                   <Shield className="h-4 w-4 text-blue-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-blue-700">{stats.total}</div>
-                  <p className="text-xs text-blue-600/70">COVID/流感評估記錄</p>
+                  <p className="text-xs text-blue-600/70">{i18n.t('pages.covid_management.assessments')}</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-gradient-to-br from-orange-50/80 to-orange-100/60 backdrop-blur-md border-0 shadow-2xl shadow-orange-500/15">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-orange-600">待處理</CardTitle>
+                  <CardTitle className="text-sm font-medium text-orange-600">{i18n.t('pages.covid_management.pending_assessments')}</CardTitle>
                   <Clock className="h-4 w-4 text-orange-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-orange-700">{stats.pending}</div>
-                  <p className="text-xs text-orange-600/70">未進行診斷</p>
+                  <p className="text-xs text-orange-600/70">{i18n.t('pages.covid_management.status_pending')}</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-gradient-to-br from-green-50/80 to-green-100/60 backdrop-blur-md border-0 shadow-2xl shadow-green-500/15">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-600">已處理</CardTitle>
+                  <CardTitle className="text-sm font-medium text-green-600">{i18n.t('pages.covid_management.processed_assessments')}</CardTitle>
                   <UserCheck className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-green-700">{stats.processed}</div>
-                  <p className="text-xs text-green-600/70">已進行診斷</p>
+                  <p className="text-xs text-green-600/70">{i18n.t('pages.covid_management.status_processed')}</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-gradient-to-br from-purple-50/80 to-purple-100/60 backdrop-blur-md border-0 shadow-2xl shadow-purple-500/15">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-purple-600">處理率</CardTitle>
+                  <CardTitle className="text-sm font-medium text-purple-600">{i18n.t('pages.covid_management.processing_rate')}</CardTitle>
                   <Activity className="h-4 w-4 text-purple-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-purple-700">{stats.processingRate}%</div>
-                  <p className="text-xs text-purple-600/70">診斷完成率</p>
+                  <p className="text-xs text-purple-600/70">{i18n.t('pages.covid_management.processing_rate')}</p>
                 </CardContent>
               </Card>
             </div>
@@ -504,61 +514,61 @@ export default function CovidManagementPage() {
             <CardHeader className="pb-4">
               <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
                 <Filter className="h-5 w-5 text-green-600" />
-                篩選異常
+                {i18n.t('pages.covid_management.filter_by_risk')}
               </CardTitle>
               <CardDescription className="text-gray-600">
-                使用多個條件來篩選需要診斷的COVID/流感評估記錄
+                {i18n.t('pages.covid_management.subtitle')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 <div>
-                  <Label htmlFor="patientId" className="text-sm font-medium text-gray-700">患者ID</Label>
+                  <Label htmlFor="patientId" className="text-sm font-medium text-gray-700">{i18n.t('pages.covid_management.patient_id')}</Label>
                   <Input
                     id="patientId"
-                    placeholder="輸入患者ID..."
+                    placeholder={i18n.t('pages.covid_management.search_patient')}
                     className="mt-1 bg-white/70 border-green-200 focus:border-green-400"
                     value={filters.patientId}
                     onChange={(e) => setFilters(prev => ({ ...prev, patientId: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="patientName" className="text-sm font-medium text-gray-700">患者姓名</Label>
+                  <Label htmlFor="patientName" className="text-sm font-medium text-gray-700">{i18n.t('pages.covid_management.patient_name')}</Label>
                   <Input
                     id="patientName"
-                    placeholder="輸入患者姓名..."
+                    placeholder={i18n.t('pages.covid_management.search_patient')}
                     className="mt-1 bg-white/70 border-green-200 focus:border-green-400"
                     value={filters.patientName}
                     onChange={(e) => setFilters(prev => ({ ...prev, patientName: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">風險等級</Label>
+                  <Label className="text-sm font-medium text-gray-700">{i18n.t('pages.covid_management.risk_level')}</Label>
                   <Select value={filters.riskLevel} onValueChange={(value) => setFilters(prev => ({ ...prev, riskLevel: value }))}>
                     <SelectTrigger className="mt-1 bg-white/70 border-green-200 focus:border-green-400">
-                      <SelectValue placeholder="選擇風險等級" />
+                      <SelectValue placeholder={i18n.t('pages.covid_management.filter_by_risk')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">全部等級</SelectItem>
-                      <SelectItem value="very_high">極高風險</SelectItem>
-                      <SelectItem value="high">高風險</SelectItem>
-                      <SelectItem value="medium">中風險</SelectItem>
-                      <SelectItem value="low">低風險</SelectItem>
-                      <SelectItem value="very_low">極低風險</SelectItem>
+                      <SelectItem value="all">{i18n.t('pages.covid_management.all_risk_levels')}</SelectItem>
+                      <SelectItem value="very_high">{i18n.t('risk.critical')}</SelectItem>
+                      <SelectItem value="high">{i18n.t('risk.high')}</SelectItem>
+                      <SelectItem value="medium">{i18n.t('risk.medium')}</SelectItem>
+                      <SelectItem value="low">{i18n.t('risk.low')}</SelectItem>
+                      <SelectItem value="very_low">{i18n.t('risk.low')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-gray-700">時間範圍</Label>
+                  <Label className="text-sm font-medium text-gray-700">{i18n.t('pages.covid_management.filter_by_date')}</Label>
                   <Select value={filters.dateRange} onValueChange={(value) => setFilters(prev => ({ ...prev, dateRange: value }))}>
                     <SelectTrigger className="mt-1 bg-white/70 border-green-200 focus:border-green-400">
-                      <SelectValue placeholder="選擇時間範圍" />
+                      <SelectValue placeholder={i18n.t('pages.covid_management.filter_by_date')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">全部時間</SelectItem>
-                      <SelectItem value="today">今天</SelectItem>
-                      <SelectItem value="week">最近一週</SelectItem>
-                      <SelectItem value="month">最近一月</SelectItem>
+                      <SelectItem value="all">{i18n.t('pages.covid_management.all_dates')}</SelectItem>
+                      <SelectItem value="today">{i18n.t('common.today') || '今天'}</SelectItem>
+                      <SelectItem value="week">{i18n.t('pages.covid_management.last_7_days')}</SelectItem>
+                      <SelectItem value="month">{i18n.t('pages.covid_management.last_30_days')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -566,7 +576,7 @@ export default function CovidManagementPage() {
               
               {/* 症状多选 */}
               <div className="mb-4">
-                <Label className="text-sm font-medium text-gray-700 mb-2 block">症狀篩選（可多選）</Label>
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">{i18n.t('pages.covid_management.filter_by_symptoms')}</Label>
                 <div className="flex flex-wrap gap-2">
                   {symptomOptions.map((symptom) => (
                     <Button
@@ -592,14 +602,14 @@ export default function CovidManagementPage() {
                   className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
                 >
                   <Search className="h-4 w-4 mr-2" />
-                  應用篩選
+                  {i18n.t('pages.covid_management.apply_filters')}
                 </Button>
                 <Button
                   onClick={resetFilters}
                   variant="outline"
                   className="border-green-200 hover:bg-green-50"
                 >
-                  重置篩選
+                  {i18n.t('pages.covid_management.reset_filters')}
                 </Button>
               </div>
             </CardContent>
@@ -611,36 +621,36 @@ export default function CovidManagementPage() {
           <CardHeader className="pb-4">
             <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-600" />
-              風險列表 ({filteredAssessments.length})
+              {i18n.t('pages.covid_management.assessments')} ({filteredAssessments.length})
             </CardTitle>
             <CardDescription className="text-gray-600">
-              點擊"查看詳情"按鈕查看患者COVID/流感評估詳情並進行診斷
+              {i18n.t('pages.covid_management.subtitle')}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600">載入COVID評估數據中...</p>
+                <p className="mt-4 text-gray-600">{i18n.t('pages.covid_management.loading')}</p>
               </div>
             ) : filteredAssessments.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Shield className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">暫無COVID評估數據</h3>
-                <p>目前沒有需要診斷的COVID/流感評估記錄</p>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">{i18n.t('pages.covid_management.no_assessments')}</h3>
+                <p>{i18n.t('pages.covid_management.no_data')}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>患者信息</TableHead>
-                      <TableHead>風險等級</TableHead>
-                      <TableHead>主要症狀</TableHead>
-                      <TableHead>體溫</TableHead>
-                      <TableHead>評估時間</TableHead>
-                      <TableHead>狀態</TableHead>
-                      <TableHead>操作</TableHead>
+                      <TableHead>{i18n.t('pages.covid_management.patient_name')}</TableHead>
+                      <TableHead>{i18n.t('pages.covid_management.risk_level')}</TableHead>
+                      <TableHead>{i18n.t('pages.covid_management.symptoms')}</TableHead>
+                      <TableHead>{i18n.t('pages.covid_management.temperature')}</TableHead>
+                      <TableHead>{i18n.t('pages.covid_management.assessment_date')}</TableHead>
+                      <TableHead>{i18n.t('pages.covid_management.status')}</TableHead>
+                      <TableHead>{i18n.t('pages.covid_management.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -654,19 +664,19 @@ export default function CovidManagementPage() {
                               </div>
                               <div>
                                 <p className="font-medium text-gray-900">
-                                  {assessment.patientInfo?.fullName || assessment.patientInfo?.username || '未知患者'}
+                                  {assessment.patientInfo?.fullName || assessment.patientInfo?.username || i18n.t('measurement.unknown')}
                                 </p>
                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                   <span>ID: {(typeof assessment.userId === 'string' ? assessment.userId : assessment.userId?._id || '').slice(-8)}</span>
                                   {assessment.patientInfo?.gender && (
                                     <Badge variant="outline" className="text-xs">
-                                      {assessment.patientInfo.gender === 'male' ? '男' : 
-                                       assessment.patientInfo.gender === 'female' ? '女' : '未知'}
+                                      {assessment.patientInfo.gender === 'male' ? i18n.t('auth.gender.male') : 
+                                       assessment.patientInfo.gender === 'female' ? i18n.t('auth.gender.female') : i18n.t('measurement.unknown')}
                                     </Badge>
                                   )}
                                   {assessment.patientInfo?.age && (
                                     <Badge variant="outline" className="text-xs">
-                                      {assessment.patientInfo.age}歲
+                                      {assessment.patientInfo.age}{i18n.t('pages.medical_patients.years_old')}
                                     </Badge>
                                   )}
                                 </div>
@@ -706,7 +716,7 @@ export default function CovidManagementPage() {
                                   ? 'text-red-600' 
                                   : 'text-gray-700'
                               }`}>
-                                {assessment.temperature ? `${assessment.temperature}°C` : '未記錄'}
+                                {assessment.temperature ? `${assessment.temperature}${i18n.t('pages.covid_management.celsius')}` : i18n.t('measurement.unknown')}
                               </span>
                             </div>
                           </TableCell>
@@ -731,7 +741,7 @@ export default function CovidManagementPage() {
                               className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
                             >
                               <Stethoscope className="h-4 w-4 mr-1" />
-                              查看詳情
+                              {i18n.t('pages.covid_management.view_details')}
                             </Button>
                           </TableCell>
                         </TableRow>
