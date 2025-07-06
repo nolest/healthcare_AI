@@ -75,9 +75,9 @@ export default function PatientMeasurementResultPage() {
     return labels[type] || t('common.unknown')
   }
 
-  const t = (key) => {
+  const t = (key, params = {}) => {
     language; // 确保组件依赖于language状态
-    return i18n.t(key)
+    return i18n.t(key, params)
   }
 
   if (!resultData) {

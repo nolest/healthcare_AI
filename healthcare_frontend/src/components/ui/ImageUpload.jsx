@@ -1,23 +1,42 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from './button.jsx'
 import { Label } from './label.jsx'
 import { Input } from './input.jsx'
 import { Progress } from './progress.jsx'
 import { Loader2, Upload, X, Image, CheckCircle } from 'lucide-react'
+import i18n from '../../utils/i18n.js'
 
 export default function ImageUpload({
   selectedImages = [],
   onImagesChange,
   maxImages = 5,
   maxSizePerImage = 5, // MB
-  label = "症狀圖片",
-  description = "支持 JPG、PNG、GIF、WebP 格式",
+  label = null, // 将使用国际化的默认标签
+  description = null, // 将使用国际化的默认描述
   disabled = false,
   uploading = false,
   uploadProgress = 0,
   accentColor = 'green' // green, purple, blue
 }) {
   const [imagePreviewUrls, setImagePreviewUrls] = useState([])
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    
+    i18n.addListener(handleLanguageChange)
+    
+    return () => {
+      i18n.removeListener(handleLanguageChange)
+    }
+  }, [])
+
+  const t = (key, params = {}) => {
+    language; // 确保组件依赖于language状态
+    return i18n.t(key, params)
+  }
 
   // 根据accent颜色获取样式类
   const getColorClasses = () => {
@@ -58,7 +77,7 @@ export default function ImageUpload({
       
       // 检查文件数量限制
       if (files.length > maxImages) {
-        console.error(`最多只能上传${maxImages}张图片`)
+        console.error(t('image_upload.error_file_count', { count: maxImages }))
         return
       }
 
@@ -69,13 +88,13 @@ export default function ImageUpload({
       for (const file of files) {
         // 检查文件类型
         if (!file.type.startsWith('image/')) {
-          console.error('只能上传图片文件')
+          console.error(t('image_upload.error_file_type'))
           return
         }
         
         // 检查文件大小
         if (file.size > maxSizePerImage * 1024 * 1024) {
-          console.error(`图片文件大小不能超过${maxSizePerImage}MB`)
+          console.error(t('image_upload.error_file_size', { size: maxSizePerImage }))
           return
         }
         
@@ -86,7 +105,7 @@ export default function ImageUpload({
       setImagePreviewUrls(validPreviewUrls)
       onImagesChange(validFiles, validPreviewUrls)
     } catch (error) {
-      console.error('处理图片选择时出错:', error)
+      console.error(t('image_upload.error_processing'), error)
     }
   }
 
@@ -109,17 +128,29 @@ export default function ImageUpload({
     onImagesChange([], [])
   }
 
+  // 获取标签文本
+  const getLabelText = () => {
+    if (label) return label
+    return `${t('image_upload.label')}（${t('image_upload.optional')}，${t('image_upload.max_count', { count: maxImages })}）`
+  }
+
+  // 获取描述文本
+  const getDescriptionText = () => {
+    if (description) return description
+    return `${t('image_upload.file_format_desc')}，${t('image_upload.max_size_desc', { size: maxSizePerImage })}`
+  }
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         <Label className="flex items-center justify-between text-sm font-medium text-gray-700">
           <div className="flex items-center space-x-2">
             <Image className={`h-4 w-4 ${colorClasses.icon}`} />
-            <span>{label}（可選，最多{maxImages}張）</span>
+            <span>{getLabelText()}</span>
           </div>
           {selectedImages.length > 0 && (
             <span className="text-xs text-gray-500">
-              已選擇 {selectedImages.length}/{maxImages} 張
+              {t('image_upload.selected_count', { selected: selectedImages.length, max: maxImages })}
             </span>
           )}
         </Label>
@@ -136,16 +167,16 @@ export default function ImageUpload({
             <div className="space-y-2">
               <span className={`text-sm ${selectedImages.length >= maxImages || disabled ? 'text-gray-400' : 'text-gray-600 font-medium'}`}>
                 {selectedImages.length >= maxImages 
-                  ? '已達到最大上傳數量' 
-                  : '點擊選擇圖片或拖拽圖片到此處'
+                  ? t('image_upload.max_limit_reached')
+                  : t('image_upload.click_to_select')
                 }
               </span>
               <p className="text-xs text-gray-500">
-                {description}，單個文件不超過{maxSizePerImage}MB
+                {getDescriptionText()}
               </p>
               {selectedImages.length > 0 && (
                 <p className={`text-xs ${colorClasses.text}`}>
-                  💡 提示：可以一次選擇多張圖片進行上傳
+                  {t('image_upload.multi_upload_tip')}
                 </p>
               )}
             </div>
@@ -166,9 +197,9 @@ export default function ImageUpload({
       {imagePreviewUrls.length > 0 && (
         <div className="space-y-2">
           <Label className="flex items-center justify-between">
-            <span>已選擇的圖片預覽</span>
+            <span>{t('image_upload.preview_title')}</span>
             <span className="text-xs text-gray-500">
-              總大小: {(selectedImages.reduce((total, img) => total + img.size, 0) / 1024 / 1024).toFixed(1)} MB
+              {t('image_upload.total_size')}: {(selectedImages.reduce((total, img) => total + img.size, 0) / 1024 / 1024).toFixed(1)} MB
             </span>
           </Label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -177,7 +208,7 @@ export default function ImageUpload({
                 <div className="relative">
                   <img
                     src={url}
-                    alt={`預覽 ${index + 1}`}
+                    alt={t('image_upload.preview_alt', { index: index + 1 })}
                     className={`w-full h-24 object-cover rounded-lg border transition-opacity ${
                       uploading ? 'opacity-75' : ''
                     }`}
@@ -216,7 +247,7 @@ export default function ImageUpload({
           {!uploading && (
             <div className="flex items-center justify-between text-xs text-gray-500 bg-gray-50 p-2 rounded">
               <span>
-                📎 {selectedImages.length} 張圖片已準備上傳
+                {t('image_upload.files_ready', { count: selectedImages.length })}
               </span>
               <Button
                 type="button"
@@ -226,7 +257,7 @@ export default function ImageUpload({
                 disabled={disabled || uploading}
                 className="h-6 text-xs px-2"
               >
-                清除全部
+                {t('image_upload.clear_all')}
               </Button>
             </div>
           )}
@@ -252,7 +283,7 @@ export default function ImageUpload({
                 accentColor === 'blue' ? 'text-blue-800' :
                 'text-green-800'
               }`}>
-                {uploadProgress < 100 ? '正在上传图片...' : '处理中...'}
+                {uploadProgress < 100 ? t('image_upload.uploading') : t('image_upload.processing')}
               </span>
             </div>
             <span className={`text-sm font-semibold ${
@@ -272,11 +303,11 @@ export default function ImageUpload({
               accentColor === 'blue' ? 'text-blue-600' :
               'text-green-600'
             }`}>
-              正在上传 {selectedImages.length} 张图片
+              {t('image_upload.uploading_count', { count: selectedImages.length })}
               {uploadProgress === 100 && (
                 <span className="ml-2 inline-flex items-center">
                   <CheckCircle className="h-3 w-3 mr-1" />
-                  上传完成，正在保存记录...
+                  {t('image_upload.upload_complete')}
                 </span>
               )}
             </div>

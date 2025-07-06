@@ -49,9 +49,9 @@ export default function PatientCovidAssessmentPage() {
     })
   }
 
-  const t = (key) => {
+  const t = (key, params = {}) => {
     language; // 确保组件依赖于language状态
-    return i18n.t(key)
+    return i18n.t(key, params)
   }
 
   if (!user) {
@@ -59,7 +59,7 @@ export default function PatientCovidAssessmentPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <p className="mt-4 text-gray-600">{t('pages.covid_assessment.loading')}</p>
         </div>
       </div>
     )
@@ -76,8 +76,8 @@ export default function PatientCovidAssessmentPage() {
 
       {/* Header */}
       <PatientHeader 
-        title="COVID/流感健康評估"
-        subtitle="個人健康監測與風險評估"
+        title={t('pages.covid_assessment.title')}
+        subtitle={t('pages.covid_assessment.subtitle')}
         icon={Shield}
         showBackButton={true}
         user={user}
@@ -89,7 +89,7 @@ export default function PatientCovidAssessmentPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">
-              進行健康評估
+              {t('pages.covid_assessment.new_assessment')}
             </h3>
             <Button
               variant="outline"
@@ -97,11 +97,11 @@ export default function PatientCovidAssessmentPage() {
               className="flex items-center gap-2 bg-gradient-to-br from-white/70 to-white/50 backdrop-blur-md border-purple-200 hover:border-purple-300 hover:bg-white/80 text-purple-700 hover:text-purple-800 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl"
             >
               <History className="h-4 w-4" />
-              查看歷史
+              {t('pages.covid_assessment.view_history')}
             </Button>
           </div>
           <p className="text-gray-600/80 text-sm mb-6">
-            基於WHO和CDC指導原則的專業健康風險評估工具
+            {t('pages.covid_assessment.description')}
           </p>
           <CovidFluAssessmentForm 
             user={user}

@@ -50,6 +50,11 @@ export default function PatientCovidAssessmentHistoryPage() {
     }
   }
 
+  const t = (key, params = {}) => {
+    language; // 确保组件依赖于language状态
+    return i18n.t(key, params)
+  }
+
   const getRiskLevelColor = (riskLevel) => {
     switch (riskLevel) {
       case 'very_high':
@@ -143,32 +148,20 @@ export default function PatientCovidAssessmentHistoryPage() {
   }
 
   const getRiskLevelText = (riskLevel) => {
-    switch (riskLevel) {
-      case 'very_high': return '极高风险'
-      case 'high': return '高风险'
-      case 'medium': return '中等风险'
-      case 'low': return '低风险'
-      case 'very_low': return '极低风险'
-      default: return '未知风险'
-    }
+    return t(`pages.covid_assessment_history.risk_levels.${riskLevel}`)
   }
 
   const getAssessmentTypeText = (type) => {
-    switch (type) {
-      case 'covid': return 'COVID-19'
-      case 'flu': return '流感'
-      case 'both': return 'COVID/流感综合'
-      default: return '健康评估'
-    }
+    return t(`pages.covid_assessment_history.assessment_types.${type}`)
   }
 
   const formatSymptoms = (symptoms) => {
-    if (!symptoms || symptoms.length === 0) return '无症状'
+    if (!symptoms || symptoms.length === 0) return t('pages.covid_assessment_history.no_symptoms')
     return symptoms.join(', ')
   }
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString('zh-CN', {
+    return new Date(dateString).toLocaleString(language === 'en' ? 'en-US' : 'zh-CN', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -186,7 +179,7 @@ export default function PatientCovidAssessmentHistoryPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <p className="mt-4 text-gray-600">{t('pages.covid_assessment_history.loading')}</p>
         </div>
       </div>
     )
@@ -203,11 +196,10 @@ export default function PatientCovidAssessmentHistoryPage() {
 
       {/* Header */}
       <PatientHeader 
-        title="COVID/流感評估歷史"
-        subtitle="查看您的健康評估記錄和風險分析"
+        title={t('pages.covid_assessment_history.title')}
+        subtitle={t('pages.covid_assessment_history.subtitle')}
         icon={Shield}
         showBackButton={true}
-        backPath="/patient/covid-assessment"
         user={user}
       />
 
@@ -269,14 +261,14 @@ export default function PatientCovidAssessmentHistoryPage() {
             ) : assessments.length === 0 ? (
               <div className="text-center py-12">
                 <Shield className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg mb-2">尚無評估記錄</p>
-                <p className="text-gray-400 mb-6">開始您的第一次健康評估</p>
+                <p className="text-gray-500 text-lg mb-2">{t('pages.covid_assessment_history.no_assessments')}</p>
+                <p className="text-gray-400 mb-6">{t('pages.covid_assessment_history.no_assessments_desc')}</p>
                 <Button 
                   onClick={() => navigate('/patient/covid-assessment')}
                   className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg"
                 >
                   <Shield className="h-4 w-4 mr-2" />
-                  立即評估
+                  {t('pages.covid_assessment_history.start_assessment')}
                 </Button>
               </div>
             ) : (
@@ -301,7 +293,7 @@ export default function PatientCovidAssessmentHistoryPage() {
                             className={`h-6 px-2 text-xs ml-1 ${getButtonColor(assessment.riskLevel)} shadow-sm transition-all duration-200`}
                           >
                             <Eye className="h-3 w-3 mr-1" />
-                            詳情
+                            {t('pages.covid_assessment_history.view_details')}
                           </Button>
                         </div>
                       </div>
@@ -314,7 +306,7 @@ export default function PatientCovidAssessmentHistoryPage() {
                       <div className="space-y-1.5">
                         {/* 症状记录 */}
                         <div>
-                          <h4 className="font-medium text-gray-700 mb-1 text-xs">症狀記錄</h4>
+                          <h4 className="font-medium text-gray-700 mb-1 text-xs">{t('pages.covid_assessment_history.symptoms')}</h4>
                           <div className="p-2 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-purple-200/30 shadow-sm">
                             <p className="text-xs text-gray-800 leading-relaxed">
                               {formatSymptoms(assessment.symptoms)}
@@ -325,7 +317,7 @@ export default function PatientCovidAssessmentHistoryPage() {
                         {/* 症状徽章 */}
                         {assessment.symptoms && assessment.symptoms.length > 0 && (
                           <div>
-                            <h4 className="font-medium text-gray-700 mb-1 text-xs">症狀標籤</h4>
+                            <h4 className="font-medium text-gray-700 mb-1 text-xs">{t('pages.covid_assessment_history.symptoms_badge')}</h4>
                             <div className="flex flex-wrap gap-1">
                               {assessment.symptoms.slice(0, 4).map((symptom, idx) => (
                                 <Badge key={idx} className={`text-xs px-1.5 py-0.5 ${getSymptomBadgeColor(assessment.riskLevel)} shadow-sm`}>
@@ -344,10 +336,10 @@ export default function PatientCovidAssessmentHistoryPage() {
                         {/* 体温记录 */}
                         {assessment.temperature && (
                           <div>
-                            <h4 className="font-medium text-gray-700 mb-1 text-xs">體溫記錄</h4>
+                            <h4 className="font-medium text-gray-700 mb-1 text-xs">{t('pages.covid_assessment_history.temperature')}</h4>
                             <div className="flex items-center gap-2 p-1 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-orange-200/30 shadow-sm">
                               <Thermometer className="h-3 w-3 text-orange-500" />
-                              <span className="text-xs text-gray-600">體溫:</span>
+                              <span className="text-xs text-gray-600">{t('pages.covid_assessment_history.temperature_value')}:</span>
                               <span className="font-semibold text-xs text-gray-800">{assessment.temperature}°C</span>
                             </div>
                           </div>
@@ -356,7 +348,7 @@ export default function PatientCovidAssessmentHistoryPage() {
                         {/* 风险因素 */}
                         {assessment.riskFactors && assessment.riskFactors.length > 0 && (
                           <div>
-                            <h4 className="font-medium text-gray-700 mb-1 text-xs">風險因素</h4>
+                            <h4 className="font-medium text-gray-700 mb-1 text-xs">{t('pages.covid_assessment_history.risk_factors')}</h4>
                             <div className="p-2 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-amber-200/30 shadow-sm">
                               <p className="text-xs text-gray-800 leading-relaxed">
                                 {assessment.riskFactors.join(', ')}
@@ -368,7 +360,7 @@ export default function PatientCovidAssessmentHistoryPage() {
                         {/* 健康建议 */}
                         {assessment.recommendations && assessment.recommendations.length > 0 && (
                           <div>
-                            <h4 className="font-medium text-gray-700 mb-1 text-xs">健康建議</h4>
+                            <h4 className="font-medium text-gray-700 mb-1 text-xs">{t('pages.covid_assessment_history.health_advice')}</h4>
                             <div className="p-2 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-emerald-200/30 shadow-sm">
                               <ul className="text-xs text-gray-800 leading-relaxed space-y-0.5">
                                 {assessment.recommendations.slice(0, 3).map((rec, idx) => (
@@ -379,7 +371,7 @@ export default function PatientCovidAssessmentHistoryPage() {
                                 ))}
                                 {assessment.recommendations.length > 3 && (
                                   <li className="text-gray-500 italic">
-                                    ... 共{assessment.recommendations.length}條建議
+                                    ... {t('pages.covid_assessment_history.total_advice', { count: assessment.recommendations.length })}
                                   </li>
                                 )}
                               </ul>
