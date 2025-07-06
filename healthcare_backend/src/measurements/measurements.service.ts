@@ -101,8 +101,8 @@ export class MeasurementsService {
     );
   }
 
-  private async detectAbnormalValues(measurement: CreateMeasurementDto): Promise<{ isAbnormal: boolean; reasons: string[]; severity?: string }> {
-    const allReasons: string[] = [];
+  private async detectAbnormalValues(measurement: CreateMeasurementDto): Promise<{ isAbnormal: boolean; reasons: any[]; severity?: string }> {
+    const allReasons: any[] = [];
     let hasAbnormal = false;
     let maxSeverity = 'normal';
 

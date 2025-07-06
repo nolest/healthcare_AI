@@ -36,6 +36,7 @@ import ImagePreview from '../components/ui/ImagePreview.jsx'
 import apiService from '../services/api.js'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 import i18n from '../utils/i18n.js'
+import AbnormalReasonFormatter from '../utils/abnormalReasonFormatter.js'
 
 export default function MedicalDiagnosisFormPage() {
   const navigate = useNavigate()
@@ -49,6 +50,7 @@ export default function MedicalDiagnosisFormPage() {
   const [historyLoading, setHistoryLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+  const [formattedReasons, setFormattedReasons] = useState({})
   
   // 图片查看器状态
   const [imageViewerOpen, setImageViewerOpen] = useState(false)
@@ -126,10 +128,14 @@ export default function MedicalDiagnosisFormPage() {
   useEffect(() => {
     const handleLanguageChange = (newLanguage) => {
       setLanguage(newLanguage)
+      // 语言变化时重新格式化异常原因
+      if (measurementData && measurementData.abnormalReasons) {
+        formatAllReasons(measurementData.abnormalReasons)
+      }
     }
     i18n.addListener(handleLanguageChange)
     return () => i18n.removeListener(handleLanguageChange)
-  }, [])
+  }, [measurementData])
 
   useEffect(() => {
     // 检查用户是否已登录
@@ -171,12 +177,17 @@ export default function MedicalDiagnosisFormPage() {
       loadMeasurementById(measurementId)
     } else if (location.state && location.state.measurementData) {
       // 从state获取传递的测量数据（保持向后兼容）
-      setMeasurementData(location.state.measurementData)
+      const stateData = location.state.measurementData
+      setMeasurementData(stateData)
       setPatientInfo(location.state.patientInfo)
       
+      // 格式化异常原因
+      if (stateData.abnormalReasons && stateData.abnormalReasons.length > 0) {
+        formatAllReasons(stateData.abnormalReasons)
+      }
+      
       // 正确处理userId，确保传递字符串ID而不是对象
-      const measurementData = location.state.measurementData
-      const userId = typeof measurementData.userId === 'string' ? measurementData.userId : measurementData.userId?._id
+      const userId = typeof stateData.userId === 'string' ? stateData.userId : stateData.userId?._id
       setCurrentUserId(userId)
       loadPatientHistory(userId)
     } else {
@@ -227,6 +238,11 @@ export default function MedicalDiagnosisFormPage() {
       if (measurement) {
           console.log('loadMeasurementById: 找到测量记录:', measurement)
           setMeasurementData(measurement)
+          
+          // 格式化异常原因
+          if (measurement.abnormalReasons && measurement.abnormalReasons.length > 0) {
+            formatAllReasons(measurement.abnormalReasons)
+          }
           
           // 检查测量记录状态，如果已处理则设置为只读模式
           // 但如果URL参数中有hasread=1，则优先使用URL参数
@@ -730,6 +746,20 @@ export default function MedicalDiagnosisFormPage() {
     }
   }
 
+  // 格式化所有异常原因
+  const formatAllReasons = (reasons) => {
+    if (!reasons || !Array.isArray(reasons)) {
+      return
+    }
+
+    const formatted = {}
+    reasons.forEach(reason => {
+      formatted[reason] = AbnormalReasonFormatter.smartFormat(reason)
+    })
+    
+    setFormattedReasons(formatted)
+  }
+
   const handleSubmitDiagnosis = async () => {
     if (!diagnosis.trim()) {
       setMessage(i18n.t('pages.medical_diagnosis_form.enter_diagnosis'))
@@ -927,7 +957,7 @@ export default function MedicalDiagnosisFormPage() {
                   <div className="flex items-center gap-3 mb-4">
                     {getMeasurementTypeIcon(measurementType)}
                     <div>
-                      <h3 className="font-semibold text-gray-800">{getMeasurementTypeLabel(measurementType)}異常</h3>
+                      <h3 className="font-semibold text-gray-800">{getMeasurementTypeLabel(measurementType)}{i18n.t('pages.medical_diagnosis_form.abnormal')}</h3>
                       <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-200">
                         {getMeasurementValue(measurementData)}
                       </Badge>
@@ -938,20 +968,17 @@ export default function MedicalDiagnosisFormPage() {
                     {/* 显示详细的异常原因列表 */}
                     {measurementData.abnormalReasons && measurementData.abnormalReasons.length > 0 && (
                       <div className="space-y-2">
-                        <span className="text-gray-600 text-sm font-medium">異常原因:</span>
-                        <div className="space-y-2">
-                          {measurementData.abnormalReasons.map((reason, index) => (
-                            <div key={index} className="flex items-start gap-3 p-3 bg-gradient-to-r from-red-50 to-pink-50 rounded-lg shadow-sm">
-                              <div className="w-2 h-2 bg-gradient-to-r from-red-400 to-pink-400 rounded-full mt-2 flex-shrink-0"></div>
-                              <span className="text-red-700 text-sm font-medium">{reason}</span>
-                            </div>
-                          ))}
-                        </div>
+                        <span className="text-gray-600 text-sm font-medium">{i18n.t('pages.medical_diagnosis_form.abnormal_reasons')}:</span>
+                        {measurementData.abnormalReasons.map((reason, index) => (
+                          <span key={index} className="inline-block bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full mr-2">
+                            {formattedReasons[reason] || reason}
+                          </span>
+                        ))}
                       </div>
                     )}
                     
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">測量時間:</span>
+                      <span className="text-gray-600">{i18n.t('pages.medical_diagnosis_form.measurement_time')}:</span>
                       <div className="flex items-center gap-1 text-sm">
                         <Calendar className="h-3 w-3" />
                         {formatDate(measurementData.createdAt || measurementData.timestamp)}
@@ -959,7 +986,7 @@ export default function MedicalDiagnosisFormPage() {
                     </div>
                     {measurementData.notes && (
                       <div className="pt-2 border-t border-red-200/50">
-                        <span className="text-gray-600 text-sm">備註: {measurementData.notes}</span>
+                        <span className="text-gray-600 text-sm">{i18n.t('pages.medical_diagnosis_form.notes_label')}: {measurementData.notes}</span>
                       </div>
                     )}
                     
@@ -968,14 +995,14 @@ export default function MedicalDiagnosisFormPage() {
                       <div className="pt-3 border-t border-red-200/50">
                         <div className="flex items-center gap-2 mb-2">
                           <Image className="h-4 w-4 text-gray-600" />
-                          <span className="text-gray-600 text-sm font-medium">測量圖片 ({(measurementData.imagePaths || measurementData.images).length}張)</span>
+                          <span className="text-gray-600 text-sm font-medium">{i18n.t('pages.medical_diagnosis_form.measurement_images')} ({(measurementData.imagePaths || measurementData.images).length}{i18n.t('pages.medical_diagnosis_form.images_count')})</span>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {(measurementData.imagePaths || measurementData.images).map((image, index) => (
                             <div key={index} className="relative group">
                               <img
                                 src={apiService.getImageUrl(currentUserId || (typeof measurementData.userId === 'string' ? measurementData.userId : measurementData.userId?._id), image.split('/').pop(), 'measurement')}
-                                alt={`測量圖片 ${index + 1}`}
+                                alt={`${i18n.t('pages.medical_diagnosis_form.measurement_image_alt')} ${index + 1}`}
                                 className="w-16 h-16 object-cover rounded-xl shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 ring-2 ring-blue-200 hover:ring-blue-400"
                                 onClick={() => {
                                   // 构建完整的图片URL数组
@@ -1036,9 +1063,9 @@ export default function MedicalDiagnosisFormPage() {
                 <Alert className="border-blue-200 bg-blue-50">
                   <Eye className="h-4 w-4" />
                   <AlertDescription className="text-blue-700">
-                    <strong>此測量記錄已完成診斷評估</strong>
+                    <strong>{i18n.t('pages.medical_diagnosis_form.diagnosis_completed_desc')}</strong>
                     <br />
-                    以下是該記錄的診斷詳情，內容為只讀模式。
+                    {i18n.t('pages.medical_diagnosis_form.readonly_mode_desc')}
                   </AlertDescription>
                 </Alert>
                 
@@ -1049,10 +1076,10 @@ export default function MedicalDiagnosisFormPage() {
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 mb-3">
                         <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
-                        <h3 className="text-lg font-semibold text-gray-800">診斷結果</h3>
+                        <h3 className="text-lg font-semibold text-gray-800">{i18n.t('pages.medical_diagnosis_form.diagnosis_result_title')}</h3>
                       </div>
                       <div className="p-4 bg-gradient-to-br from-blue-50 via-blue-25 to-white rounded-xl shadow-sm">
-                        <p className="text-blue-900 font-medium text-base leading-relaxed whitespace-pre-wrap">{diagnosis || '無診斷結果'}</p>
+                                                  <p className="text-blue-900 font-medium text-base leading-relaxed whitespace-pre-wrap">{diagnosis || i18n.t('pages.medical_diagnosis_form.no_diagnosis_result')}</p>
                       </div>
                     </div>
 
@@ -1060,7 +1087,7 @@ export default function MedicalDiagnosisFormPage() {
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 mb-3">
                         <div className="w-1 h-6 bg-gradient-to-b from-orange-500 to-orange-600 rounded-full"></div>
-                        <h3 className="text-lg font-semibold text-gray-800">風險等級</h3>
+                        <h3 className="text-lg font-semibold text-gray-800">{i18n.t('pages.medical_diagnosis_form.risk_level')}</h3>
                       </div>
                       <div className="p-4 bg-gradient-to-br from-orange-50 via-orange-25 to-white rounded-xl shadow-sm">
                         <Badge 
@@ -1072,10 +1099,10 @@ export default function MedicalDiagnosisFormPage() {
                                 : 'bg-gradient-to-r from-green-500 to-green-600 text-white border-0'
                           }`}
                         >
-                          {riskLevel === 'low' ? '🟢 低風險' : 
-                           riskLevel === 'medium' ? '🟡 中風險' : 
-                           riskLevel === 'high' ? '🔴 高風險' : 
-                           riskLevel === 'critical' ? '🚨 緊急' : '⚪ 未設定'}
+                          {riskLevel === 'low' ? i18n.t('pages.medical_diagnosis_form.low_risk_label') : 
+                           riskLevel === 'medium' ? i18n.t('pages.medical_diagnosis_form.medium_risk_label') : 
+                           riskLevel === 'high' ? i18n.t('pages.medical_diagnosis_form.high_risk_label') : 
+                           riskLevel === 'critical' ? i18n.t('pages.medical_diagnosis_form.critical_risk_label') : i18n.t('pages.medical_diagnosis_form.unset_risk_label')}
                         </Badge>
                       </div>
                     </div>
@@ -1085,20 +1112,20 @@ export default function MedicalDiagnosisFormPage() {
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
-                          <h3 className="text-lg font-semibold text-gray-800">用藥建議</h3>
+                          <h3 className="text-lg font-semibold text-gray-800">{i18n.t('pages.medical_diagnosis_form.medication_advice')}</h3>
                         </div>
                         <div className="p-4 bg-gradient-to-br from-green-50 via-green-25 to-white rounded-xl shadow-sm min-h-[100px]">
-                          <p className="text-green-900 leading-relaxed whitespace-pre-wrap">{medications || '暫無用藥建議'}</p>
+                                                      <p className="text-green-900 leading-relaxed whitespace-pre-wrap">{medications || i18n.t('pages.medical_diagnosis_form.no_medication_advice')}</p>
                         </div>
                       </div>
                       
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
-                          <h3 className="text-lg font-semibold text-gray-800">生活方式建議</h3>
+                          <h3 className="text-lg font-semibold text-gray-800">{i18n.t('pages.medical_diagnosis_form.lifestyle_advice')}</h3>
                         </div>
                         <div className="p-4 bg-gradient-to-br from-purple-50 via-purple-25 to-white rounded-xl shadow-sm min-h-[100px]">
-                          <p className="text-purple-900 leading-relaxed whitespace-pre-wrap">{lifestyle || '暫無生活方式建議'}</p>
+                                                      <p className="text-purple-900 leading-relaxed whitespace-pre-wrap">{lifestyle || i18n.t('pages.medical_diagnosis_form.no_lifestyle_advice')}</p>
                         </div>
                       </div>
                     </div>
@@ -1107,10 +1134,10 @@ export default function MedicalDiagnosisFormPage() {
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 mb-3">
                         <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-indigo-600 rounded-full"></div>
-                        <h3 className="text-lg font-semibold text-gray-800">復查建議</h3>
+                        <h3 className="text-lg font-semibold text-gray-800">{i18n.t('pages.medical_diagnosis_form.follow_up_advice')}</h3>
                       </div>
                       <div className="p-4 bg-gradient-to-br from-indigo-50 via-indigo-25 to-white rounded-xl shadow-sm">
-                        <p className="text-indigo-900 leading-relaxed whitespace-pre-wrap">{followUp || '暫無復查建議'}</p>
+                                                  <p className="text-indigo-900 leading-relaxed whitespace-pre-wrap">{followUp || i18n.t('pages.medical_diagnosis_form.no_follow_up_advice')}</p>
                       </div>
                     </div>
 
@@ -1119,7 +1146,7 @@ export default function MedicalDiagnosisFormPage() {
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 mb-3">
                           <div className="w-1 h-6 bg-gradient-to-b from-gray-500 to-gray-600 rounded-full"></div>
-                          <h3 className="text-lg font-semibold text-gray-800">其他備註</h3>
+                          <h3 className="text-lg font-semibold text-gray-800">{i18n.t('pages.medical_diagnosis_form.other_notes')}</h3>
                         </div>
                         <div className="p-4 bg-gradient-to-br from-gray-50 via-gray-25 to-white rounded-xl shadow-sm">
                           <p className="text-gray-900 leading-relaxed whitespace-pre-wrap">{notes}</p>
@@ -1133,18 +1160,18 @@ export default function MedicalDiagnosisFormPage() {
                         <div className="flex items-center gap-4 text-sm text-slate-600">
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-blue-500" />
-                            <span className="font-medium">診斷時間：{formatDate(existingDiagnosis.createdAt)}</span>
+                            <span className="font-medium">{i18n.t('pages.medical_diagnosis_form.diagnosis_time_label')}：{formatDate(existingDiagnosis.createdAt)}</span>
                           </div>
                           {existingDiagnosis.doctorId && (
                             <div className="flex items-center gap-2">
                               <User className="h-4 w-4 text-green-500" />
-                              <span className="font-medium">診斷醫生：{existingDiagnosis.doctorId.fullName || existingDiagnosis.doctorId.username || '未知醫生'}</span>
+                              <span className="font-medium">{i18n.t('pages.medical_diagnosis_form.diagnosing_doctor_label')}：{existingDiagnosis.doctorId.fullName || existingDiagnosis.doctorId.username || i18n.t('pages.medical_diagnosis_form.unknown_doctor')}</span>
                             </div>
                           )}
                         </div>
                         <div className="flex items-center gap-1 text-xs text-slate-500 bg-white px-2 py-1 rounded-full">
                           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                          <span>已完成診斷</span>
+                          <span>{i18n.t('pages.medical_diagnosis_form.diagnosis_completed_status')}</span>
                         </div>
                       </div>
                     </div>
@@ -1153,7 +1180,7 @@ export default function MedicalDiagnosisFormPage() {
                   <div className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl shadow-sm">
                     <div className="flex items-center gap-3">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
-                      <p className="text-orange-800 font-medium">⚠️ 正在加載診斷記錄，請稍候...</p>
+                      <p className="text-orange-800 font-medium">{i18n.t('pages.medical_diagnosis_form.loading_diagnosis_record')}</p>
                     </div>
                   </div>
                 )}
@@ -1165,7 +1192,7 @@ export default function MedicalDiagnosisFormPage() {
                     className="flex-1 bg-gradient-to-r from-slate-50 to-gray-50 border-0 text-gray-700 hover:from-slate-100 hover:to-gray-100 hover:shadow-md transition-all duration-200 font-medium py-3 rounded-xl"
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    返回診斷列表
+                    {i18n.t('pages.medical_diagnosis_form.back_to_diagnosis_list')}
                   </Button>
                 </div>
               </CardContent>
@@ -1183,28 +1210,28 @@ export default function MedicalDiagnosisFormPage() {
               <CardHeader className="pb-4 flex-shrink-0">
                 <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
                   <History className="h-5 w-5 text-purple-600" />
-                  患者測量歷史記錄
+                  {i18n.t('pages.medical_diagnosis_form.patient_measurement_history')}
                   {patientHistory.length > 0 && (
                     <Badge variant="outline" className="ml-2 bg-purple-50 text-purple-700 border-purple-200">
-                      共 {patientHistory.length} 條記錄
+                                              {i18n.t('pages.medical_diagnosis_form.total_records', { count: patientHistory.length })}
                     </Badge>
                   )}
                 </CardTitle>
                 <CardDescription className="text-gray-600">
-                  顯示該患者的歷史測量數據，幫助診斷判斷
+                  {i18n.t('pages.medical_diagnosis_form.display_patient_history')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col min-h-0">
                 {historyLoading ? (
                   <div className="text-center py-8">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">載入歷史記錄中...</p>
+                    <p className="mt-4 text-gray-600">{i18n.t('pages.medical_diagnosis_form.loading_history_records')}</p>
                   </div>
                 ) : patientHistory.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <History className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">暫無歷史記錄</h3>
-                    <p>該患者暫無其他測量記錄</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">{i18n.t('pages.medical_diagnosis_form.no_history_records')}</h3>
+                    <p>{i18n.t('pages.medical_diagnosis_form.no_other_measurement_records')}</p>
                   </div>
                 ) : (
                   <div className="space-y-3 overflow-y-auto pr-2 pl-1 flex-1">
@@ -1227,7 +1254,7 @@ export default function MedicalDiagnosisFormPage() {
                                 <div className="flex items-center gap-1 mt-1">
                                   {isCurrentRecord && (
                                     <Badge className="bg-red-100 text-red-700 text-xs px-1.5 py-0.5">
-                                      當前記錄
+                                      {i18n.t('pages.medical_diagnosis_form.current_record_label')}
                                     </Badge>
                                   )}
                                   {/* 状态标签 */}
@@ -1245,7 +1272,7 @@ export default function MedicalDiagnosisFormPage() {
                                   </Badge>
                                   {isAbnormal && !isCurrentRecord && record.status !== 'processed' && (
                                     <Badge variant="destructive" className="bg-orange-100 text-orange-700 text-xs px-1.5 py-0.5">
-                                      異常
+                                      {i18n.t('pages.medical_diagnosis_form.abnormal')}
                                     </Badge>
                                   )}
                                 </div>
@@ -1295,7 +1322,7 @@ export default function MedicalDiagnosisFormPage() {
                               onClick={() => handleViewDetails(record._id)}
                             >
                               <Eye className="h-3 w-3 mr-1" />
-                              {isCurrentRecord ? '當前記錄' : '查看詳情'}
+                              {isCurrentRecord ? i18n.t('pages.medical_diagnosis_form.current_record_label') : i18n.t('pages.medical_diagnosis_form.view_details_label')}
                             </Button>
                           </div>
                         </div>
@@ -1328,7 +1355,7 @@ export default function MedicalDiagnosisFormPage() {
                   )}
                 </CardTitle>
                 <CardDescription className="text-gray-600">
-                  {isReadOnly ? '此測量記錄已完成診斷評估' : '請提供專業的診斷結果和治療建議'}
+                  {isReadOnly ? i18n.t('pages.medical_diagnosis_form.diagnosis_completed_desc') : i18n.t('pages.medical_diagnosis_form.provide_professional_diagnosis')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -1352,10 +1379,10 @@ export default function MedicalDiagnosisFormPage() {
                         <div className="space-y-3">
                           <div className="flex items-center gap-2 mb-3">
                             <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
-                            <h3 className="text-lg font-semibold text-gray-800">診斷結果</h3>
+                            <h3 className="text-lg font-semibold text-gray-800">{i18n.t('pages.medical_diagnosis_form.diagnosis_result_title')}</h3>
                           </div>
                           <div className="p-4 bg-gradient-to-br from-blue-50 via-blue-25 to-white rounded-xl shadow-sm">
-                            <p className="text-blue-900 font-medium text-base leading-relaxed whitespace-pre-wrap">{diagnosis || '無診斷結果'}</p>
+                                                          <p className="text-blue-900 font-medium text-base leading-relaxed whitespace-pre-wrap">{diagnosis || i18n.t('pages.medical_diagnosis_form.no_diagnosis_result')}</p>
                           </div>
                         </div>
 
@@ -1363,7 +1390,7 @@ export default function MedicalDiagnosisFormPage() {
                         <div className="space-y-3">
                           <div className="flex items-center gap-2 mb-3">
                             <div className="w-1 h-6 bg-gradient-to-b from-orange-500 to-orange-600 rounded-full"></div>
-                            <h3 className="text-lg font-semibold text-gray-800">風險等級</h3>
+                            <h3 className="text-lg font-semibold text-gray-800">{i18n.t('pages.medical_diagnosis_form.risk_level')}</h3>
                           </div>
                           <div className="p-4 bg-gradient-to-br from-orange-50 via-orange-25 to-white rounded-xl shadow-sm">
                             <Badge 
@@ -1375,10 +1402,10 @@ export default function MedicalDiagnosisFormPage() {
                                     : 'bg-gradient-to-r from-green-500 to-green-600 text-white border-0'
                               }`}
                             >
-                              {riskLevel === 'low' ? '🟢 低風險' : 
-                               riskLevel === 'medium' ? '🟡 中風險' : 
-                               riskLevel === 'high' ? '🔴 高風險' : 
-                               riskLevel === 'critical' ? '🚨 緊急' : '⚪ 未設定'}
+                                                              {riskLevel === 'low' ? i18n.t('pages.medical_diagnosis_form.low_risk_label') : 
+                                 riskLevel === 'medium' ? i18n.t('pages.medical_diagnosis_form.medium_risk_label') : 
+                                 riskLevel === 'high' ? i18n.t('pages.medical_diagnosis_form.high_risk_label') : 
+                                 riskLevel === 'critical' ? i18n.t('pages.medical_diagnosis_form.critical_risk_label') : i18n.t('pages.medical_diagnosis_form.unset_risk_label')}
                             </Badge>
                           </div>
                         </div>
@@ -1388,20 +1415,20 @@ export default function MedicalDiagnosisFormPage() {
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-3">
                               <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
-                              <h3 className="text-lg font-semibold text-gray-800">用藥建議</h3>
+                              <h3 className="text-lg font-semibold text-gray-800">{i18n.t('pages.medical_diagnosis_form.medication_advice')}</h3>
                             </div>
                             <div className="p-4 bg-gradient-to-br from-green-50 via-green-25 to-white rounded-xl shadow-sm min-h-[100px]">
-                              <p className="text-green-900 leading-relaxed whitespace-pre-wrap">{medications || '暫無用藥建議'}</p>
+                                                              <p className="text-green-900 leading-relaxed whitespace-pre-wrap">{medications || i18n.t('pages.medical_diagnosis_form.no_medication_advice')}</p>
                             </div>
                           </div>
                           
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-3">
                               <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
-                              <h3 className="text-lg font-semibold text-gray-800">生活方式建議</h3>
+                              <h3 className="text-lg font-semibold text-gray-800">{i18n.t('pages.medical_diagnosis_form.lifestyle_advice')}</h3>
                             </div>
                             <div className="p-4 bg-gradient-to-br from-purple-50 via-purple-25 to-white rounded-xl shadow-sm min-h-[100px]">
-                              <p className="text-purple-900 leading-relaxed whitespace-pre-wrap">{lifestyle || '暫無生活方式建議'}</p>
+                                                              <p className="text-purple-900 leading-relaxed whitespace-pre-wrap">{lifestyle || i18n.t('pages.medical_diagnosis_form.no_lifestyle_advice')}</p>
                             </div>
                           </div>
                         </div>
@@ -1410,10 +1437,10 @@ export default function MedicalDiagnosisFormPage() {
                         <div className="space-y-3">
                           <div className="flex items-center gap-2 mb-3">
                             <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-indigo-600 rounded-full"></div>
-                            <h3 className="text-lg font-semibold text-gray-800">復查建議</h3>
+                            <h3 className="text-lg font-semibold text-gray-800">{i18n.t('pages.medical_diagnosis_form.follow_up_advice')}</h3>
                           </div>
                           <div className="p-4 bg-gradient-to-br from-indigo-50 via-indigo-25 to-white rounded-xl shadow-sm">
-                            <p className="text-indigo-900 leading-relaxed whitespace-pre-wrap">{followUp || '暫無復查建議'}</p>
+                                                          <p className="text-indigo-900 leading-relaxed whitespace-pre-wrap">{followUp || i18n.t('pages.medical_diagnosis_form.no_follow_up_advice')}</p>
                           </div>
                         </div>
 
@@ -1422,7 +1449,7 @@ export default function MedicalDiagnosisFormPage() {
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-3">
                               <div className="w-1 h-6 bg-gradient-to-b from-gray-500 to-gray-600 rounded-full"></div>
-                              <h3 className="text-lg font-semibold text-gray-800">其他備註</h3>
+                              <h3 className="text-lg font-semibold text-gray-800">{i18n.t('pages.medical_diagnosis_form.other_notes')}</h3>
                             </div>
                             <div className="p-4 bg-gradient-to-br from-gray-50 via-gray-25 to-white rounded-xl shadow-sm">
                               <p className="text-gray-900 leading-relaxed whitespace-pre-wrap">{notes}</p>
@@ -1436,18 +1463,18 @@ export default function MedicalDiagnosisFormPage() {
                             <div className="flex items-center gap-4 text-sm text-slate-600">
                               <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4 text-blue-500" />
-                                <span className="font-medium">診斷時間：{formatDate(existingDiagnosis.createdAt)}</span>
+                                <span className="font-medium">{i18n.t('pages.medical_diagnosis_form.diagnosis_time_label')}：{formatDate(existingDiagnosis.createdAt)}</span>
                               </div>
                               {existingDiagnosis.doctorId && (
                                 <div className="flex items-center gap-2">
                                   <User className="h-4 w-4 text-green-500" />
-                                  <span className="font-medium">診斷醫生：{existingDiagnosis.doctorId.fullName || existingDiagnosis.doctorId.username || '未知醫生'}</span>
+                                                                      <span className="font-medium">{i18n.t('pages.medical_diagnosis_form.diagnosing_doctor_label')}：{existingDiagnosis.doctorId.fullName || existingDiagnosis.doctorId.username || i18n.t('pages.medical_diagnosis_form.unknown_doctor')}</span>
                                 </div>
                               )}
                             </div>
                             <div className="flex items-center gap-1 text-xs text-slate-500 bg-white px-2 py-1 rounded-full">
                               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                              <span>已完成診斷</span>
+                              <span>{i18n.t('pages.medical_diagnosis_form.diagnosis_completed_status')}</span>
                             </div>
                           </div>
                         </div>
@@ -1456,7 +1483,7 @@ export default function MedicalDiagnosisFormPage() {
                       <div className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl shadow-sm">
                         <div className="flex items-center gap-3">
                           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
-                          <p className="text-orange-800 font-medium">⚠️ 正在加載診斷記錄，請稍候...</p>
+                          <p className="text-orange-800 font-medium">{i18n.t('pages.medical_diagnosis_form.loading_diagnosis_record')}</p>
                         </div>
                       </div>
                     )}
@@ -1468,7 +1495,7 @@ export default function MedicalDiagnosisFormPage() {
                         className="flex-1 bg-gradient-to-r from-slate-50 to-gray-50 border-0 text-gray-700 hover:from-slate-100 hover:to-gray-100 hover:shadow-md transition-all duration-200 font-medium py-3 rounded-xl"
                       >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        返回診斷列表
+                        {i18n.t('pages.medical_diagnosis_form.back_to_diagnosis_list')}
                       </Button>
                     </div>
                   </div>

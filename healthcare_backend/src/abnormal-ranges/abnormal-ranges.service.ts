@@ -149,13 +149,13 @@ export class AbnormalRangesService {
   }
 
   // 检查测量值是否异常
-  async checkMeasurementAbnormal(measurementType: string, values: any): Promise<{ isAbnormal: boolean; reasons: string[]; severity?: string }> {
+  async checkMeasurementAbnormal(measurementType: string, values: any): Promise<{ isAbnormal: boolean; reasons: any[]; severity?: string }> {
     const range = await this.findByMeasurementType(measurementType);
     if (!range) {
       return { isAbnormal: false, reasons: [] };
     }
 
-    const reasons: string[] = [];
+    const reasons: any[] = [];
     let isAbnormal = false;
     let maxSeverity = 'normal';
 
@@ -201,7 +201,14 @@ export class AbnormalRangesService {
               isAbnormal = true;
               const severity = getSeverityLevel(values.systolic, 'systolic', range.abnormalRanges);
               updateMaxSeverity(severity);
-              reasons.push(`收縮壓異常 (${values.systolic} mmHg, 嚴重程度: ${severity})`);
+              reasons.push({
+                type: 'systolic_pressure',
+                value: values.systolic,
+                unit: 'mmHg',
+                severity: severity,
+                normalRange: range.normalRange.systolic,
+                isHigh: values.systolic > range.normalRange.systolic.max
+              });
             }
           }
         }
@@ -211,7 +218,14 @@ export class AbnormalRangesService {
               isAbnormal = true;
               const severity = getSeverityLevel(values.diastolic, 'diastolic', range.abnormalRanges);
               updateMaxSeverity(severity);
-              reasons.push(`舒張壓異常 (${values.diastolic} mmHg, 嚴重程度: ${severity})`);
+              reasons.push({
+                type: 'diastolic_pressure',
+                value: values.diastolic,
+                unit: 'mmHg',
+                severity: severity,
+                normalRange: range.normalRange.diastolic,
+                isHigh: values.diastolic > range.normalRange.diastolic.max
+              });
             }
           }
         }
@@ -223,7 +237,14 @@ export class AbnormalRangesService {
             isAbnormal = true;
             const severity = getSeverityLevel(values.rate, 'heartRate', range.abnormalRanges);
             updateMaxSeverity(severity);
-            reasons.push(`心率異常 (${values.rate} bpm, 嚴重程度: ${severity})`);
+            reasons.push({
+              type: 'heart_rate',
+              value: values.rate,
+              unit: 'bpm',
+              severity: severity,
+              normalRange: range.normalRange.heartRate,
+              isHigh: values.rate > range.normalRange.heartRate.max
+            });
           }
         }
         break;
@@ -234,7 +255,14 @@ export class AbnormalRangesService {
             isAbnormal = true;
             const severity = getSeverityLevel(values.celsius, 'temperature', range.abnormalRanges);
             updateMaxSeverity(severity);
-            reasons.push(`體溫異常 (${values.celsius}°C, 嚴重程度: ${severity})`);
+            reasons.push({
+              type: 'temperature',
+              value: values.celsius,
+              unit: '°C',
+              severity: severity,
+              normalRange: range.normalRange.temperature,
+              isHigh: values.celsius > range.normalRange.temperature.max
+            });
           }
         }
         break;
@@ -245,7 +273,14 @@ export class AbnormalRangesService {
             isAbnormal = true;
             const severity = getSeverityLevel(values.percentage, 'oxygenSaturation', range.abnormalRanges);
             updateMaxSeverity(severity);
-            reasons.push(`血氧飽和度異常 (${values.percentage}%, 嚴重程度: ${severity})`);
+            reasons.push({
+              type: 'oxygen_saturation',
+              value: values.percentage,
+              unit: '%',
+              severity: severity,
+              normalRange: range.normalRange.oxygenSaturation,
+              isHigh: values.percentage > range.normalRange.oxygenSaturation.max
+            });
           }
         }
         break;
@@ -253,11 +288,29 @@ export class AbnormalRangesService {
       case 'blood_glucose':
         if (values.mg_dl && range.normalRange.bloodGlucose) {
           if (values.mg_dl < range.normalRange.bloodGlucose.min) {
-            reasons.push(`血糖过低 (${values.mg_dl} < ${range.normalRange.bloodGlucose.min})`);
             isAbnormal = true;
+            const severity = getSeverityLevel(values.mg_dl, 'bloodGlucose', range.abnormalRanges);
+            updateMaxSeverity(severity);
+            reasons.push({
+              type: 'blood_glucose',
+              value: values.mg_dl,
+              unit: 'mg/dL',
+              severity: severity,
+              normalRange: range.normalRange.bloodGlucose,
+              isHigh: false
+            });
           } else if (values.mg_dl > range.normalRange.bloodGlucose.max) {
-            reasons.push(`血糖过高 (${values.mg_dl} > ${range.normalRange.bloodGlucose.max})`);
             isAbnormal = true;
+            const severity = getSeverityLevel(values.mg_dl, 'bloodGlucose', range.abnormalRanges);
+            updateMaxSeverity(severity);
+            reasons.push({
+              type: 'blood_glucose',
+              value: values.mg_dl,
+              unit: 'mg/dL',
+              severity: severity,
+              normalRange: range.normalRange.bloodGlucose,
+              isHigh: true
+            });
           }
         }
         break;

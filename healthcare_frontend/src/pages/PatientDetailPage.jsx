@@ -20,6 +20,7 @@ import {
 import MedicalHeader from '../components/ui/MedicalHeader.jsx'
 import apiService from '../services/api.js'
 import i18n from '../utils/i18n.js'
+import AbnormalReasonFormatter from '../utils/abnormalReasonFormatter.js'
 
 export default function PatientDetailPage() {
   const navigate = useNavigate()
@@ -206,10 +207,9 @@ export default function PatientDetailPage() {
     
     return {
       isAbnormal,
-      conditions: abnormalReasons,
       severity,
-      severityText: getSeverityText(severity),
-      severityColor: getSeverityColor(severity)
+      abnormalReasons,
+      conditions: AbnormalReasonFormatter.smartFormatMultiple(abnormalReasons)
     }
   }
 

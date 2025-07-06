@@ -25,6 +25,7 @@ import { Badge } from '../components/ui/badge.jsx'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table.jsx'
 import apiService from '../services/api.js'
 import i18n from '../utils/i18n.js'
+import AbnormalReasonFormatter from '../utils/abnormalReasonFormatter.js'
 
 export default function MedicalDiagnosisPage() {
   const navigate = useNavigate()
@@ -180,6 +181,13 @@ export default function MedicalDiagnosisPage() {
   }
 
   const getAbnormalReason = (measurement) => {
+    // 如果测量记录有abnormalReasons字段，使用格式化工具处理
+    if (measurement.abnormalReasons && measurement.abnormalReasons.length > 0) {
+      const formatted = AbnormalReasonFormatter.smartFormatMultiple(measurement.abnormalReasons)
+      return formatted.join(', ')
+    }
+    
+    // 如果没有abnormalReasons，回退到原有逻辑
     const type = getMeasurementType(measurement)
     switch (type) {
       case 'blood_pressure':
