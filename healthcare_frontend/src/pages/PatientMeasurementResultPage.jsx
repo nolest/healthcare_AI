@@ -16,13 +16,20 @@ import {
   Stethoscope,
   ClipboardCheck
 } from 'lucide-react'
+import i18n from '../utils/i18n.js'
 
 export default function PatientMeasurementResultPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [resultData, setResultData] = useState(null)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
 
   useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    
+    i18n.addListener(handleLanguageChange)
     // 页面加载时滚动到顶部
     window.scrollTo(0, 0)
     
@@ -32,6 +39,10 @@ export default function PatientMeasurementResultPage() {
     } else {
       // 如果没有结果数据，重定向到测量页面
       navigate('/patient/measurement')
+    }
+    
+    return () => {
+      i18n.removeListener(handleLanguageChange)
     }
   }, [location.state, navigate])
 
@@ -56,20 +67,25 @@ export default function PatientMeasurementResultPage() {
 
   const getMeasurementLabel = (type) => {
     const labels = {
-      blood_pressure: '血壓',
-      heart_rate: '心率',
-      temperature: '體溫',
-      oxygen_saturation: '血氧飽和度'
+      blood_pressure: t('pages.measurement_result.blood_pressure'),
+      heart_rate: t('pages.measurement_result.heart_rate'),
+      temperature: t('pages.measurement_result.temperature'),
+      oxygen_saturation: t('pages.measurement_result.oxygen_saturation')
     }
-    return labels[type] || '未知'
+    return labels[type] || t('common.unknown')
+  }
+
+  const t = (key) => {
+    language; // 确保组件依赖于language状态
+    return i18n.t(key)
   }
 
   if (!resultData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <PatientHeader 
-          title="測量結果"
-          subtitle="正在載入結果..."
+          title={t('pages.measurement_result.title')}
+          subtitle={t('pages.measurement_result.loading_subtitle')}
           icon={ClipboardCheck}
           showBackButton={false}
         />
@@ -86,8 +102,8 @@ export default function PatientMeasurementResultPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <PatientHeader 
-        title="測量結果"
-        subtitle={isAbnormal ? "檢測到異常數值" : "測量記錄提交成功"}
+        title={t('pages.measurement_result.title')}
+        subtitle={isAbnormal ? t('pages.measurement_result.abnormal_detected') : t('pages.measurement_result.success_submitted')}
         icon={ClipboardCheck}
         showBackButton={true}
         backPath="/patient/measurement"
@@ -116,14 +132,14 @@ export default function PatientMeasurementResultPage() {
               <CardTitle className={`text-2xl font-bold ${
                 isAbnormal ? 'text-orange-800' : 'text-green-800'
               }`}>
-                {isAbnormal ? '測量記錄已提交' : '測量記錄提交成功'}
+                {isAbnormal ? t('pages.measurement_result.record_submitted') : t('pages.measurement_result.record_success')}
               </CardTitle>
               <p className={`text-sm mt-2 ${
                 isAbnormal ? 'text-orange-700' : 'text-green-700'
               }`}>
                 {isAbnormal 
-                  ? '檢測到異常數值，已通知醫護人員'
-                  : '所有測量值均在正常範圍內'
+                  ? t('pages.measurement_result.abnormal_notified')
+                  : t('pages.measurement_result.all_normal')
                 }
               </p>
             </CardHeader>
@@ -134,14 +150,14 @@ export default function PatientMeasurementResultPage() {
                 <div className="space-y-3">
                   <h4 className="font-semibold text-gray-800 flex items-center gap-2">
                     <Activity className="h-4 w-4" />
-                    測量數據
+                    {t('pages.measurement_result.measurement_data')}
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {resultData.measurementData.systolic && resultData.measurementData.diastolic && (
                       <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl">
                         {getMeasurementIcon('blood_pressure')}
                         <div>
-                          <div className="font-medium text-gray-800">血壓</div>
+                          <div className="font-medium text-gray-800">{t('pages.measurement_result.blood_pressure')}</div>
                           <div className="text-sm text-gray-600">
                             {resultData.measurementData.systolic}/{resultData.measurementData.diastolic} mmHg
                           </div>
@@ -153,7 +169,7 @@ export default function PatientMeasurementResultPage() {
                       <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl">
                         {getMeasurementIcon('heart_rate')}
                         <div>
-                          <div className="font-medium text-gray-800">心率</div>
+                          <div className="font-medium text-gray-800">{t('pages.measurement_result.heart_rate')}</div>
                           <div className="text-sm text-gray-600">
                             {resultData.measurementData.heartRate} bpm
                           </div>
@@ -165,7 +181,7 @@ export default function PatientMeasurementResultPage() {
                       <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl">
                         {getMeasurementIcon('temperature')}
                         <div>
-                          <div className="font-medium text-gray-800">體溫</div>
+                          <div className="font-medium text-gray-800">{t('pages.measurement_result.temperature')}</div>
                           <div className="text-sm text-gray-600">
                             {resultData.measurementData.temperature}°C
                           </div>
@@ -177,7 +193,7 @@ export default function PatientMeasurementResultPage() {
                       <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl">
                         {getMeasurementIcon('oxygen_saturation')}
                         <div>
-                          <div className="font-medium text-gray-800">血氧飽和度</div>
+                          <div className="font-medium text-gray-800">{t('pages.measurement_result.oxygen_saturation')}</div>
                           <div className="text-sm text-gray-600">
                             {resultData.measurementData.oxygenSaturation}%
                           </div>
@@ -193,7 +209,7 @@ export default function PatientMeasurementResultPage() {
                 <div className="space-y-3">
                   <h4 className="font-semibold text-orange-800 flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4" />
-                    異常檢測結果
+                    {t('pages.measurement_result.abnormal_detection_results')}
                   </h4>
                   <div className="space-y-2">
                     {abnormalReasons.map((reason, index) => (
@@ -211,7 +227,7 @@ export default function PatientMeasurementResultPage() {
                 <div className="flex items-center gap-2 p-3 bg-blue-50/60 rounded-xl">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   <span className="text-blue-800 text-sm">
-                    已成功上傳 {resultData.imageCount} 張圖片
+                    {t('pages.measurement_result.images_uploaded', { count: resultData.imageCount })}
                   </span>
                 </div>
               )}
@@ -222,13 +238,13 @@ export default function PatientMeasurementResultPage() {
                   <div className="flex items-start gap-3">
                     <Stethoscope className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
                     <div className="space-y-2">
-                      <h5 className="font-semibold text-orange-800">後續處理</h5>
+                      <h5 className="font-semibold text-orange-800">{t('pages.measurement_result.follow_up_processing')}</h5>
                       <p className="text-orange-700 text-sm">
-                        您的異常測量數據已自動通知醫護人員進行診斷。醫護人員會盡快為您提供專業的診斷建議。
+                        {t('pages.measurement_result.abnormal_notification_desc')}
                       </p>
                       <div className="flex items-center gap-2 text-orange-600 text-sm">
                         <Clock className="h-4 w-4" />
-                        <span>請稍後查看診斷結果</span>
+                        <span>{t('pages.measurement_result.check_diagnosis_later')}</span>
                       </div>
                     </div>
                   </div>
@@ -238,9 +254,9 @@ export default function PatientMeasurementResultPage() {
                   <div className="flex items-start gap-3">
                     <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
                     <div>
-                      <h5 className="font-semibold text-green-800">健康狀態良好</h5>
+                      <h5 className="font-semibold text-green-800">{t('pages.measurement_result.health_status_good')}</h5>
                       <p className="text-green-700 text-sm mt-1">
-                        您的所有測量值都在正常範圍內，請繼續保持良好的生活習慣。
+                        {t('pages.measurement_result.all_normal_advice')}
                       </p>
                     </div>
                   </div>
@@ -256,7 +272,7 @@ export default function PatientMeasurementResultPage() {
               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
             >
               <ArrowLeft className="h-5 w-5 mr-2" />
-              返回患者首頁
+              {t('pages.measurement_result.back_to_patient_home')}
             </Button>
           </div>
         </div>

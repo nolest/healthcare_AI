@@ -35,6 +35,7 @@ import ImageViewer from '../components/ImageViewer.jsx'
 import ImagePreview from '../components/ui/ImagePreview.jsx'
 import apiService from '../services/api.js'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
+import i18n from '../utils/i18n.js'
 
 export default function MedicalDiagnosisFormPage() {
   const navigate = useNavigate()
@@ -47,6 +48,7 @@ export default function MedicalDiagnosisFormPage() {
   const [loading, setLoading] = useState(false)
   const [historyLoading, setHistoryLoading] = useState(false)
   const [message, setMessage] = useState('')
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
   
   // 图片查看器状态
   const [imageViewerOpen, setImageViewerOpen] = useState(false)
@@ -120,6 +122,14 @@ export default function MedicalDiagnosisFormPage() {
       observer.disconnect()
     }
   }, [measurementData, patientInfo, diagnosis, riskLevel, medications, lifestyle, followUp, notes, message])
+
+  useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    i18n.addListener(handleLanguageChange)
+    return () => i18n.removeListener(handleLanguageChange)
+  }, [])
 
   useEffect(() => {
     // 检查用户是否已登录
@@ -702,7 +712,7 @@ export default function MedicalDiagnosisFormPage() {
       
       // 检查时间是否有效
       if (isNaN(date.getTime())) {
-        return '未知時間'
+        return i18n.t('pages.medical_diagnosis_form.unknown_time')
       }
       
       // 格式化为 HH:MM:SS MM/DD/YYYY
@@ -716,18 +726,18 @@ export default function MedicalDiagnosisFormPage() {
       return `${hours}:${minutes}:${seconds} ${month}/${day}/${year}`
     } catch (error) {
       console.error('日期格式化錯誤:', error, 'dateString:', dateString)
-      return '未知時間'
+      return i18n.t('pages.medical_diagnosis_form.unknown_time')
     }
   }
 
   const handleSubmitDiagnosis = async () => {
     if (!diagnosis.trim()) {
-      setMessage('請輸入診斷結果')
+      setMessage(i18n.t('pages.medical_diagnosis_form.enter_diagnosis'))
       return
     }
 
     if (!riskLevel) {
-      setMessage('請選擇風險等級')
+      setMessage(i18n.t('pages.medical_diagnosis_form.select_risk'))
       return
     }
 
@@ -757,13 +767,13 @@ export default function MedicalDiagnosisFormPage() {
       // 验证数据完整性
       if (!measurementUserId) {
         console.error('❌ 測量記錄缺少用戶信息')
-        setMessage('❌ 測量記錄缺少用戶信息，無法提交診斷')
+        setMessage(i18n.t('pages.medical_diagnosis_form.missing_user_info'))
         return
       }
 
       if (!measurementData._id) {
         console.error('❌ 測量記錄ID缺失')
-        setMessage('❌ 測量記錄ID缺失，無法提交診斷')
+        setMessage(i18n.t('pages.medical_diagnosis_form.missing_measurement_id'))
         return
       }
 
@@ -798,7 +808,7 @@ export default function MedicalDiagnosisFormPage() {
           console.warn('⚠️ 测量状态更新失败:', updateError)
         }
         
-        setMessage('✅ 測量診斷已成功提交！')
+        setMessage(i18n.t('pages.medical_diagnosis_form.diagnosis_submitted'))
         
         // 3秒后返回诊断列表
         setTimeout(() => {
@@ -806,12 +816,12 @@ export default function MedicalDiagnosisFormPage() {
         }, 3000)
       } else {
         console.error('❌ 提交測量診斷失敗:', response)
-        setMessage('❌ 提交測量診斷失敗，請重試')
+        setMessage(i18n.t('pages.medical_diagnosis_form.submit_failed'))
       }
     } catch (error) {
       console.error('❌ 提交诊断失败:', error)
       
-      let errorMessage = '❌ 提交測量診斷失敗，請重試'
+      let errorMessage = i18n.t('pages.medical_diagnosis_form.submit_failed')
       
       if (error.response) {
         // 服务器响应了错误状态码
@@ -822,18 +832,18 @@ export default function MedicalDiagnosisFormPage() {
         if (error.response.data && error.response.data.message) {
           errorMessage = `❌ 提交失敗: ${error.response.data.message}`
         } else if (error.response.status === 500) {
-          errorMessage = '❌ 服務器內部錯誤，請稍後重試或聯繫管理員'
+          errorMessage = i18n.t('pages.medical_diagnosis_form.server_error')
         } else if (error.response.status === 400) {
-          errorMessage = '❌ 請求數據格式錯誤，請檢查輸入信息'
+          errorMessage = i18n.t('pages.medical_diagnosis_form.data_format_error')
         } else if (error.response.status === 401) {
-          errorMessage = '❌ 身份驗證失敗，請重新登錄'
+          errorMessage = i18n.t('pages.medical_diagnosis_form.auth_failed')
         } else if (error.response.status === 403) {
-          errorMessage = '❌ 沒有權限執行此操作'
+          errorMessage = i18n.t('pages.medical_diagnosis_form.permission_denied')
         }
       } else if (error.request) {
         // 请求已发出，但没有收到响应
         console.error('请求已发出但无响应:', error.request)
-        errorMessage = '❌ 網絡連接失敗，請檢查網絡連接'
+        errorMessage = i18n.t('pages.medical_diagnosis_form.network_error')
       } else {
         // 在设置请求时发生了错误
         console.error('请求设置错误:', error.message)
@@ -851,7 +861,7 @@ export default function MedicalDiagnosisFormPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <p className="mt-4 text-gray-600">{i18n.t('common.loading')}</p>
         </div>
       </div>
     )
@@ -869,8 +879,8 @@ export default function MedicalDiagnosisFormPage() {
 
       {/* Header */}
       <MedicalHeader 
-        title="診斷評估"
-        subtitle="為患者異常測量數據提供專業診斷"
+        title={i18n.t('pages.medical_diagnosis_form.title')}
+        subtitle={i18n.t('pages.medical_diagnosis_form.subtitle')}
         icon={Stethoscope}
         showBackButton={true}
         user={currentUser}
@@ -886,10 +896,10 @@ export default function MedicalDiagnosisFormPage() {
             <CardHeader className="pb-4">
               <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-red-600" />
-                患者異常測量信息
+                {i18n.t('pages.medical_diagnosis_form.patient_abnormal_measurement_info')}
               </CardTitle>
               <CardDescription className="text-gray-600">
-                {patientInfo?.fullName || patientInfo?.username || '未知患者'} - {getMeasurementTypeLabel(measurementType)}異常
+                {patientInfo?.fullName || patientInfo?.username || i18n.t('pages.medical_diagnosis_form.unknown_patient')} - {getMeasurementTypeLabel(measurementType)}{i18n.t('pages.medical_diagnosis_form.abnormal')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -899,15 +909,15 @@ export default function MedicalDiagnosisFormPage() {
                   <div className="flex items-center gap-3">
                     <User className="h-5 w-5 text-blue-600" />
                     <div>
-                      <p className="text-sm text-gray-600">患者姓名</p>
-                      <p className="font-medium text-gray-800">{patientInfo?.fullName || patientInfo?.username || '未知患者'}</p>
+                      <p className="text-sm text-gray-600">{i18n.t('pages.medical_diagnosis_form.patient_name')}</p>
+                      <p className="font-medium text-gray-800">{patientInfo?.fullName || patientInfo?.username || i18n.t('pages.medical_diagnosis_form.unknown_patient')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <FileText className="h-5 w-5 text-blue-600" />
                     <div>
-                      <p className="text-sm text-gray-600">患者ID</p>
-                      <p className="font-medium text-gray-800">{patientInfo?.username || '未知'}</p>
+                      <p className="text-sm text-gray-600">{i18n.t('pages.medical_diagnosis_form.patient_id')}</p>
+                      <p className="font-medium text-gray-800">{patientInfo?.username || i18n.t('common.unknown')}</p>
                     </div>
                   </div>
                 </div>
@@ -1467,12 +1477,12 @@ export default function MedicalDiagnosisFormPage() {
                   <>
                 {/* 诊断结果 */}
                 <div className="space-y-2">
-                  <Label htmlFor="diagnosis" className="text-sm font-medium text-gray-700">診斷結果 *</Label>
+                  <Label htmlFor="diagnosis" className="text-sm font-medium text-gray-700">{i18n.t('pages.medical_diagnosis_form.diagnosis_result_required')}</Label>
                   <Textarea
                     id="diagnosis"
                     value={diagnosis}
                     onChange={(e) => setDiagnosis(e.target.value)}
-                    placeholder="請輸入詳細的診斷結果和分析..."
+                    placeholder={i18n.t('pages.medical_diagnosis_form.diagnosis_placeholder')}
                     className="min-h-[120px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
                     required
                   />
@@ -1481,17 +1491,17 @@ export default function MedicalDiagnosisFormPage() {
                 {/* 风险等级 */}
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-700">
-                    風險等級 <span className="text-red-500">*</span>
+                    {i18n.t('pages.medical_diagnosis_form.risk_level')} <span className="text-red-500">*</span>
                   </Label>
                   <Select value={riskLevel} onValueChange={(value) => setRiskLevel(value)}>
                     <SelectTrigger className="bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300">
-                      <SelectValue placeholder="選擇風險等級" />
+                      <SelectValue placeholder={i18n.t('pages.medical_diagnosis_form.select_risk_level')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">低風險</SelectItem>
-                      <SelectItem value="medium">中風險</SelectItem>
-                      <SelectItem value="high">高風險</SelectItem>
-                      <SelectItem value="critical">緊急</SelectItem>
+                      <SelectItem value="low">{i18n.t('pages.medical_diagnosis_form.low_risk')}</SelectItem>
+                      <SelectItem value="medium">{i18n.t('pages.medical_diagnosis_form.medium_risk')}</SelectItem>
+                      <SelectItem value="high">{i18n.t('pages.medical_diagnosis_form.high_risk')}</SelectItem>
+                      <SelectItem value="critical">{i18n.t('pages.medical_diagnosis_form.critical_risk')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1499,23 +1509,23 @@ export default function MedicalDiagnosisFormPage() {
                 {/* 治疗建议 */}
                 <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="medications" className="text-sm font-medium text-gray-700">用藥建議</Label>
+                    <Label htmlFor="medications" className="text-sm font-medium text-gray-700">{i18n.t('pages.medical_diagnosis_form.medication_advice')}</Label>
                     <Textarea
                       id="medications"
                       value={medications}
                       onChange={(e) => setMedications(e.target.value)}
-                      placeholder="請輸入推薦的藥物治療方案..."
+                      placeholder={i18n.t('pages.medical_diagnosis_form.medication_placeholder')}
                       className="min-h-[80px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="lifestyle" className="text-sm font-medium text-gray-700">生活方式建議</Label>
+                    <Label htmlFor="lifestyle" className="text-sm font-medium text-gray-700">{i18n.t('pages.medical_diagnosis_form.lifestyle_advice')}</Label>
                     <Textarea
                       id="lifestyle"
                       value={lifestyle}
                       onChange={(e) => setLifestyle(e.target.value)}
-                      placeholder="請輸入生活方式調整建議..."
+                      placeholder={i18n.t('pages.medical_diagnosis_form.lifestyle_placeholder')}
                       className="min-h-[80px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
                     />
                   </div>
@@ -1523,24 +1533,24 @@ export default function MedicalDiagnosisFormPage() {
 
                 {/* 复查建议 */}
                 <div className="space-y-2">
-                  <Label htmlFor="followUp" className="text-sm font-medium text-gray-700">復查建議</Label>
+                  <Label htmlFor="followUp" className="text-sm font-medium text-gray-700">{i18n.t('pages.medical_diagnosis_form.follow_up_advice')}</Label>
                   <Textarea
                     id="followUp"
                     value={followUp}
                     onChange={(e) => setFollowUp(e.target.value)}
-                    placeholder="請輸入復查時間和注意事項..."
+                    placeholder={i18n.t('pages.medical_diagnosis_form.follow_up_placeholder')}
                     className="min-h-[80px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
                   />
                 </div>
 
                 {/* 其他备注 */}
                 <div className="space-y-2">
-                  <Label htmlFor="notes" className="text-sm font-medium text-gray-700">其他備註</Label>
+                  <Label htmlFor="notes" className="text-sm font-medium text-gray-700">{i18n.t('pages.medical_diagnosis_form.other_notes')}</Label>
                   <Textarea
                     id="notes"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="請輸入其他需要注意的事項..."
+                    placeholder={i18n.t('pages.medical_diagnosis_form.notes_placeholder')}
                     className="min-h-[80px] bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-green-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300"
                   />
                 </div>
@@ -1555,12 +1565,12 @@ export default function MedicalDiagnosisFormPage() {
                     {loading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        提交中...
+                        {i18n.t('pages.medical_diagnosis_form.submitting')}
                       </>
                     ) : (
                       <>
                         <Save className="h-4 w-4 mr-2" />
-                        提交診斷報告
+                        {i18n.t('pages.medical_diagnosis_form.submit_diagnosis')}
                       </>
                     )}
                   </Button>
@@ -1570,7 +1580,7 @@ export default function MedicalDiagnosisFormPage() {
                     className="border-gray-300 text-gray-600 hover:bg-gray-50"
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    返回列表
+                    {i18n.t('pages.medical_diagnosis_form.back_to_list')}
                   </Button>
                 </div>
 
@@ -1620,8 +1630,8 @@ export default function MedicalDiagnosisFormPage() {
         open={confirmDialogOpen}
         onOpenChange={cancelNavigation}
         type="warning"
-        title="確認導航"
-        description="打開新的詳情會清理當前已填入的診斷内容，是否繼續？"
+        title={i18n.t('pages.medical_diagnosis_form.confirm_navigation')}
+        description={i18n.t('pages.medical_diagnosis_form.confirm_navigation_desc')}
         onConfirm={confirmNavigation}
         onCancel={cancelNavigation}
       />

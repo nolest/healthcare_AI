@@ -25,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../components/ui/badge.jsx'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table.jsx'
 import apiService from '../services/api.js'
+import i18n from '../utils/i18n.js'
 
 export default function CovidFluManagementPage() {
   const navigate = useNavigate()
@@ -33,6 +34,7 @@ export default function CovidFluManagementPage() {
   const [filteredAssessments, setFilteredAssessments] = useState([])
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState(null)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
   
   // 筛选状态
   const [filters, setFilters] = useState({
@@ -42,6 +44,14 @@ export default function CovidFluManagementPage() {
     dateRange: 'all',
     assessmentType: 'all'
   })
+
+  useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    i18n.addListener(handleLanguageChange)
+    return () => i18n.removeListener(handleLanguageChange)
+  }, [])
 
   useEffect(() => {
     // 检查用户是否已登录
@@ -123,12 +133,16 @@ export default function CovidFluManagementPage() {
   }
 
   const getRiskLevelLabel = (riskLevel) => {
-    const labels = {
-      high: '高風險',
-      medium: '中風險',
-      low: '低風險'
+    switch (riskLevel) {
+      case 'high':
+        return i18n.t('pages.covid_flu_management.high_risk')
+      case 'medium':
+        return i18n.t('pages.covid_flu_management.medium_risk')
+      case 'low':
+        return i18n.t('pages.covid_flu_management.low_risk')
+      default:
+        return i18n.t('common.unknown')
     }
-    return labels[riskLevel] || '未知'
   }
 
   const getRiskLevelColor = (riskLevel) => {
@@ -145,12 +159,16 @@ export default function CovidFluManagementPage() {
   }
 
   const getAssessmentTypeLabel = (type) => {
-    const labels = {
-      covid: 'COVID',
-      flu: '流感',
-      both: 'COVID/流感'
+    switch (type) {
+      case 'covid':
+        return i18n.t('pages.covid_flu_management.covid')
+      case 'flu':
+        return i18n.t('pages.covid_flu_management.flu')
+      case 'both':
+        return 'COVID/' + i18n.t('pages.covid_flu_management.flu')
+      default:
+        return i18n.t('pages.covid_flu_management.covid')
     }
-    return labels[type] || 'COVID'
   }
 
   const formatDate = (dateString) => {
@@ -160,11 +178,12 @@ export default function CovidFluManagementPage() {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
     
     if (diffDays === 1) {
-      return '昨天'
+      return i18n.t('pages.covid_flu_management.yesterday')
     } else if (diffDays <= 7) {
-      return `${diffDays} 天前`
+      return `${diffDays} ${i18n.t('pages.covid_flu_management.days_ago')}`
     } else {
-      return date.toLocaleDateString('zh-TW', {
+      const locale = i18n.getCurrentLanguage() === 'en' ? 'en-US' : 'zh-TW'
+      return date.toLocaleDateString(locale, {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
@@ -252,7 +271,7 @@ export default function CovidFluManagementPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <p className="mt-4 text-gray-600">{i18n.t('common.loading')}</p>
         </div>
       </div>
     )
@@ -268,8 +287,8 @@ export default function CovidFluManagementPage() {
 
       {/* Header */}
       <MedicalHeader 
-        title="COVID/流感評估管理"
-        subtitle="專業疫情評估數據管理"
+        title={i18n.t('pages.covid_flu_management.title')}
+        subtitle={i18n.t('pages.covid_flu_management.subtitle')}
         icon={Shield}
         showBackButton={true}
         user={currentUser}
@@ -286,7 +305,7 @@ export default function CovidFluManagementPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">總評估數</p>
+                      <p className="text-sm font-medium text-gray-600">{i18n.t('pages.covid_flu_management.total_assessments')}</p>
                       <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
                     </div>
                     <FileText className="h-8 w-8 text-blue-600" />
@@ -298,7 +317,7 @@ export default function CovidFluManagementPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">高風險</p>
+                      <p className="text-sm font-medium text-gray-600">{i18n.t('pages.covid_flu_management.high_risk')}</p>
                       <p className="text-2xl font-bold text-red-600">{stats.highRisk}</p>
                     </div>
                     <AlertTriangle className="h-8 w-8 text-red-600" />
@@ -310,7 +329,7 @@ export default function CovidFluManagementPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">中風險</p>
+                      <p className="text-sm font-medium text-gray-600">{i18n.t('pages.covid_flu_management.medium_risk')}</p>
                       <p className="text-2xl font-bold text-yellow-600">{stats.mediumRisk}</p>
                     </div>
                     <Activity className="h-8 w-8 text-yellow-600" />
@@ -322,7 +341,7 @@ export default function CovidFluManagementPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">低風險</p>
+                      <p className="text-sm font-medium text-gray-600">{i18n.t('pages.covid_flu_management.low_risk')}</p>
                       <p className="text-2xl font-bold text-green-600">{stats.lowRisk}</p>
                     </div>
                     <UserCheck className="h-8 w-8 text-green-600" />
@@ -334,7 +353,7 @@ export default function CovidFluManagementPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">近期評估</p>
+                      <p className="text-sm font-medium text-gray-600">{i18n.t('pages.covid_flu_management.recent_assessments')}</p>
                       <p className="text-2xl font-bold text-purple-600">{stats.recentAssessments}</p>
                     </div>
                     <Clock className="h-8 w-8 text-purple-600" />
@@ -350,26 +369,26 @@ export default function CovidFluManagementPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Filter className="h-5 w-5" />
-              篩選條件
+              {i18n.t('pages.covid_flu_management.filter_conditions')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div>
-                <Label htmlFor="patientId">患者ID</Label>
+                <Label htmlFor="patientId">{i18n.t('pages.covid_flu_management.patient_id')}</Label>
                 <Input
                   id="patientId"
-                  placeholder="輸入患者ID..."
+                  placeholder={i18n.t('pages.covid_flu_management.patient_id_placeholder')}
                   value={filters.patientId}
                   onChange={(e) => setFilters(prev => ({ ...prev, patientId: e.target.value }))}
                 />
               </div>
               
               <div>
-                <Label htmlFor="patientName">患者姓名</Label>
+                <Label htmlFor="patientName">{i18n.t('pages.covid_flu_management.patient_name')}</Label>
                 <Input
                   id="patientName"
-                  placeholder="輸入患者姓名..."
+                  placeholder={i18n.t('pages.covid_flu_management.patient_name_placeholder')}
                   value={filters.patientName}
                   onChange={(e) => setFilters(prev => ({ ...prev, patientName: e.target.value }))}
                 />

@@ -1,11 +1,30 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '../components/ui/button.jsx'
 import { useNavigate } from 'react-router-dom'
 import ImagePreviewExample from '../components/ImagePreviewExample.jsx'
+import i18n from '../utils/i18n.js'
 
 const ImagePreviewTestPage = () => {
   const navigate = useNavigate()
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    
+    i18n.addListener(handleLanguageChange)
+    
+    return () => {
+      i18n.removeListener(handleLanguageChange)
+    }
+  }, [])
+
+  const t = (key) => {
+    language; // 确保组件依赖于language状态
+    return i18n.t(key)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
@@ -21,10 +40,10 @@ const ImagePreviewTestPage = () => {
                 className="text-gray-600 hover:text-gray-900"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                返回
+                {t('common.back')}
               </Button>
               <h1 className="text-xl font-semibold text-gray-900">
-                图片预览组件测试
+                {t('pages.image_preview_test.title')}
               </h1>
             </div>
           </div>

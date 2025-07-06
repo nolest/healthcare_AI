@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import PatientHeader from '../components/ui/PatientHeader.jsx'
 import apiService from '../services/api.js'
+import i18n from '../utils/i18n.js'
 
 export default function PatientCovidAssessmentResultPage() {
   const navigate = useNavigate()
@@ -29,10 +30,21 @@ export default function PatientCovidAssessmentResultPage() {
   const [user, setUser] = useState(null)
   const [assessmentResult, setAssessmentResult] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
 
   useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    
+    i18n.addListener(handleLanguageChange)
+    
     checkUserPermission()
     loadAssessmentResult()
+    
+    return () => {
+      i18n.removeListener(handleLanguageChange)
+    }
   }, [])
 
   const checkUserPermission = async () => {
@@ -96,7 +108,7 @@ export default function PatientCovidAssessmentResultPage() {
   }
 
   const getAssessmentTypeLabel = (type) => {
-    return type === 'covid' ? 'COVID-19評估' : '流感評估'
+    return type === 'covid' ? t('pages.covid_assessment_result.covid_assessment') : t('pages.covid_assessment_result.flu_assessment')
   }
 
   const getAssessmentTypeIcon = (type) => {
@@ -105,21 +117,26 @@ export default function PatientCovidAssessmentResultPage() {
 
   const formatSymptoms = (symptoms) => {
     const symptomLabels = {
-      'fever': '發燒',
-      'cough': '咳嗽', 
-      'shortness_breath': '呼吸困難',
-      'loss_taste_smell': '味嗅覺喪失',
-      'body_aches': '肌肉疼痛',
-      'fatigue': '疲勞',
-      'headache': '頭痛',
-      'sore_throat': '喉嚨痛',
-      'runny_nose': '流鼻涕',
-      'chills': '寒顫',
-      'nausea': '噁心',
-      'diarrhea': '腹瀉'
+      'fever': t('pages.covid_assessment_result.symptom_fever'),
+      'cough': t('pages.covid_assessment_result.symptom_cough'), 
+      'shortness_breath': t('pages.covid_assessment_result.symptom_shortness_breath'),
+      'loss_taste_smell': t('pages.covid_assessment_result.symptom_loss_taste_smell'),
+      'body_aches': t('pages.covid_assessment_result.symptom_body_aches'),
+      'fatigue': t('pages.covid_assessment_result.symptom_fatigue'),
+      'headache': t('pages.covid_assessment_result.symptom_headache'),
+      'sore_throat': t('pages.covid_assessment_result.symptom_sore_throat'),
+      'runny_nose': t('pages.covid_assessment_result.symptom_runny_nose'),
+      'chills': t('pages.covid_assessment_result.symptom_chills'),
+      'nausea': t('pages.covid_assessment_result.symptom_nausea'),
+      'diarrhea': t('pages.covid_assessment_result.symptom_diarrhea')
     }
     
     return symptoms.map(symptom => symptomLabels[symptom] || symptom)
+  }
+
+  const t = (key) => {
+    language; // 确保组件依赖于language状态
+    return i18n.t(key)
   }
 
   if (loading || !user) {
@@ -127,7 +144,7 @@ export default function PatientCovidAssessmentResultPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">載入評估結果中...</p>
+          <p className="mt-4 text-gray-600">{t('pages.covid_assessment_result.loading')}</p>
         </div>
       </div>
     )
@@ -138,12 +155,12 @@ export default function PatientCovidAssessmentResultPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">無法加載評估結果</p>
+          <p className="text-gray-600">{t('pages.covid_assessment_result.no_result')}</p>
           <Button 
             onClick={() => navigate('/patient/covid-assessment')} 
             className="mt-4"
           >
-            返回評估頁面
+            {t('pages.covid_assessment_result.back_to_assessment')}
           </Button>
         </div>
       </div>
@@ -163,8 +180,8 @@ export default function PatientCovidAssessmentResultPage() {
 
       {/* Header */}
       <PatientHeader 
-        title="評估結果"
-        subtitle="您的健康風險評估報告"
+        title={t('pages.covid_assessment_result.title')}
+        subtitle={t('pages.covid_assessment_result.subtitle')}
         icon={CheckCircle}
         showBackButton={true}
         user={user}
@@ -177,7 +194,7 @@ export default function PatientCovidAssessmentResultPage() {
         <Alert className="mb-8 border-0 bg-gradient-to-br from-green-50/80 to-emerald-50/80 rounded-2xl shadow-lg">
           <CheckCircle className="h-5 w-5 text-green-600" />
           <AlertDescription className="text-green-800 font-medium">
-            🎉 評估已成功完成！您的健康數據已安全保存，醫護人員將根據結果提供專業建議。
+            {t('pages.covid_assessment_result.success_message')}
           </AlertDescription>
         </Alert>
 
@@ -194,7 +211,7 @@ export default function PatientCovidAssessmentResultPage() {
                     {getAssessmentTypeLabel(assessmentResult.assessmentType)}
                   </CardTitle>
                   <CardDescription className="text-gray-600">
-                    評估時間：{new Date(assessmentResult.createdAt).toLocaleString('zh-TW')}
+                    {t('pages.covid_assessment_result.assessment_time', { time: new Date(assessmentResult.createdAt).toLocaleString(i18n.getCurrentLanguage() === 'en' ? 'en-US' : 'zh-TW') })}
                   </CardDescription>
                 </div>
               </div>
@@ -209,10 +226,10 @@ export default function PatientCovidAssessmentResultPage() {
               <div className="space-y-3">
                 <div className="flex items-center space-x-2">
                   <Activity className="h-4 w-4 text-blue-600" />
-                  <span className="font-medium text-gray-700">風險評分</span>
+                  <span className="font-medium text-gray-700">{t('pages.covid_assessment_result.risk_score')}</span>
                 </div>
                 <div className="text-2xl font-bold text-blue-600">
-                  {assessmentResult.riskScore} 分
+                  {assessmentResult.riskScore} {t('pages.covid_assessment_result.points')}
                 </div>
               </div>
               
@@ -220,7 +237,7 @@ export default function PatientCovidAssessmentResultPage() {
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <Thermometer className="h-4 w-4 text-red-500" />
-                    <span className="font-medium text-gray-700">體溫</span>
+                    <span className="font-medium text-gray-700">{t('pages.covid_assessment_result.temperature')}</span>
                   </div>
                   <div className="text-2xl font-bold text-red-500">
                     {assessmentResult.temperature}°C
@@ -234,7 +251,7 @@ export default function PatientCovidAssessmentResultPage() {
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <Stethoscope className="h-5 w-5 text-purple-600" />
-                  <h3 className="text-lg font-semibold text-gray-800">已記錄症狀</h3>
+                  <h3 className="text-lg font-semibold text-gray-800">{t('pages.covid_assessment_result.recorded_symptoms')}</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {formatSymptoms(assessmentResult.symptoms).map((symptom, index) => (
@@ -251,7 +268,7 @@ export default function PatientCovidAssessmentResultPage() {
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <Heart className="h-5 w-5 text-green-600" />
-                  <h3 className="text-lg font-semibold text-gray-800">專業建議</h3>
+                  <h3 className="text-lg font-semibold text-gray-800">{t('pages.covid_assessment_result.professional_recommendations')}</h3>
                 </div>
                 
                 <div className="grid gap-4">
@@ -260,7 +277,7 @@ export default function PatientCovidAssessmentResultPage() {
                     <div className="p-4 bg-gradient-to-br from-blue-50/80 to-cyan-50/80 rounded-xl">
                       <h4 className="font-medium text-blue-800 mb-2 flex items-center">
                         <FileText className="h-4 w-4 mr-2" />
-                        檢測建議
+                        {t('pages.covid_assessment_result.testing_recommendations')}
                       </h4>
                       <ul className="space-y-1 text-sm text-blue-700">
                         {assessmentResult.recommendations.testing.map((item, index) => (
@@ -278,7 +295,7 @@ export default function PatientCovidAssessmentResultPage() {
                     <div className="p-4 bg-gradient-to-br from-amber-50/80 to-orange-50/80 rounded-xl">
                       <h4 className="font-medium text-amber-800 mb-2 flex items-center">
                         <Users className="h-4 w-4 mr-2" />
-                        隔離建議
+                        {t('pages.covid_assessment_result.isolation_recommendations')}
                       </h4>
                       <ul className="space-y-1 text-sm text-amber-700">
                         {assessmentResult.recommendations.isolation.map((item, index) => (
@@ -296,7 +313,7 @@ export default function PatientCovidAssessmentResultPage() {
                     <div className="p-4 bg-gradient-to-br from-red-50/80 to-pink-50/80 rounded-xl">
                       <h4 className="font-medium text-red-800 mb-2 flex items-center">
                         <Pill className="h-4 w-4 mr-2" />
-                        醫療建議
+                        {t('pages.covid_assessment_result.medical_recommendations')}
                       </h4>
                       <ul className="space-y-1 text-sm text-red-700">
                         {assessmentResult.recommendations.medical.map((item, index) => (
@@ -314,7 +331,7 @@ export default function PatientCovidAssessmentResultPage() {
                     <div className="p-4 bg-gradient-to-br from-green-50/80 to-emerald-50/80 rounded-xl">
                       <h4 className="font-medium text-green-800 mb-2 flex items-center">
                         <Shield className="h-4 w-4 mr-2" />
-                        預防措施
+                        {t('pages.covid_assessment_result.prevention_measures')}
                       </h4>
                       <ul className="space-y-1 text-sm text-green-700">
                         {assessmentResult.recommendations.prevention.map((item, index) => (
@@ -332,7 +349,7 @@ export default function PatientCovidAssessmentResultPage() {
                     <div className="p-4 bg-gradient-to-br from-indigo-50/80 to-purple-50/80 rounded-xl">
                       <h4 className="font-medium text-indigo-800 mb-2 flex items-center">
                         <Clock className="h-4 w-4 mr-2" />
-                        監測建議
+                        {t('pages.covid_assessment_result.monitoring_recommendations')}
                       </h4>
                       <ul className="space-y-1 text-sm text-indigo-700">
                         {assessmentResult.recommendations.monitoring.map((item, index) => (
@@ -352,7 +369,7 @@ export default function PatientCovidAssessmentResultPage() {
             <Alert className="border-l-4 border-l-blue-500 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 rounded-r-2xl">
               <AlertTriangle className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-800">
-                <strong>重要提醒：</strong>此評估結果僅供參考，不能替代專業醫療診斷。如有嚴重症狀或疑慮，請立即就醫。
+                {t('pages.covid_assessment_result.important_reminder')}
               </AlertDescription>
             </Alert>
 
@@ -366,7 +383,7 @@ export default function PatientCovidAssessmentResultPage() {
             className="flex-1 h-12 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-[1.02] transition-all duration-300"
           >
             <History className="w-5 h-5 mr-2" />
-            查看評估歷史
+            {t('pages.covid_assessment_result.view_history')}
           </Button>
           
           <Button
@@ -375,7 +392,7 @@ export default function PatientCovidAssessmentResultPage() {
             className="flex-1 h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
           >
             <Home className="w-5 h-5 mr-2" />
-            返回主頁
+            {t('pages.covid_assessment_result.back_to_home')}
           </Button>
 
           <Button
@@ -383,7 +400,7 @@ export default function PatientCovidAssessmentResultPage() {
             onClick={() => navigate('/patient/covid-assessment')}
             className="h-12 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
           >
-            再次評估
+            {t('pages.covid_assessment_result.assess_again')}
           </Button>
         </div>
 
