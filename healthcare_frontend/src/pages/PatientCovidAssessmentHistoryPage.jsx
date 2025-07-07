@@ -43,7 +43,7 @@ export default function PatientCovidAssessmentHistoryPage() {
       const data = await apiService.getMyCovidAssessments()
       setAssessments(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
     } catch (error) {
-      console.error('获取COVID评估历史失败:', error)
+      console.error(i18n.t('pages.covid_assessment_history.fetch_error'), error)
       setAssessments([])
     } finally {
       setLoading(false)
@@ -152,7 +152,7 @@ export default function PatientCovidAssessmentHistoryPage() {
   }
 
   const getAssessmentTypeText = (type) => {
-    return t(`pages.covid_assessment_history.assessment_types.${type}`)
+    return type === 'covid' ? t('assessment.type.covid_assessment') : t('assessment.type.flu_assessment')
   }
 
   const formatSymptoms = (symptoms) => {
@@ -209,7 +209,7 @@ export default function PatientCovidAssessmentHistoryPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl shadow-blue-500/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">总评估次数</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-700">{t('assessment.stats.total_assessments')}</CardTitle>
               <TrendingUp className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
@@ -219,7 +219,7 @@ export default function PatientCovidAssessmentHistoryPage() {
 
           <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl shadow-purple-500/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">高风险评估</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-700">{t('assessment.stats.high_risk_assessments')}</CardTitle>
               <AlertTriangle className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
@@ -231,12 +231,12 @@ export default function PatientCovidAssessmentHistoryPage() {
 
           <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl shadow-green-500/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">近期状态</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-700">{t('assessment.stats.recent_status')}</CardTitle>
               <CheckCircle className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {assessments.length > 0 ? getRiskLevelText(assessments[0].riskLevel) : '未评估'}
+                {assessments.length > 0 ? getRiskLevelText(assessments[0].riskLevel) : t('assessment.stats.not_assessed')}
               </div>
             </CardContent>
           </Card>
@@ -247,10 +247,10 @@ export default function PatientCovidAssessmentHistoryPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent">
               <Shield className="h-6 w-6 text-blue-600" />
-              COVID/流感評估歷史記錄
+              {t('assessment.stats.history_title')}
             </CardTitle>
             <CardDescription className="text-gray-600">
-              您的健康評估記錄，包括症狀、風險等級和建議措施
+              {t('pages.covid_assessment_history.card_description')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -280,7 +280,7 @@ export default function PatientCovidAssessmentHistoryPage() {
                         <div className="flex items-center gap-1">
                           <Shield className={`h-4 w-4 ${getIconColor(assessment.riskLevel)}`} />
                           <CardTitle className="text-sm text-gray-800">
-                            {getAssessmentTypeText(assessment.assessmentType)}評估
+                            {getAssessmentTypeText(assessment.assessmentType)}
                           </CardTitle>
                         </div>
                         <div className="flex items-center gap-1">

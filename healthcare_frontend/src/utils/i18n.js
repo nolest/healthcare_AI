@@ -1507,6 +1507,14 @@ class I18n {
         'pages.covid_assessment_history.assessment_types.flu': '流感',
         'pages.covid_assessment_history.assessment_types.both': 'COVID/流感綜合',
         'pages.covid_assessment_history.assessment_types.health': '健康評估',
+        'pages.covid_assessment_history.card_description': '您的健康評估記錄，包括症狀、風險等級和建議措施',
+        'pages.covid_assessment_history.symptoms_badge': '症狀標籤',
+        'pages.covid_assessment_history.temperature': '體溫記錄',
+        'pages.covid_assessment_history.temperature_value': '體溫',
+        'pages.covid_assessment_history.risk_factors': '風險因素',
+        'pages.covid_assessment_history.health_advice': '健康建議',
+        'pages.covid_assessment_history.total_advice': '總共{count}條建議',
+        'pages.covid_assessment_history.fetch_error': '獲取COVID評估歷史失敗',
         
         // COVID 評估表單
         'covid_assessment_form.symptom_check': '症狀檢查',
@@ -3061,6 +3069,44 @@ class I18n {
         'pages.covid_assessment_history.assessment_types.flu': '流感',
         'pages.covid_assessment_history.assessment_types.both': 'COVID/流感综合',
         'pages.covid_assessment_history.assessment_types.health': '健康评估',
+        'pages.covid_assessment_history.card_description': '您的健康评估记录，包括症状、风险等级和建议措施',
+        'pages.covid_assessment_history.symptoms_badge': '症状标签',
+        'pages.covid_assessment_history.temperature': '体温记录',
+        'pages.covid_assessment_history.temperature_value': '体温',
+        'pages.covid_assessment_history.risk_factors': '风险因素',
+        'pages.covid_assessment_history.health_advice': '健康建议',
+        'pages.covid_assessment_history.total_advice': '总共{count}条建议',
+        'pages.covid_assessment_history.fetch_error': '获取COVID评估历史失败',
+        
+        // 评估统计
+        'assessment.stats.total_assessments': '总评估次数',
+        'assessment.stats.high_risk_assessments': '高风险评估',
+        'assessment.stats.recent_status': '近期状态',
+        'assessment.stats.covid_assessments': 'COVID-19评估',
+        'assessment.stats.flu_assessments': '流感评估',
+        'assessment.stats.history_title': 'COVID/流感评估历史记录',
+        'assessment.stats.not_assessed': '未评估',
+        
+        // 评估类型
+        'assessment.type.covid': 'COVID-19',
+        'assessment.type.flu': '流感',
+        'assessment.type.covid_assessment': 'COVID-19评估',
+        'assessment.type.flu_assessment': 'Flu评估',
+        
+        // 评估统计
+        'assessment.stats.total_assessments': '總評估次數',
+        'assessment.stats.high_risk_assessments': '高風險評估',
+        'assessment.stats.recent_status': '近期狀態',
+        'assessment.stats.covid_assessments': 'COVID-19評估',
+        'assessment.stats.flu_assessments': '流感評估',
+        'assessment.stats.history_title': 'COVID/流感評估歷史記錄',
+        'assessment.stats.not_assessed': '未評估',
+        
+        // 评估类型
+        'assessment.type.covid': 'COVID-19',
+        'assessment.type.flu': '流感',
+        'assessment.type.covid_assessment': 'COVID-19評估',
+        'assessment.type.flu_assessment': 'Flu評估',
         
         // COVID 评估表单
         'covid_assessment_form.symptom_check': '症状检查',
@@ -4608,6 +4654,29 @@ class I18n {
         'pages.covid_assessment_history.assessment_types.flu': 'Flu',
         'pages.covid_assessment_history.assessment_types.both': 'COVID/Flu Combined',
         'pages.covid_assessment_history.assessment_types.health': 'Health Assessment',
+        'pages.covid_assessment_history.card_description': 'Your health assessment records, including symptoms, risk levels, and recommendations',
+        'pages.covid_assessment_history.symptoms_badge': 'Symptom Tags',
+        'pages.covid_assessment_history.temperature': 'Temperature Record',
+        'pages.covid_assessment_history.temperature_value': 'Temperature',
+        'pages.covid_assessment_history.risk_factors': 'Risk Factors',
+        'pages.covid_assessment_history.health_advice': 'Health Advice',
+        'pages.covid_assessment_history.total_advice': 'Total {count} recommendations',
+        'pages.covid_assessment_history.fetch_error': 'Failed to fetch COVID assessment history',
+        
+        // Assessment Statistics
+        'assessment.stats.total_assessments': 'Total Assessments',
+        'assessment.stats.high_risk_assessments': 'High Risk Assessments',
+        'assessment.stats.recent_status': 'Recent Status',
+        'assessment.stats.covid_assessments': 'COVID-19 Assessments',
+        'assessment.stats.flu_assessments': 'Flu Assessments',
+        'assessment.stats.history_title': 'COVID/Flu Assessment History',
+        'assessment.stats.not_assessed': 'Not Assessed',
+        
+        // Assessment Types
+        'assessment.type.covid': 'COVID-19',
+        'assessment.type.flu': 'Flu',
+        'assessment.type.covid_assessment': 'COVID-19 Assessment',
+        'assessment.type.flu_assessment': 'Flu Assessment',
         
         // COVID Assessment Form
         'covid_assessment_form.symptom_check': 'Symptom Check',

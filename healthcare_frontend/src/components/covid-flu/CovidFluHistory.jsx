@@ -9,8 +9,10 @@ import {
   FileText,
   TrendingUp
 } from 'lucide-react'
+import i18n from '../../utils/i18n.js'
 
 export default function CovidFluHistory({ assessments, onViewAssessment }) {
+  const t = (key) => i18n.t(key)
   const getRiskLevelColor = (riskLevel) => {
     switch (riskLevel) {
       case 'very_high':
@@ -40,7 +42,7 @@ export default function CovidFluHistory({ assessments, onViewAssessment }) {
   }
 
   const getAssessmentTypeText = (type) => {
-    return type === 'covid' ? 'COVID-19' : '流感'
+    return type === 'covid' ? t('assessment.type.covid_assessment') : t('assessment.type.flu_assessment')
   }
 
   const formatDate = (dateString) => {
@@ -193,25 +195,25 @@ export default function CovidFluHistory({ assessments, onViewAssessment }) {
               <p className="text-2xl font-bold text-blue-600">
                 {assessments.length}
               </p>
-              <p className="text-xs text-gray-600">总评估次数</p>
+              <p className="text-xs text-gray-600">{t('assessment.stats.total_assessments')}</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-green-600">
                 {assessments.filter(a => a.assessmentType === 'covid').length}
               </p>
-              <p className="text-xs text-gray-600">COVID-19评估</p>
+              <p className="text-xs text-gray-600">{t('assessment.stats.covid_assessments')}</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-purple-600">
                 {assessments.filter(a => a.assessmentType === 'flu').length}
               </p>
-              <p className="text-xs text-gray-600">流感评估</p>
+              <p className="text-xs text-gray-600">{t('assessment.stats.flu_assessments')}</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-red-600">
                 {assessments.filter(a => a.riskLevel === 'high' || a.riskLevel === 'very_high').length}
               </p>
-              <p className="text-xs text-gray-600">高风险评估</p>
+              <p className="text-xs text-gray-600">{t('assessment.stats.high_risk_assessments')}</p>
             </div>
           </div>
         </CardContent>

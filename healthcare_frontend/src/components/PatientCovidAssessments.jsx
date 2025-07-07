@@ -166,25 +166,25 @@ export default function PatientCovidAssessments({ user, onPatientSelect }) {
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
-            <div className="text-sm text-gray-600">總評估數</div>
+            <div className="text-sm text-gray-600">{t('assessment.stats.total_assessments')}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-green-600">{stats.covidCount}</div>
-            <div className="text-sm text-gray-600">COVID-19評估</div>
+            <div className="text-sm text-gray-600">{t('assessment.stats.covid_assessments')}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-purple-600">{stats.fluCount}</div>
-            <div className="text-sm text-gray-600">流感評估</div>
+            <div className="text-sm text-gray-600">{t('assessment.stats.flu_assessments')}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-red-600">{stats.highRiskCount}</div>
-            <div className="text-sm text-gray-600">高風險患者</div>
+            <div className="text-sm text-gray-600">{t('assessment.stats.high_risk_assessments')}</div>
           </CardContent>
         </Card>
       </div>
@@ -247,7 +247,7 @@ export default function PatientCovidAssessments({ user, onPatientSelect }) {
                         </span>
                       </div>
                       <Badge variant="outline">
-                        {assessment.assessment_type === 'covid' ? 'COVID-19' : '流感'}
+                        {assessment.assessment_type === 'covid' ? t('assessment.type.covid') : t('assessment.type.flu')}
                       </Badge>
                       <div className={`inline-flex items-center px-3 py-1 rounded-full text-white text-sm ${getRiskLevelColor(assessment.risk_level)}`}>
                         <AlertTriangle className="h-4 w-4 mr-1" />
