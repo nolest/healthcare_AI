@@ -77,7 +77,7 @@ export default function LoginPage() {
       `}</style>
       
       {/* 语言切换器 - 固定在右上角 */}
-      <div className="absolute top-4 right-4 z-20">
+      <div className="fixed top-4 right-4 z-20">
         <LanguageSwitcher />
       </div>
 
@@ -174,7 +174,7 @@ export default function LoginPage() {
           {/* 底部信息 */}
           <div className="text-center text-sm" style={{ marginTop: '0' }}>
             <div className="inline-block bg-white/10 backdrop-blur-sm rounded-2xl px-4 py-2 text-white">
-              <p>© 2024 {i18n.t('app.title')}</p>
+                              <p>© 2022 {i18n.t('app.title')}</p>
               <p>{i18n.t('features.professional_diagnosis')} · {i18n.t('features.secure_reliable')} · {i18n.t('features.smart_measurement')}</p>
             </div>
           </div>
