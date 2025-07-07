@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
@@ -16,17 +16,28 @@ import {
   Stethoscope,
   Activity
 } from 'lucide-react'
+import i18n from '../utils/i18n.js'
 
 export default function TestingIsolationGuidance({ riskLevel = 'medium', assessmentResult, user }) {
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    i18n.addListener(handleLanguageChange)
+    return () => i18n.removeListener(handleLanguageChange)
+  }, [])
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* 页面标题 - 参考医疗人员页面样式 */}
       <div className="mb-8 text-left">
         <h2 className="text-3xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent mb-3">
-          檢測和隔離指導
+          {i18n.t('pages.testing_isolation.title')}
         </h2>
         <p className="text-gray-700/80 text-lg">
-          基於風險評估的專業建議
+          {i18n.t('pages.testing_isolation.subtitle')}
         </p>
       </div>
 
@@ -44,10 +55,10 @@ export default function TestingIsolationGuidance({ riskLevel = 'medium', assessm
             </div>
             <div>
               <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
-                檢測建議
+                {i18n.t('pages.testing_isolation.testing_title')}
               </h3>
               <p className="text-blue-700/70 mt-1">
-                根據風險等級提供的檢測建議
+                {i18n.t('pages.testing_isolation.testing_subtitle')}
               </p>
             </div>
           </div>
@@ -56,32 +67,32 @@ export default function TestingIsolationGuidance({ riskLevel = 'medium', assessm
             <Alert className="border-blue-200 bg-blue-50/50 backdrop-blur-sm">
               <Clock className="h-5 w-5 text-blue-600" />
               <AlertDescription className="text-blue-800 font-medium">
-                建議在48小時內進行檢測
+                {i18n.t('pages.testing_isolation.testing_alert')}
               </AlertDescription>
             </Alert>
             
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
-              <h4 className="font-bold text-blue-800 mb-4 text-lg">推薦檢測方案</h4>
+              <h4 className="font-bold text-blue-800 mb-4 text-lg">{i18n.t('pages.testing_isolation.recommended_tests')}</h4>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <span className="font-medium text-blue-800">立即進行PCR檢測</span>
-                    <p className="text-sm text-blue-700/70 mt-1">最準確的檢測方法，適用於確診和接觸者篩查</p>
+                    <span className="font-medium text-blue-800">{i18n.t('pages.testing_isolation.pcr_test')}</span>
+                    <p className="text-sm text-blue-700/70 mt-1">{i18n.t('pages.testing_isolation.pcr_desc')}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <span className="font-medium text-blue-800">考慮快速抗原檢測作為補充</span>
-                    <p className="text-sm text-blue-700/70 mt-1">快速獲得結果，適用於日常篩查</p>
+                    <span className="font-medium text-blue-800">{i18n.t('pages.testing_isolation.antigen_test')}</span>
+                    <p className="text-sm text-blue-700/70 mt-1">{i18n.t('pages.testing_isolation.antigen_desc')}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <span className="font-medium text-blue-800">建議連續檢測3-5天</span>
-                    <p className="text-sm text-blue-700/70 mt-1">確保檢測結果的準確性和及時性</p>
+                    <span className="font-medium text-blue-800">{i18n.t('pages.testing_isolation.continuous_testing')}</span>
+                    <p className="text-sm text-blue-700/70 mt-1">{i18n.t('pages.testing_isolation.continuous_desc')}</p>
                   </div>
                 </div>
               </div>
@@ -104,10 +115,10 @@ export default function TestingIsolationGuidance({ riskLevel = 'medium', assessm
             </div>
             <div>
               <h3 className="text-2xl font-bold bg-gradient-to-r from-green-700 to-green-600 bg-clip-text text-transparent">
-                隔離指導
+                {i18n.t('pages.testing_isolation.isolation_title')}
               </h3>
               <p className="text-green-700/70 mt-1">
-                隔離期間的注意事項和預防措施
+                {i18n.t('pages.testing_isolation.isolation_subtitle')}
               </p>
             </div>
           </div>
@@ -116,19 +127,19 @@ export default function TestingIsolationGuidance({ riskLevel = 'medium', assessm
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
               <h4 className="font-bold text-green-800 mb-4 text-lg flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
-                隔離期間
+                {i18n.t('pages.testing_isolation.isolation_period')}
               </h4>
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-green-100 text-green-800 border-green-200">標準</Badge>
-                  <span className="text-green-800">居家隔離5-7天</span>
+                  <Badge className="bg-green-100 text-green-800 border-green-200">{i18n.t('pages.testing_isolation.standard_label')}</Badge>
+                  <span className="text-green-800">{i18n.t('pages.testing_isolation.standard_isolation')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className="bg-orange-100 text-orange-800 border-orange-200">高風險</Badge>
-                  <span className="text-green-800">隔離10-14天</span>
+                  <Badge className="bg-orange-100 text-orange-800 border-orange-200">{i18n.t('pages.testing_isolation.high_risk_label')}</Badge>
+                  <span className="text-green-800">{i18n.t('pages.testing_isolation.high_risk_isolation')}</span>
                 </div>
                 <p className="text-sm text-green-700/70 mt-2">
-                  具體隔離期間需根據檢測結果和症狀嚴重程度調整
+                  {i18n.t('pages.testing_isolation.isolation_note')}
                 </p>
               </div>
             </div>
@@ -136,24 +147,24 @@ export default function TestingIsolationGuidance({ riskLevel = 'medium', assessm
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
               <h4 className="font-bold text-green-800 mb-4 text-lg flex items-center gap-2">
                 <Shield className="h-5 w-5" />
-                預防措施
+                {i18n.t('pages.testing_isolation.prevention_measures')}
               </h4>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <Shield className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-green-800">減少外出和社交活動</span>
+                  <span className="text-sm text-green-800">{i18n.t('pages.testing_isolation.reduce_activities')}</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Shield className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-green-800">必要外出時佩戴N95口罩</span>
+                  <span className="text-sm text-green-800">{i18n.t('pages.testing_isolation.wear_mask')}</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Shield className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-green-800">保持房間通風良好</span>
+                  <span className="text-sm text-green-800">{i18n.t('pages.testing_isolation.ventilation')}</span>
                 </div>
                 <div className="flex items-start gap-3">
                   <Shield className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-green-800">與家人保持適當距離</span>
+                  <span className="text-sm text-green-800">{i18n.t('pages.testing_isolation.keep_distance')}</span>
                 </div>
               </div>
             </div>
@@ -175,10 +186,10 @@ export default function TestingIsolationGuidance({ riskLevel = 'medium', assessm
             </div>
             <div>
               <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-700 to-purple-600 bg-clip-text text-transparent">
-                症狀監測
+                {i18n.t('pages.testing_isolation.monitoring_title')}
               </h3>
               <p className="text-purple-700/70 mt-1">
-                隔離期間需要密切關注的症狀和體徵
+                {i18n.t('pages.testing_isolation.monitoring_subtitle')}
               </p>
             </div>
           </div>
@@ -187,56 +198,56 @@ export default function TestingIsolationGuidance({ riskLevel = 'medium', assessm
             <Alert className="border-red-200 bg-red-50/50 backdrop-blur-sm">
               <AlertTriangle className="h-5 w-5 text-red-600" />
               <AlertDescription className="text-red-800 font-medium">
-                如出現緊急症狀，請立即就醫或撥打120
+                {i18n.t('pages.testing_isolation.emergency_alert')}
               </AlertDescription>
             </Alert>
             
             <div className="grid md:grid-cols-2 gap-6">
               <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
-                <h4 className="font-bold text-purple-800 mb-4 text-lg">每日監測項目</h4>
+                <h4 className="font-bold text-purple-800 mb-4 text-lg">{i18n.t('pages.testing_isolation.daily_monitoring')}</h4>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
                     <CheckCircle className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
                     <div>
-                      <span className="text-sm font-medium text-purple-800">體溫測量</span>
-                      <p className="text-xs text-purple-700/70">每天早晚各一次</p>
+                      <span className="text-sm font-medium text-purple-800">{i18n.t('pages.testing_isolation.temperature_check')}</span>
+                      <p className="text-xs text-purple-700/70">{i18n.t('pages.testing_isolation.temperature_freq')}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckCircle className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
                     <div>
-                      <span className="text-sm font-medium text-purple-800">症狀記錄</span>
-                      <p className="text-xs text-purple-700/70">詳細記錄症狀變化</p>
+                      <span className="text-sm font-medium text-purple-800">{i18n.t('pages.testing_isolation.symptom_record')}</span>
+                      <p className="text-xs text-purple-700/70">{i18n.t('pages.testing_isolation.symptom_desc')}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
                     <CheckCircle className="h-4 w-4 text-purple-600 mt-0.5 flex-shrink-0" />
                     <div>
-                      <span className="text-sm font-medium text-purple-800">血氧監測</span>
-                      <p className="text-xs text-purple-700/70">如有血氧儀請每日監測</p>
+                      <span className="text-sm font-medium text-purple-800">{i18n.t('pages.testing_isolation.oxygen_monitoring')}</span>
+                      <p className="text-xs text-purple-700/70">{i18n.t('pages.testing_isolation.oxygen_desc')}</p>
                     </div>
                   </div>
                 </div>
               </div>
               
               <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
-                <h4 className="font-bold text-red-800 mb-4 text-lg">緊急就醫指標</h4>
+                <h4 className="font-bold text-red-800 mb-4 text-lg">{i18n.t('pages.testing_isolation.emergency_indicators')}</h4>
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-red-800">呼吸困難或胸悶</span>
+                    <span className="text-sm text-red-800">{i18n.t('pages.testing_isolation.breathing_difficulty')}</span>
                   </div>
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-red-800">持續高燒超過39°C</span>
+                    <span className="text-sm text-red-800">{i18n.t('pages.testing_isolation.high_fever')}</span>
                   </div>
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-red-800">血氧飽和度低於95%</span>
+                    <span className="text-sm text-red-800">{i18n.t('pages.testing_isolation.low_oxygen')}</span>
                   </div>
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-red-800">意識模糊或嗜睡</span>
+                    <span className="text-sm text-red-800">{i18n.t('pages.testing_isolation.confusion')}</span>
                   </div>
                 </div>
               </div>
@@ -259,71 +270,71 @@ export default function TestingIsolationGuidance({ riskLevel = 'medium', assessm
             </div>
             <div>
               <h3 className="text-2xl font-bold bg-gradient-to-r from-teal-700 to-teal-600 bg-clip-text text-transparent">
-                康復指導
+                {i18n.t('pages.testing_isolation.recovery_title')}
               </h3>
               <p className="text-teal-700/70 mt-1">
-                康復期間的注意事項和返回正常生活的建議
+                {i18n.t('pages.testing_isolation.recovery_subtitle')}
               </p>
             </div>
           </div>
           
           <div className="grid md:grid-cols-2 gap-6">
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
-              <h4 className="font-bold text-teal-800 mb-4 text-lg">康復標準</h4>
+              <h4 className="font-bold text-teal-800 mb-4 text-lg">{i18n.t('pages.testing_isolation.recovery_criteria')}</h4>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <CheckCircle className="h-4 w-4 text-teal-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <span className="text-sm font-medium text-teal-800">無發燒症狀至少24小時</span>
-                    <p className="text-xs text-teal-700/70">體溫正常且穩定</p>
+                    <span className="text-sm font-medium text-teal-800">{i18n.t('pages.testing_isolation.no_fever')}</span>
+                    <p className="text-xs text-teal-700/70">{i18n.t('pages.testing_isolation.fever_desc')}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="h-4 w-4 text-teal-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <span className="text-sm font-medium text-teal-800">其他症狀明顯改善</span>
-                    <p className="text-xs text-teal-700/70">咳嗽、乏力等症狀減輕</p>
+                    <span className="text-sm font-medium text-teal-800">{i18n.t('pages.testing_isolation.symptoms_improved')}</span>
+                    <p className="text-xs text-teal-700/70">{i18n.t('pages.testing_isolation.symptoms_desc')}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle className="h-4 w-4 text-teal-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <span className="text-sm font-medium text-teal-800">連續兩次檢測陰性</span>
-                    <p className="text-xs text-teal-700/70">間隔24小時的檢測結果</p>
+                    <span className="text-sm font-medium text-teal-800">{i18n.t('pages.testing_isolation.negative_tests')}</span>
+                    <p className="text-xs text-teal-700/70">{i18n.t('pages.testing_isolation.tests_desc')}</p>
                   </div>
                 </div>
               </div>
             </div>
             
             <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
-              <h4 className="font-bold text-teal-800 mb-4 text-lg">康復建議</h4>
+              <h4 className="font-bold text-teal-800 mb-4 text-lg">{i18n.t('pages.testing_isolation.recovery_advice')}</h4>
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <Activity className="h-4 w-4 text-teal-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <span className="text-sm font-medium text-teal-800">逐漸恢復日常活動</span>
-                    <p className="text-xs text-teal-700/70">避免劇烈運動</p>
+                    <span className="text-sm font-medium text-teal-800">{i18n.t('pages.testing_isolation.gradual_activity')}</span>
+                    <p className="text-xs text-teal-700/70">{i18n.t('pages.testing_isolation.avoid_exercise')}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Heart className="h-4 w-4 text-teal-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <span className="text-sm font-medium text-teal-800">保持充足休息</span>
-                    <p className="text-xs text-teal-700/70">確保充足的睡眠時間</p>
+                    <span className="text-sm font-medium text-teal-800">{i18n.t('pages.testing_isolation.adequate_rest')}</span>
+                    <p className="text-xs text-teal-700/70">{i18n.t('pages.testing_isolation.sleep_desc')}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Shield className="h-4 w-4 text-teal-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <span className="text-sm font-medium text-teal-800">繼續佩戴口罩</span>
-                    <p className="text-xs text-teal-700/70">外出時至少7天</p>
+                    <span className="text-sm font-medium text-teal-800">{i18n.t('pages.testing_isolation.continue_mask')}</span>
+                    <p className="text-xs text-teal-700/70">{i18n.t('pages.testing_isolation.mask_duration')}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Stethoscope className="h-4 w-4 text-teal-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <span className="text-sm font-medium text-teal-800">定期複檢</span>
-                    <p className="text-xs text-teal-700/70">如有不適及時就醫</p>
+                    <span className="text-sm font-medium text-teal-800">{i18n.t('pages.testing_isolation.regular_checkup')}</span>
+                    <p className="text-xs text-teal-700/70">{i18n.t('pages.testing_isolation.checkup_desc')}</p>
                   </div>
                 </div>
               </div>
@@ -345,25 +356,25 @@ export default function TestingIsolationGuidance({ riskLevel = 'medium', assessm
               </div>
               <div className="flex-1">
                 <h3 className="text-xl font-bold bg-gradient-to-r from-emerald-700 to-emerald-600 bg-clip-text text-transparent mb-4">
-                  專業提醒
+                  {i18n.t('pages.testing_isolation.professional_reminder')}
                 </h3>
                 <ul className="text-emerald-800/90 space-y-3">
                   <li className="flex items-center group">
                     <div className="w-2 h-2 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full mr-4 flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-200"></div>
                     <span className="group-hover:text-emerald-700 transition-colors duration-200">
-                      本指導僅供參考，具體治療方案請遵循醫生建議
+                      {i18n.t('pages.testing_isolation.guidance_reference')}
                     </span>
                   </li>
                   <li className="flex items-center group">
                     <div className="w-2 h-2 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full mr-4 flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-200"></div>
                     <span className="group-hover:text-emerald-700 transition-colors duration-200">
-                      如有任何疑問或緊急情況，請立即聯繫醫療機構
+                      {i18n.t('pages.testing_isolation.emergency_contact')}
                     </span>
                   </li>
                   <li className="flex items-center group">
                     <div className="w-2 h-2 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full mr-4 flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform duration-200"></div>
                     <span className="group-hover:text-emerald-700 transition-colors duration-200">
-                      請根據最新的衛生部門指導原則調整防護措施
+                      {i18n.t('pages.testing_isolation.follow_guidelines')}
                     </span>
                   </li>
                 </ul>

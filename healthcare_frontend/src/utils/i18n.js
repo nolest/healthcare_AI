@@ -1479,7 +1479,83 @@ class I18n {
         // 医疗指导页面
         'pages.medical_guidance.title': '醫療指導',
         'pages.medical_guidance.subtitle': '專業醫療建議與指導原則',
-        'pages.medical_guidance.loading': '載入中...'
+        'pages.medical_guidance.loading': '載入中...',
+        
+        // Testing and Isolation Guidance
+        'pages.testing_isolation.title': '檢測和隔離指導',
+        'pages.testing_isolation.subtitle': '基於風險評估的專業建議',
+        
+        // Testing Recommendations
+        'pages.testing_isolation.testing_title': '檢測建議',
+        'pages.testing_isolation.testing_subtitle': '根據風險等級提供的檢測建議',
+        'pages.testing_isolation.testing_alert': '建議在48小時內進行檢測',
+        'pages.testing_isolation.recommended_tests': '推薦檢測方案',
+        'pages.testing_isolation.pcr_test': '立即進行PCR檢測',
+        'pages.testing_isolation.pcr_desc': '最準確的檢測方法，適用於確診和接觸者篩查',
+        'pages.testing_isolation.antigen_test': '考慮快速抗原檢測作為補充',
+        'pages.testing_isolation.antigen_desc': '快速獲得結果，適用於日常篩查',
+        'pages.testing_isolation.continuous_testing': '建議連續檢測3-5天',
+        'pages.testing_isolation.continuous_desc': '確保檢測結果的準確性和及時性',
+        
+        // Isolation Guidance
+        'pages.testing_isolation.isolation_title': '隔離指導',
+        'pages.testing_isolation.isolation_subtitle': '隔離期間的注意事項和預防措施',
+        'pages.testing_isolation.isolation_period': '隔離期間',
+        'pages.testing_isolation.standard_isolation': '居家隔離5-7天',
+        'pages.testing_isolation.high_risk_isolation': '隔離10-14天',
+        'pages.testing_isolation.isolation_note': '具體隔離期間需根據檢測結果和症狀嚴重程度調整',
+        'pages.testing_isolation.prevention_measures': '預防措施',
+        'pages.testing_isolation.reduce_activities': '減少外出和社交活動',
+        'pages.testing_isolation.wear_mask': '必要外出時佩戴N95口罩',
+        'pages.testing_isolation.ventilation': '保持房間通風良好',
+        'pages.testing_isolation.keep_distance': '與家人保持適當距離',
+        
+        // Symptom Monitoring
+        'pages.testing_isolation.monitoring_title': '症狀監測',
+        'pages.testing_isolation.monitoring_subtitle': '隔離期間需要密切關注的症狀和體徵',
+        'pages.testing_isolation.emergency_alert': '如出現緊急症狀，請立即就醫或撥打120',
+        'pages.testing_isolation.daily_monitoring': '每日監測項目',
+        'pages.testing_isolation.temperature_check': '體溫測量',
+        'pages.testing_isolation.temperature_freq': '每天早晚各一次',
+        'pages.testing_isolation.symptom_record': '症狀記錄',
+        'pages.testing_isolation.symptom_desc': '詳細記錄症狀變化',
+        'pages.testing_isolation.oxygen_monitoring': '血氧監測',
+        'pages.testing_isolation.oxygen_desc': '如有血氧儀請每日監測',
+        'pages.testing_isolation.emergency_indicators': '緊急就醫指標',
+        'pages.testing_isolation.breathing_difficulty': '呼吸困難或胸悶',
+        'pages.testing_isolation.high_fever': '持續高燒超過39°C',
+        'pages.testing_isolation.low_oxygen': '血氧飽和度低於95%',
+        'pages.testing_isolation.confusion': '意識模糊或嗜睡',
+        
+        // Recovery Guidance
+        'pages.testing_isolation.recovery_title': '康復指導',
+        'pages.testing_isolation.recovery_subtitle': '康復期間的注意事項和返回正常生活的建議',
+        'pages.testing_isolation.recovery_criteria': '康復標準',
+        'pages.testing_isolation.no_fever': '無發燒症狀至少24小時',
+        'pages.testing_isolation.fever_desc': '體溫正常且穩定',
+        'pages.testing_isolation.symptoms_improved': '其他症狀明顯改善',
+        'pages.testing_isolation.symptoms_desc': '咳嗽、乏力等症狀減輕',
+        'pages.testing_isolation.negative_tests': '連續兩次檢測陰性',
+        'pages.testing_isolation.tests_desc': '間隔24小時的檢測結果',
+        'pages.testing_isolation.recovery_advice': '康復建議',
+        'pages.testing_isolation.gradual_activity': '逐漸恢復日常活動',
+        'pages.testing_isolation.avoid_exercise': '避免劇烈運動',
+        'pages.testing_isolation.adequate_rest': '保持充足休息',
+        'pages.testing_isolation.sleep_desc': '確保充足的睡眠時間',
+        'pages.testing_isolation.continue_mask': '繼續佩戴口罩',
+        'pages.testing_isolation.mask_duration': '外出時至少7天',
+        'pages.testing_isolation.regular_checkup': '定期複檢',
+        'pages.testing_isolation.checkup_desc': '如有不適及時就醫',
+        
+        // Professional Reminder
+        'pages.testing_isolation.professional_reminder': '專業提醒',
+        'pages.testing_isolation.guidance_reference': '本指導僅供參考，具體治療方案請遵循醫生建議',
+        'pages.testing_isolation.emergency_contact': '如有任何疑問或緊急情況，請立即聯繫醫療機構',
+        'pages.testing_isolation.follow_guidelines': '請根據最新的衛生部門指導原則調整防護措施',
+        
+        // Badge Labels
+        'pages.testing_isolation.standard_label': '標準',
+        'pages.testing_isolation.high_risk_label': '高風險'
       },
       
       'zh-CN': {
@@ -2801,9 +2877,85 @@ class I18n {
         'pages.medical_diagnosis_form.trend_stable': '稳定',
         
         // 医疗指导页面
-        'pages.medical_guidance.title': '测试指导',
-        'pages.medical_guidance.subtitle': '检测与隔离指导建议',
-        'pages.medical_guidance.loading': '载入中...'
+        'pages.medical_guidance.title': '医疗指导',
+        'pages.medical_guidance.subtitle': '专业医疗建议与指导原则',
+        'pages.medical_guidance.loading': '载入中...',
+        
+        // Testing and Isolation Guidance
+        'pages.testing_isolation.title': '检测和隔离指导',
+        'pages.testing_isolation.subtitle': '基于风险评估的专业建议',
+        
+        // Testing Recommendations
+        'pages.testing_isolation.testing_title': '检测建议',
+        'pages.testing_isolation.testing_subtitle': '根据风险等级提供的检测建议',
+        'pages.testing_isolation.testing_alert': '建议在48小时内进行检测',
+        'pages.testing_isolation.recommended_tests': '推荐检测方案',
+        'pages.testing_isolation.pcr_test': '立即进行PCR检测',
+        'pages.testing_isolation.pcr_desc': '最准确的检测方法，适用于确诊和接触者筛查',
+        'pages.testing_isolation.antigen_test': '考虑快速抗原检测作为补充',
+        'pages.testing_isolation.antigen_desc': '快速获得结果，适用于日常筛查',
+        'pages.testing_isolation.continuous_testing': '建议连续检测3-5天',
+        'pages.testing_isolation.continuous_desc': '确保检测结果的准确性和及时性',
+        
+        // Isolation Guidance
+        'pages.testing_isolation.isolation_title': '隔离指导',
+        'pages.testing_isolation.isolation_subtitle': '隔离期间的注意事项和预防措施',
+        'pages.testing_isolation.isolation_period': '隔离期间',
+        'pages.testing_isolation.standard_isolation': '居家隔离5-7天',
+        'pages.testing_isolation.high_risk_isolation': '隔离10-14天',
+        'pages.testing_isolation.isolation_note': '具体隔离期间需根据检测结果和症状严重程度调整',
+        'pages.testing_isolation.prevention_measures': '预防措施',
+        'pages.testing_isolation.reduce_activities': '减少外出和社交活动',
+        'pages.testing_isolation.wear_mask': '必要外出时佩戴N95口罩',
+        'pages.testing_isolation.ventilation': '保持房间通风良好',
+        'pages.testing_isolation.keep_distance': '与家人保持适当距离',
+        
+        // Symptom Monitoring
+        'pages.testing_isolation.monitoring_title': '症状监测',
+        'pages.testing_isolation.monitoring_subtitle': '隔离期间需要密切关注的症状和体征',
+        'pages.testing_isolation.emergency_alert': '如出现紧急症状，请立即就医或拨打120',
+        'pages.testing_isolation.daily_monitoring': '每日监测项目',
+        'pages.testing_isolation.temperature_check': '体温测量',
+        'pages.testing_isolation.temperature_freq': '每天早晚各一次',
+        'pages.testing_isolation.symptom_record': '症状记录',
+        'pages.testing_isolation.symptom_desc': '详细记录症状变化',
+        'pages.testing_isolation.oxygen_monitoring': '血氧监测',
+        'pages.testing_isolation.oxygen_desc': '如有血氧仪请每日监测',
+        'pages.testing_isolation.emergency_indicators': '紧急就医指标',
+        'pages.testing_isolation.breathing_difficulty': '呼吸困难或胸闷',
+        'pages.testing_isolation.high_fever': '持续高烧超过39°C',
+        'pages.testing_isolation.low_oxygen': '血氧饱和度低于95%',
+        'pages.testing_isolation.confusion': '意识模糊或嗜睡',
+        
+        // Recovery Guidance
+        'pages.testing_isolation.recovery_title': '康复指导',
+        'pages.testing_isolation.recovery_subtitle': '康复期间的注意事项和返回正常生活的建议',
+        'pages.testing_isolation.recovery_criteria': '康复标准',
+        'pages.testing_isolation.no_fever': '无发烧症状至少24小时',
+        'pages.testing_isolation.fever_desc': '体温正常且稳定',
+        'pages.testing_isolation.symptoms_improved': '其他症状明显改善',
+        'pages.testing_isolation.symptoms_desc': '咳嗽、乏力等症状减轻',
+        'pages.testing_isolation.negative_tests': '连续两次检测阴性',
+        'pages.testing_isolation.tests_desc': '间隔24小时的检测结果',
+        'pages.testing_isolation.recovery_advice': '康复建议',
+        'pages.testing_isolation.gradual_activity': '逐渐恢复日常活动',
+        'pages.testing_isolation.avoid_exercise': '避免剧烈运动',
+        'pages.testing_isolation.adequate_rest': '保持充足休息',
+        'pages.testing_isolation.sleep_desc': '确保充足的睡眠时间',
+        'pages.testing_isolation.continue_mask': '继续佩戴口罩',
+        'pages.testing_isolation.mask_duration': '外出时至少7天',
+        'pages.testing_isolation.regular_checkup': '定期复检',
+        'pages.testing_isolation.checkup_desc': '如有不适及时就医',
+        
+        // Professional Reminder
+        'pages.testing_isolation.professional_reminder': '专业提醒',
+        'pages.testing_isolation.guidance_reference': '本指导仅供参考，具体治疗方案请遵循医生建议',
+        'pages.testing_isolation.emergency_contact': '如有任何疑问或紧急情况，请立即联系医疗机构',
+        'pages.testing_isolation.follow_guidelines': '请根据最新的卫生部门指导原则调整防护措施',
+        
+        // Badge Labels
+        'pages.testing_isolation.standard_label': '标准',
+        'pages.testing_isolation.high_risk_label': '高风险'
       },
       
       'en': {
@@ -4229,9 +4381,85 @@ class I18n {
         'pages.medical_diagnosis_form.trend_stable': 'Stable',
         
         // 医疗指导页面
-        'pages.medical_guidance.title': 'Testing Guidance',
-        'pages.medical_guidance.subtitle': 'Testing and Isolation Guidance Recommendations',
+        'pages.medical_guidance.title': 'Medical Guidance',
+        'pages.medical_guidance.subtitle': 'Professional Medical Advice and Guidance Principles',
         'pages.medical_guidance.loading': 'Loading...',
+        
+        // Testing and Isolation Guidance
+        'pages.testing_isolation.title': 'Testing and Isolation Guidance',
+        'pages.testing_isolation.subtitle': 'Professional recommendations based on risk assessment',
+        
+        // Testing Recommendations
+        'pages.testing_isolation.testing_title': 'Testing Recommendations',
+        'pages.testing_isolation.testing_subtitle': 'Testing recommendations based on risk level',
+        'pages.testing_isolation.testing_alert': 'Recommend testing within 48 hours',
+        'pages.testing_isolation.recommended_tests': 'Recommended Testing Protocol',
+        'pages.testing_isolation.pcr_test': 'Immediate PCR testing',
+        'pages.testing_isolation.pcr_desc': 'Most accurate testing method, suitable for diagnosis and contact screening',
+        'pages.testing_isolation.antigen_test': 'Consider rapid antigen testing as supplement',
+        'pages.testing_isolation.antigen_desc': 'Quick results, suitable for daily screening',
+        'pages.testing_isolation.continuous_testing': 'Recommend continuous testing for 3-5 days',
+        'pages.testing_isolation.continuous_desc': 'Ensure accuracy and timeliness of test results',
+        
+        // Isolation Guidance
+        'pages.testing_isolation.isolation_title': 'Isolation Guidance',
+        'pages.testing_isolation.isolation_subtitle': 'Precautions and preventive measures during isolation',
+        'pages.testing_isolation.isolation_period': 'Isolation Period',
+        'pages.testing_isolation.standard_isolation': 'Home isolation 5-7 days',
+        'pages.testing_isolation.high_risk_isolation': 'Isolation 10-14 days',
+        'pages.testing_isolation.isolation_note': 'Specific isolation period should be adjusted based on test results and symptom severity',
+        'pages.testing_isolation.prevention_measures': 'Preventive Measures',
+        'pages.testing_isolation.reduce_activities': 'Reduce outings and social activities',
+        'pages.testing_isolation.wear_mask': 'Wear N95 mask when going out if necessary',
+        'pages.testing_isolation.ventilation': 'Keep room well ventilated',
+        'pages.testing_isolation.keep_distance': 'Keep appropriate distance from family members',
+        
+        // Symptom Monitoring
+        'pages.testing_isolation.monitoring_title': 'Symptom Monitoring',
+        'pages.testing_isolation.monitoring_subtitle': 'Symptoms and signs to monitor closely during isolation',
+        'pages.testing_isolation.emergency_alert': 'If emergency symptoms occur, seek medical attention immediately or call 120',
+        'pages.testing_isolation.daily_monitoring': 'Daily Monitoring Items',
+        'pages.testing_isolation.temperature_check': 'Temperature measurement',
+        'pages.testing_isolation.temperature_freq': 'Twice daily, morning and evening',
+        'pages.testing_isolation.symptom_record': 'Symptom recording',
+        'pages.testing_isolation.symptom_desc': 'Record symptom changes in detail',
+        'pages.testing_isolation.oxygen_monitoring': 'Oxygen saturation monitoring',
+        'pages.testing_isolation.oxygen_desc': 'Monitor daily if pulse oximeter available',
+        'pages.testing_isolation.emergency_indicators': 'Emergency Medical Indicators',
+        'pages.testing_isolation.breathing_difficulty': 'Difficulty breathing or chest tightness',
+        'pages.testing_isolation.high_fever': 'Persistent high fever above 39°C',
+        'pages.testing_isolation.low_oxygen': 'Oxygen saturation below 95%',
+        'pages.testing_isolation.confusion': 'Confusion or drowsiness',
+        
+        // Recovery Guidance
+        'pages.testing_isolation.recovery_title': 'Recovery Guidance',
+        'pages.testing_isolation.recovery_subtitle': 'Precautions during recovery and recommendations for returning to normal life',
+        'pages.testing_isolation.recovery_criteria': 'Recovery Criteria',
+        'pages.testing_isolation.no_fever': 'No fever symptoms for at least 24 hours',
+        'pages.testing_isolation.fever_desc': 'Normal and stable body temperature',
+        'pages.testing_isolation.symptoms_improved': 'Other symptoms significantly improved',
+        'pages.testing_isolation.symptoms_desc': 'Cough, fatigue and other symptoms reduced',
+        'pages.testing_isolation.negative_tests': 'Two consecutive negative tests',
+        'pages.testing_isolation.tests_desc': 'Test results 24 hours apart',
+        'pages.testing_isolation.recovery_advice': 'Recovery Advice',
+        'pages.testing_isolation.gradual_activity': 'Gradually resume daily activities',
+        'pages.testing_isolation.avoid_exercise': 'Avoid strenuous exercise',
+        'pages.testing_isolation.adequate_rest': 'Maintain adequate rest',
+        'pages.testing_isolation.sleep_desc': 'Ensure sufficient sleep time',
+        'pages.testing_isolation.continue_mask': 'Continue wearing mask',
+        'pages.testing_isolation.mask_duration': 'At least 7 days when going out',
+        'pages.testing_isolation.regular_checkup': 'Regular follow-up',
+        'pages.testing_isolation.checkup_desc': 'Seek medical attention if feeling unwell',
+        
+        // Professional Reminder
+        'pages.testing_isolation.professional_reminder': 'Professional Reminder',
+        'pages.testing_isolation.guidance_reference': 'This guidance is for reference only, please follow doctor\'s advice for specific treatment plans',
+        'pages.testing_isolation.emergency_contact': 'If you have any questions or emergencies, please contact medical institutions immediately',
+        'pages.testing_isolation.follow_guidelines': 'Please adjust protective measures according to the latest health department guidelines',
+        
+        // Badge Labels
+        'pages.testing_isolation.standard_label': 'Standard',
+        'pages.testing_isolation.high_risk_label': 'High Risk',
         
         // COVID Diagnosis Form Page
         'pages.covid_diagnosis_form.title': 'COVID Diagnosis Assessment',
