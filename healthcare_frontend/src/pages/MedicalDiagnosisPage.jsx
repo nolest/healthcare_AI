@@ -176,8 +176,79 @@ export default function MedicalDiagnosisPage() {
       case 'oxygen_saturation':
         return `${measurement.oxygenSaturation}%`
       default:
-        return i18n.t('common.unknown')
+        // 如果沒有識別的類型，嘗試顯示任何可用的數值
+        if (measurement.systolic || measurement.diastolic) {
+          return `${measurement.systolic || '--'}/${measurement.diastolic || '--'} mmHg`
+        }
+        if (measurement.heartRate) {
+          return `${measurement.heartRate} bpm`
+        }
+        if (measurement.temperature) {
+          return `${measurement.temperature}°C`
+        }
+        if (measurement.oxygenSaturation) {
+          return `${measurement.oxygenSaturation}%`
+        }
+        return i18n.t('pages.medical_diagnosis.no_data_available')
     }
+  }
+
+  // 格式化異常原因，支持長度限制和省略號
+  const getFormattedAbnormalReason = (measurement, maxLength = 20) => {
+    let reasons = []
+    
+    // 如果測量記錄有abnormalReasons字段，使用格式化工具處理
+    if (measurement.abnormalReasons && measurement.abnormalReasons.length > 0) {
+      const formatted = AbnormalReasonFormatter.smartFormatMultiple(measurement.abnormalReasons)
+      reasons = formatted.filter(reason => reason && reason.trim() !== '')
+    }
+    
+    // 如果沒有結構化異常原因，回退到原有邏輯
+    if (reasons.length === 0) {
+      const fallbackReason = getAbnormalReason(measurement)
+      if (fallbackReason && fallbackReason !== i18n.t('pages.medical_diagnosis.abnormal_value')) {
+        reasons = [fallbackReason]
+      }
+    }
+    
+    // 如果還是沒有原因，返回通用異常提示
+    if (reasons.length === 0) {
+      return i18n.t('pages.medical_diagnosis.abnormal_value_detected')
+    }
+    
+    // 處理單個症狀的顯示
+    if (reasons.length === 1) {
+      const singleReason = reasons[0]
+      if (singleReason.length <= maxLength) {
+        return singleReason
+      }
+      return singleReason.substring(0, maxLength - 3) + '...'
+    }
+    
+    // 多個症狀的智能顯示
+    let displayText = ''
+    let displayedCount = 0
+    
+    for (let i = 0; i < reasons.length; i++) {
+      const reason = reasons[i]
+      const separator = i === 0 ? '' : '、'  // 使用頓號節省空間
+      const testText = displayText + separator + reason
+      
+      if (testText.length <= maxLength - 8) { // 預留空間給省略號和數量
+        displayText = testText
+        displayedCount++
+      } else {
+        break
+      }
+    }
+    
+    const remainingCount = reasons.length - displayedCount
+    if (remainingCount > 0) {
+      const countText = i18n.t('pages.medical_diagnosis.and_more_symptoms', { count: remainingCount })
+      displayText += countText
+    }
+    
+    return displayText || reasons[0].substring(0, maxLength - 3) + '...'
   }
 
   const getAbnormalReason = (measurement) => {
@@ -503,16 +574,16 @@ export default function MedicalDiagnosisPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="min-w-full">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>{i18n.t('pages.medical_diagnosis.patient_info')}</TableHead>
-                      <TableHead>{i18n.t('pages.medical_diagnosis.abnormal_type_col')}</TableHead>
-                      <TableHead>{i18n.t('pages.medical_diagnosis.abnormal_value_col')}</TableHead>
-                      <TableHead>{i18n.t('pages.medical_diagnosis.abnormal_reason')}</TableHead>
-                      <TableHead>{i18n.t('pages.medical_diagnosis.measurement_time')}</TableHead>
-                      <TableHead>{i18n.t('pages.medical_diagnosis.status')}</TableHead>
-                      <TableHead>{i18n.t('pages.medical_diagnosis.actions')}</TableHead>
+                      <TableHead className="w-1/4">{i18n.t('pages.medical_diagnosis.patient_info')}</TableHead>
+                      <TableHead className="w-1/8">{i18n.t('pages.medical_diagnosis.abnormal_type_col')}</TableHead>
+                      <TableHead className="w-1/8">{i18n.t('pages.medical_diagnosis.abnormal_value_col')}</TableHead>
+                      <TableHead className="flex-1">{i18n.t('pages.medical_diagnosis.abnormal_reason')}</TableHead>
+                      <TableHead className="w-1/6">{i18n.t('pages.medical_diagnosis.measurement_time')}</TableHead>
+                      <TableHead className="w-1/12">{i18n.t('pages.medical_diagnosis.status')}</TableHead>
+                      <TableHead className="w-1/12">{i18n.t('pages.medical_diagnosis.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -520,17 +591,17 @@ export default function MedicalDiagnosisPage() {
                       const measurementType = getMeasurementType(measurement)
                       return (
                         <TableRow key={measurement._id} className="hover:bg-green-50/50 transition-colors">
-                          <TableCell>
+                          <TableCell className="w-1/4">
                             <div className="flex items-center gap-3">
                               <div className="p-2 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl">
                                 <User className="h-4 w-4 text-blue-600" />
                               </div>
-                              <div>
-                                <p className="font-medium text-gray-900">
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-gray-900 truncate">
                                   {measurement.patientInfo?.fullName || measurement.patientInfo?.username || i18n.t('pages.medical_diagnosis.unknown_patient')}
                                 </p>
                                 <div className="flex items-center gap-2 text-sm text-gray-600">
-                                  <span>ID: {(typeof measurement.userId === 'string' ? measurement.userId : measurement.userId?._id || '').slice(-8)}</span>
+                                  <span className="truncate">ID: {(typeof measurement.userId === 'string' ? measurement.userId : measurement.userId?._id || '').slice(-8)}</span>
                                   {measurement.patientInfo?.gender && (
                                     <Badge variant="outline" className="text-xs">
                                       {measurement.patientInfo.gender === 'male' ? i18n.t('pages.medical_diagnosis.male') : 
@@ -546,51 +617,51 @@ export default function MedicalDiagnosisPage() {
                               </div>
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="w-1/8">
                             <div className="flex items-center gap-2">
                               {getMeasurementTypeIcon(measurementType)}
-                              <span className="font-medium">
+                              <span className="font-medium text-sm truncate">
                                 {getMeasurementTypeLabel(measurementType)}
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-200">
+                          <TableCell className="w-1/8">
+                            <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-200 text-xs">
                               {getMeasurementValue(measurement)}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            <span className="text-red-600 font-medium">
-                              {getAbnormalReason(measurement)}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <Calendar className="h-3 w-3" />
-                              {formatDate(measurement.createdAt || measurement.timestamp)}
+                          <TableCell className="flex-1 min-w-0">
+                            <div className="text-red-600 font-medium text-sm truncate" title={getFormattedAbnormalReason(measurement, 100)}>
+                              {getFormattedAbnormalReason(measurement, 15)}
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="w-1/6">
+                            <div className="flex items-center gap-1 text-sm text-gray-600">
+                              <Calendar className="h-3 w-3" />
+                              <span className="truncate">{formatDate(measurement.createdAt || measurement.timestamp)}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="w-1/12">
                             <Badge 
                               variant={measurement.status === 'pending' ? 'destructive' : 'default'}
-                              className={
+                              className={`text-xs ${
                                 measurement.status === 'pending' 
                                   ? 'bg-orange-100 text-orange-700 border-orange-200'
                                   : 'bg-green-100 text-green-700 border-green-200'
-                              }
+                              }`}
                             >
                               {measurement.status === 'pending' ? i18n.t('pages.medical_diagnosis.pending_status') : 
                                measurement.status === 'processed' ? i18n.t('pages.medical_diagnosis.processed_status') :
                                measurement.status === 'reviewed' ? i18n.t('pages.medical_diagnosis.reviewed_status') : i18n.t('pages.medical_diagnosis.processed_status')}
                             </Badge>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="w-1/12">
                             <Button
                               size="sm"
                               onClick={() => handleDiagnose(measurement)}
-                              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-xs px-2 py-1"
                             >
-                              <Eye className="h-4 w-4 mr-1" />
+                              <Eye className="h-3 w-3 mr-1" />
                               {i18n.t('pages.medical_diagnosis.view_details')}
                             </Button>
                           </TableCell>

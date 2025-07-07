@@ -555,7 +555,7 @@ export default function MedicalDiagnosisFormPage() {
 
   // 获取时间差显示
   const getTimeAgo = (timestamp) => {
-    if (!timestamp) return '未知时间'
+    if (!timestamp) return i18n.t('common.unknown_time')
     
     try {
       const now = new Date()
@@ -563,7 +563,7 @@ export default function MedicalDiagnosisFormPage() {
       
       // 检查时间是否有效
       if (isNaN(time.getTime())) {
-        return '未知时间'
+        return i18n.t('common.unknown_time')
       }
       
       const diffMs = now - time
@@ -572,17 +572,17 @@ export default function MedicalDiagnosisFormPage() {
       const diffDays = Math.floor(diffHours / 24)
       
       if (diffDays > 0) {
-        return `${diffDays}天前`
+        return `${diffDays}${i18n.t('common.days_ago')}`
       } else if (diffHours > 0) {
-        return `${diffHours}小時前`
+        return `${diffHours}${i18n.t('common.hours_ago')}`
       } else if (diffMinutes > 0) {
-        return `${diffMinutes}分鐘前`
+        return `${diffMinutes}${i18n.t('common.minutes_ago')}`
       } else {
-        return '剛剛'
+        return i18n.t('common.just_now')
       }
     } catch (error) {
       console.error('時間計算錯誤:', error, 'timestamp:', timestamp)
-      return '未知時間'
+      return i18n.t('common.unknown_time')
     }
   }
 
@@ -1350,7 +1350,7 @@ export default function MedicalDiagnosisFormPage() {
                   ) : (
                     <>
                       <Stethoscope className="h-5 w-5 text-green-600" />
-                      診斷評估表單
+                      {i18n.t('pages.medical_diagnosis_form.diagnosis_form')}
                     </>
                   )}
                 </CardTitle>

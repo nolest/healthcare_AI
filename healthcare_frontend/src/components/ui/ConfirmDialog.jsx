@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   Dialog, 
   DialogContent, 
@@ -14,6 +14,7 @@ import {
   HelpCircle, 
   XCircle 
 } from 'lucide-react'
+import i18n from '../../utils/i18n.js'
 
 const ConfirmDialog = ({
   open,
@@ -21,13 +22,27 @@ const ConfirmDialog = ({
   type = 'alert', // 'alert', 'warning', 'info', 'success', 'tips'
   title,
   description,
-  confirmText = '確認',
-  cancelText = '取消',
+  confirmText,
+  cancelText,
   onConfirm,
   onCancel,
   showCancel = true,
   confirmButtonVariant = 'default'
 }) => {
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+
+  useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    i18n.addListener(handleLanguageChange)
+    return () => i18n.removeListener(handleLanguageChange)
+  }, [])
+
+  // 使用國際化翻譯，如果沒有提供自定義文本則使用默認翻譯
+  const finalConfirmText = confirmText || i18n.t('common.confirm')
+  const finalCancelText = cancelText || i18n.t('common.cancel')
+
   // 根据类型获取图标和样式
   const getTypeConfig = () => {
     switch (type) {
@@ -110,7 +125,7 @@ const ConfirmDialog = ({
               onClick={handleCancel}
               className="bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-xl shadow-inner hover:shadow-md transition-all duration-300 text-gray-600 hover:bg-gray-50/80"
             >
-              {cancelText}
+              {finalCancelText}
             </Button>
           )}
           <Button 
@@ -118,7 +133,7 @@ const ConfirmDialog = ({
             onClick={handleConfirm}
             className={`${config.confirmButtonClass} rounded-xl transition-all duration-300`}
           >
-            {confirmText}
+            {finalConfirmText}
           </Button>
         </div>
       </DialogContent>

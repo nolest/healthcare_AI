@@ -889,6 +889,9 @@ class I18n {
         'pages.medical_diagnosis.male': '男',
         'pages.medical_diagnosis.female': '女',
         'pages.medical_diagnosis.years_old': '歲',
+        'pages.medical_diagnosis.no_data_available': '無數據',
+        'pages.medical_diagnosis.abnormal_value_detected': '檢測到異常值',
+        'pages.medical_diagnosis.and_more_symptoms': '等{count}個症狀',
 
         // Medical Diagnosis Form Page
         'pages.medical_diagnosis_form.title': '診斷評估',
@@ -2209,6 +2212,9 @@ class I18n {
         'pages.medical_diagnosis.male': '男',
         'pages.medical_diagnosis.female': '女',
         'pages.medical_diagnosis.years_old': '岁',
+        'pages.medical_diagnosis.and_more_symptoms': '等{count}个症状',
+        'pages.medical_diagnosis.abnormal_value_detected': '检测到异常值',
+        'pages.medical_diagnosis.no_data_available': '无数据',
 
         // Medical Diagnosis Form Page
         'pages.medical_diagnosis_form.title': '诊断评估',
