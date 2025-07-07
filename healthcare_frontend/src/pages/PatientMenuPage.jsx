@@ -140,7 +140,7 @@ export default function PatientMenuPage() {
         </div>
 
         {/* 功能菜单网格 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 w-full">
           {menuItems.map((item, index) => {
             const IconComponent = item.icon
             // 根据不同按钮设置不同的颜色主题
@@ -231,20 +231,42 @@ export default function PatientMenuPage() {
           })}
         </div>
 
-        {/* 快速操作提示 */}
-        <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 backdrop-blur-md rounded-2xl p-6 border border-blue-200/50 shadow-lg shadow-blue-500/10">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/30">
-              <AlertCircle className="h-5 w-5 text-white" />
+        {/* Health Reminders - 优化UI，去除黑色边框 */}
+        <div className="bg-gradient-to-br from-cyan-50/90 to-blue-50/80 backdrop-blur-lg rounded-3xl p-8 shadow-2xl shadow-cyan-500/10 relative overflow-hidden">
+          {/* 装饰性背景效果 */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-cyan-100/20 opacity-50"></div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-cyan-200/30 to-transparent rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-200/30 to-transparent rounded-full blur-3xl"></div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl shadow-xl shadow-cyan-500/30">
+                <AlertCircle className="h-6 w-6 text-white" />
+              </div>
+              <h3 className="text-xl font-bold bg-gradient-to-r from-cyan-700 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                {i18n.t('menu.quick_tips')}
+              </h3>
             </div>
-            <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-700 to-blue-600 bg-clip-text text-transparent">
-              {i18n.t('menu.quick_tips')}
-            </h3>
-          </div>
-          <div className="text-gray-700 text-sm space-y-2">
-            <p>• {i18n.t('menu.tip_1')}</p>
-            <p>• {i18n.t('menu.tip_2')}</p>
-            <p>• {i18n.t('menu.tip_3')}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-gray-700 text-sm leading-relaxed">{i18n.t('menu.tip_1')}</p>
+                </div>
+              </div>
+              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-gray-700 text-sm leading-relaxed">{i18n.t('menu.tip_2')}</p>
+                </div>
+              </div>
+              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <p className="text-gray-700 text-sm leading-relaxed">{i18n.t('menu.tip_3')}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </main>
