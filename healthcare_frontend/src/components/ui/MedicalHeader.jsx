@@ -4,6 +4,7 @@ import { ArrowLeft, User, LogOut, Stethoscope } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import LanguageSwitcher from '../LanguageSwitcher.jsx'
 import apiService from '../../services/api.js'
+import i18n from '../../utils/i18n.js'
 
 export default function MedicalHeader({ 
   title = "醫護人員中心", 
@@ -34,9 +35,9 @@ export default function MedicalHeader({
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md shadow-lg shadow-green-500/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-4">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md shadow-lg shadow-green-500/10 h-[84px]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+        <div className="flex justify-between items-center h-full">
           <div className="flex items-center">
             {showBackButton && (
               <Button
@@ -45,7 +46,7 @@ export default function MedicalHeader({
                 className="mr-4 bg-white/40 backdrop-blur-sm hover:bg-white/60 text-gray-600 hover:text-gray-800 shadow-md hover:shadow-lg transition-all duration-300 rounded-2xl"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                返回菜單
+                {i18n.t('common.back_to_menu')}
               </Button>
             )}
             
@@ -57,12 +58,12 @@ export default function MedicalHeader({
                   <div className="h-8 w-8" />
                 )}
               </div>
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent truncate">
                   {title}
                 </h1>
                 {subtitle && (
-                  <p className="text-sm text-gray-600/80">{subtitle}</p>
+                  <p className="text-sm text-gray-600/80 truncate">{subtitle}</p>
                 )}
               </div>
             </div>
@@ -97,7 +98,7 @@ export default function MedicalHeader({
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4 mr-2" />
-              <span className="text-sm">登出</span>
+              <span className="text-sm">{i18n.t('common.logout')}</span>
             </Button>
           </div>
         </div>
