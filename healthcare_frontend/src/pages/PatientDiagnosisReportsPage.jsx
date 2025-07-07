@@ -105,16 +105,16 @@ export default function PatientDiagnosisReportsPage() {
     }
   }
 
-  const handleViewMeasurementDiagnosis = (measurementId) => {
-    navigate(`/medical/diagnosis/form?mid=${measurementId}&hasread=1`)
+  const handleViewMeasurementDiagnosis = (diagnosisId) => {
+    navigate(`/patient/diagnosis-reports/${diagnosisId}`)
   }
 
-  const handleViewCovidDiagnosis = (assessmentId) => {
-    navigate(`/medical/covid-diagnosis/form?aid=${assessmentId}&hasread=1`)
+  const handleViewCovidDiagnosis = (diagnosisId) => {
+    navigate(`/patient/diagnosis-reports/${diagnosisId}`)
   }
 
   const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleString('zh-CN', {
+    return new Date(dateString).toLocaleString(language === 'en' ? 'en-US' : 'zh-CN', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -124,7 +124,7 @@ export default function PatientDiagnosisReportsPage() {
   }
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('zh-CN', {
+    return new Date(dateString).toLocaleDateString(language === 'en' ? 'en-US' : 'zh-CN', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit'
@@ -137,13 +137,13 @@ export default function PatientDiagnosisReportsPage() {
     }
     
     switch (riskLevel) {
-      case 'low': return '低風險'
-      case 'medium': return '中等風險'
-      case 'high': return '高風險'
-      case 'critical': return '緊急'
-      case 'very_low': return '極低風險'
-      case 'very_high': return '極高風險'
-      default: return riskLevel || '未設定'
+      case 'low': return i18n.t('pages.diagnosis_reports.risk_level.low')
+      case 'medium': return i18n.t('pages.diagnosis_reports.risk_level.medium')
+      case 'high': return i18n.t('pages.diagnosis_reports.risk_level.high')
+      case 'critical': return i18n.t('pages.diagnosis_reports.risk_level.critical')
+      case 'very_low': return i18n.t('pages.diagnosis_reports.risk_level.very_low')
+      case 'very_high': return i18n.t('pages.diagnosis_reports.risk_level.very_high')
+      default: return riskLevel || i18n.t('pages.diagnosis_reports.risk_level.unknown')
     }
   }
 
@@ -305,7 +305,7 @@ export default function PatientDiagnosisReportsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
               <Activity className={`h-4 w-4 ${getIconColor(diagnosis.riskLevel)}`} />
-              <CardTitle className="text-sm text-gray-800">生命體徵診斷</CardTitle>
+              <CardTitle className="text-sm text-gray-800">{i18n.t('pages.diagnosis_reports.vital_signs_diagnosis')}</CardTitle>
             </div>
             <div className="flex items-center gap-1">
               <Badge className={`text-white ${getRiskLevelColor(diagnosis.riskLevel)} text-xs px-2 py-1 h-5`}>
@@ -313,11 +313,11 @@ export default function PatientDiagnosisReportsPage() {
               </Badge>
               <Button
                 size="sm"
-                onClick={() => handleViewMeasurementDiagnosis(measurementData._id)}
+                onClick={() => handleViewMeasurementDiagnosis(diagnosis._id)}
                 className={`h-6 px-2 text-xs ml-1 ${getButtonColor(diagnosis.riskLevel)} shadow-sm transition-all duration-200`}
               >
                 <Eye className="h-3 w-3 mr-1" />
-                詳情
+                {i18n.t('pages.diagnosis_reports.details')}
               </Button>
             </div>
           </div>
@@ -330,46 +330,70 @@ export default function PatientDiagnosisReportsPage() {
           <div className="space-y-1.5">
             {/* 诊断结果 */}
             <div>
-              <h4 className="font-medium text-gray-700 mb-1 text-xs">診斷結果</h4>
+              <h4 className="font-medium text-gray-700 mb-1 text-xs">{i18n.t('pages.diagnosis_reports.diagnosis_result')}</h4>
               <div className="p-2 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-blue-200/30 shadow-sm">
-                <p className="text-xs text-gray-800 leading-relaxed">{diagnosis.diagnosis || '暫無診斷結果'}</p>
+                <p className="text-xs text-gray-800 leading-relaxed">{diagnosis.diagnosis || i18n.t('pages.diagnosis_reports.no_diagnosis_result')}</p>
               </div>
             </div>
 
             {/* 测量数据 */}
             {measurementData && (
               <div>
-                <h4 className="font-medium text-gray-700 mb-1 text-xs">測量數據</h4>
-                <div className="grid grid-cols-2 gap-1">
-                  {measurementData.systolic && measurementData.diastolic && (
-                    <div className="text-center p-1 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-blue-200/30 shadow-sm">
-                      <Heart className="h-3 w-3 text-red-500 mx-auto mb-0.5" />
-                      <p className="text-xs text-gray-600">血壓</p>
-                      <p className="font-semibold text-xs text-gray-800">
-                        {measurementData.systolic}/{measurementData.diastolic}
-                      </p>
+                <h4 className="font-medium text-gray-700 mb-1 text-xs">{i18n.t('pages.diagnosis_reports.measurement_data')}</h4>
+                <div className="space-y-1">
+                  {measurementData.bloodPressure && (
+                    <div className="flex items-center gap-2 p-1 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-red-200/30 shadow-sm">
+                      <Heart className="h-3 w-3 text-red-500" />
+                      <span className="text-xs text-gray-600">{i18n.t('pages.diagnosis_reports.blood_pressure')}:</span>
+                      <span className="font-semibold text-xs text-gray-800">{measurementData.bloodPressure}</span>
                     </div>
                   )}
                   {measurementData.heartRate && (
-                    <div className="text-center p-1 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-pink-200/30 shadow-sm">
-                      <Activity className="h-3 w-3 text-pink-500 mx-auto mb-0.5" />
-                      <p className="text-xs text-gray-600">心率</p>
-                      <p className="font-semibold text-xs text-gray-800">{measurementData.heartRate} bpm</p>
+                    <div className="flex items-center gap-2 p-1 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-pink-200/30 shadow-sm">
+                      <Heart className="h-3 w-3 text-pink-500" />
+                      <span className="text-xs text-gray-600">{i18n.t('pages.diagnosis_reports.heart_rate')}:</span>
+                      <span className="font-semibold text-xs text-gray-800">{measurementData.heartRate} bpm</span>
                     </div>
                   )}
                   {measurementData.temperature && (
-                    <div className="text-center p-1 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-orange-200/30 shadow-sm">
-                      <Thermometer className="h-3 w-3 text-orange-500 mx-auto mb-0.5" />
-                      <p className="text-xs text-gray-600">體溫</p>
-                      <p className="font-semibold text-xs text-gray-800">{measurementData.temperature}°C</p>
+                    <div className="flex items-center gap-2 p-1 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-orange-200/30 shadow-sm">
+                      <Thermometer className="h-3 w-3 text-orange-500" />
+                      <span className="text-xs text-gray-600">{i18n.t('pages.diagnosis_reports.temperature')}:</span>
+                      <span className="font-semibold text-xs text-gray-800">{measurementData.temperature}°C</span>
                     </div>
                   )}
                   {measurementData.oxygenSaturation && (
-                    <div className="text-center p-1 bg-gradient-to-br from-white/90 to-white/70 rounded-md ring-1 ring-cyan-200/30 shadow-sm">
-                      <Droplets className="h-3 w-3 text-cyan-500 mx-auto mb-0.5" />
-                      <p className="text-xs text-gray-600">血氧</p>
-                      <p className="font-semibold text-xs text-gray-800">{measurementData.oxygenSaturation}%</p>
+                    <div className="flex items-center gap-2 p-1 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-blue-200/30 shadow-sm">
+                      <Droplets className="h-3 w-3 text-blue-500" />
+                      <span className="text-xs text-gray-600">{i18n.t('pages.diagnosis_reports.oxygen_saturation')}:</span>
+                      <span className="font-semibold text-xs text-gray-800">{measurementData.oxygenSaturation}%</span>
                     </div>
+                  )}
+                  {measurementData.weight && (
+                    <div className="flex items-center gap-2 p-1 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-green-200/30 shadow-sm">
+                      <Stethoscope className="h-3 w-3 text-green-500" />
+                      <span className="text-xs text-gray-600">{i18n.t('pages.diagnosis_reports.weight')}:</span>
+                      <span className="font-semibold text-xs text-gray-800">{measurementData.weight} kg</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 异常原因 */}
+            {diagnosis.abnormalReasons && diagnosis.abnormalReasons.length > 0 && (
+              <div>
+                <h4 className="font-medium text-gray-700 mb-1 text-xs">{i18n.t('pages.diagnosis_reports.abnormal_reasons')}</h4>
+                <div className="flex flex-wrap gap-1">
+                  {diagnosis.abnormalReasons.slice(0, 3).map((reason, index) => (
+                    <Badge key={index} className={`text-xs px-1.5 py-0.5 ${getSymptomBadgeColor(diagnosis.riskLevel)} shadow-sm`}>
+                      {reason}
+                    </Badge>
+                  ))}
+                  {diagnosis.abnormalReasons.length > 3 && (
+                    <Badge className="text-xs px-1.5 py-0.5 bg-gray-100/80 text-gray-600 ring-1 ring-gray-200/50 shadow-sm">
+                      +{diagnosis.abnormalReasons.length - 3}
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -380,7 +404,7 @@ export default function PatientDiagnosisReportsPage() {
               <div className="pt-1 border-t border-gray-200/50">
                 <p className="text-xs text-gray-500 flex items-center gap-1">
                   <User className="h-3 w-3" />
-                  診斷醫生：{diagnosis.doctorId.fullName || diagnosis.doctorId.username}
+                  {i18n.t('pages.diagnosis_reports.diagnosis_doctor')}：{diagnosis.doctorId.fullName || diagnosis.doctorId.username}
                 </p>
               </div>
             )}
@@ -399,7 +423,7 @@ export default function PatientDiagnosisReportsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
               <Shield className={`h-4 w-4 ${getIconColor(diagnosis.riskLevel)}`} />
-              <CardTitle className="text-sm text-gray-800">COVID/流感診斷</CardTitle>
+              <CardTitle className="text-sm text-gray-800">{i18n.t('pages.diagnosis_reports.covid_flu_diagnosis')}</CardTitle>
             </div>
             <div className="flex items-center gap-1">
               <Badge className={`text-white ${getRiskLevelColor(diagnosis.riskLevel)} text-xs px-2 py-1 h-5`}>
@@ -407,11 +431,11 @@ export default function PatientDiagnosisReportsPage() {
               </Badge>
               <Button
                 size="sm"
-                onClick={() => handleViewCovidDiagnosis(assessmentData._id)}
+                onClick={() => handleViewCovidDiagnosis(diagnosis._id)}
                 className={`h-6 px-2 text-xs ml-1 ${getButtonColor(diagnosis.riskLevel)} shadow-sm transition-all duration-200`}
               >
                 <Eye className="h-3 w-3 mr-1" />
-                詳情
+                {i18n.t('pages.diagnosis_reports.details')}
               </Button>
             </div>
           </div>
@@ -424,20 +448,20 @@ export default function PatientDiagnosisReportsPage() {
           <div className="space-y-1.5">
             {/* 诊断结果 */}
             <div>
-              <h4 className="font-medium text-gray-700 mb-1 text-xs">診斷結果</h4>
+              <h4 className="font-medium text-gray-700 mb-1 text-xs">{i18n.t('pages.diagnosis_reports.diagnosis_result')}</h4>
               <div className="p-2 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-purple-200/30 shadow-sm">
-                <p className="text-xs text-gray-800 leading-relaxed">{diagnosis.diagnosis || '暫無診斷結果'}</p>
+                <p className="text-xs text-gray-800 leading-relaxed">{diagnosis.diagnosis || i18n.t('pages.diagnosis_reports.no_diagnosis_result')}</p>
               </div>
             </div>
 
             {/* 评估数据 */}
             {assessmentData && (
               <div>
-                <h4 className="font-medium text-gray-700 mb-1 text-xs">評估數據</h4>
+                <h4 className="font-medium text-gray-700 mb-1 text-xs">{i18n.t('pages.diagnosis_reports.assessment_data')}</h4>
                 <div className="space-y-1">
                   {assessmentData.symptoms && assessmentData.symptoms.length > 0 && (
                     <div>
-                      <p className="text-xs text-gray-600 mb-1">症狀</p>
+                      <p className="text-xs text-gray-600 mb-1">{i18n.t('pages.diagnosis_reports.symptoms')}</p>
                       <div className="flex flex-wrap gap-1">
                         {assessmentData.symptoms.slice(0, 3).map((symptom, index) => (
                           <Badge key={index} className={`text-xs px-1.5 py-0.5 ${getSymptomBadgeColor(diagnosis.riskLevel)} shadow-sm`}>
@@ -455,7 +479,7 @@ export default function PatientDiagnosisReportsPage() {
                   {assessmentData.temperature && (
                     <div className="flex items-center gap-2 p-1 bg-gradient-to-r from-white/90 to-white/70 rounded-md ring-1 ring-orange-200/30 shadow-sm">
                       <Thermometer className="h-3 w-3 text-orange-500" />
-                      <span className="text-xs text-gray-600">體溫:</span>
+                      <span className="text-xs text-gray-600">{i18n.t('pages.diagnosis_reports.temperature')}:</span>
                       <span className="font-semibold text-xs text-gray-800">{assessmentData.temperature}°C</span>
                     </div>
                   )}
@@ -468,7 +492,7 @@ export default function PatientDiagnosisReportsPage() {
               <div className="pt-1 border-t border-gray-200/50">
                 <p className="text-xs text-gray-500 flex items-center gap-1">
                   <User className="h-3 w-3" />
-                  診斷醫生：{diagnosis.doctorId.fullName || diagnosis.doctorId.username}
+                  {i18n.t('pages.diagnosis_reports.diagnosis_doctor')}：{diagnosis.doctorId.fullName || diagnosis.doctorId.username}
                 </p>
               </div>
             )}
@@ -483,7 +507,7 @@ export default function PatientDiagnosisReportsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <p className="mt-4 text-gray-600">{i18n.t('pages.diagnosis_reports.loading')}</p>
         </div>
       </div>
     )
@@ -502,8 +526,8 @@ export default function PatientDiagnosisReportsPage() {
 
       {/* Header */}
       <PatientHeader 
-        title="診斷報告"
-        subtitle="查看醫護人員的診斷結果和醫療建議"
+        title={i18n.t('pages.diagnosis_reports.title')}
+        subtitle={i18n.t('pages.diagnosis_reports.subtitle')}
         icon={FileText}
         showBackButton={true}
         user={user}
@@ -515,7 +539,7 @@ export default function PatientDiagnosisReportsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl shadow-blue-500/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">總診斷數</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-700">{i18n.t('pages.diagnosis_reports.total_diagnoses')}</CardTitle>
               <FileText className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
@@ -525,7 +549,7 @@ export default function PatientDiagnosisReportsPage() {
 
           <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl shadow-green-500/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">生命體徵診斷</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-700">{i18n.t('pages.diagnosis_reports.vital_signs_diagnoses')}</CardTitle>
               <Activity className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
@@ -535,7 +559,7 @@ export default function PatientDiagnosisReportsPage() {
 
           <Card className="bg-white/70 backdrop-blur-md border-0 shadow-xl shadow-purple-500/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">COVID/流感診斷</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-700">{i18n.t('pages.diagnosis_reports.covid_flu_diagnoses')}</CardTitle>
               <Shield className="h-4 w-4 text-purple-600" />
             </CardHeader>
             <CardContent>
@@ -552,13 +576,13 @@ export default function PatientDiagnosisReportsPage() {
               <CardHeader>
                 <CardTitle className="text-xl text-gray-800 flex items-center gap-2">
                   <Activity className="h-6 w-6 text-blue-600" />
-                  生命體徵診斷記錄
+                  {i18n.t('pages.diagnosis_reports.vital_signs_records')}
                   <Badge className="ml-2 bg-blue-100 text-blue-700 ring-1 ring-blue-200/50 shadow-sm">
                     {measurementDiagnoses.length}
                   </Badge>
                 </CardTitle>
                 <CardDescription className="text-gray-600">
-                  您的生命體徵測量診斷記錄
+                  {i18n.t('pages.diagnosis_reports.vital_signs_description')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -583,10 +607,10 @@ export default function PatientDiagnosisReportsPage() {
                                 <Activity className="h-8 w-8 text-blue-500" />
                               </div>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-700 mb-2">暫無診斷記錄</h3>
+                            <h3 className="text-lg font-semibold text-gray-700 mb-2">{i18n.t('pages.diagnosis_reports.no_vital_signs_records')}</h3>
                             <p className="text-sm text-gray-500 text-center leading-relaxed">
-                              您尚未有生命體徵診斷記錄<br />
-                              <span className="text-blue-500 font-medium">請先進行測量，等待醫生診斷</span>
+                              {i18n.t('pages.diagnosis_reports.no_vital_signs_description')}<br />
+                              <span className="text-blue-500 font-medium">{i18n.t('pages.diagnosis_reports.no_vital_signs_action')}</span>
                             </p>
                           </div>
                         </div>
@@ -604,13 +628,13 @@ export default function PatientDiagnosisReportsPage() {
               <CardHeader>
                 <CardTitle className="text-xl text-gray-800 flex items-center gap-2">
                   <Shield className="h-6 w-6 text-purple-600" />
-                  COVID/流感診斷記錄
+                  {i18n.t('pages.diagnosis_reports.covid_flu_records')}
                   <Badge className="ml-2 bg-purple-100 text-purple-700 ring-1 ring-purple-200/50 shadow-sm">
                     {covidDiagnoses.length}
                   </Badge>
                 </CardTitle>
                 <CardDescription className="text-gray-600">
-                  您的COVID/流感診斷記錄
+                  {i18n.t('pages.diagnosis_reports.covid_flu_description')}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -635,10 +659,10 @@ export default function PatientDiagnosisReportsPage() {
                                 <Shield className="h-8 w-8 text-purple-500" />
                               </div>
                             </div>
-                            <h3 className="text-lg font-semibold text-gray-700 mb-2">暫無診斷記錄</h3>
+                            <h3 className="text-lg font-semibold text-gray-700 mb-2">{i18n.t('pages.diagnosis_reports.no_covid_records')}</h3>
                             <p className="text-sm text-gray-500 text-center leading-relaxed">
-                              您尚未有COVID/流感診斷記錄<br />
-                              <span className="text-purple-500 font-medium">請先進行評估，等待醫生診斷</span>
+                              {i18n.t('pages.diagnosis_reports.no_covid_description')}<br />
+                              <span className="text-purple-500 font-medium">{i18n.t('pages.diagnosis_reports.no_covid_action')}</span>
                             </p>
                           </div>
                         </div>
