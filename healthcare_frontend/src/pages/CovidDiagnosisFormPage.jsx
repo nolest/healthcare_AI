@@ -429,16 +429,38 @@ export default function CovidDiagnosisFormPage() {
         console.log('✅ 找到COVID诊断记录:', diagnosisData)
         setExistingDiagnosis(diagnosisData)
         
-        // 设置表单数据
+        // 设置表单数据 - 适配后端字段名
         setDiagnosis(diagnosisData.diagnosis || '')
         setRiskLevel(diagnosisData.riskLevel || '')
-        setMedications(diagnosisData.medications || '')
-        setLifestyle(diagnosisData.lifestyle || '')
+        setMedications(diagnosisData.medicationPrescription || diagnosisData.treatment || '')
+        setLifestyle(diagnosisData.lifestyleAdvice || '')
         setFollowUp(diagnosisData.followUp || '')
         setNotes(diagnosisData.notes || '')
-        setTreatmentPlan(diagnosisData.treatmentPlan || '')
+        setTreatmentPlan(diagnosisData.treatment || '')
         setIsolationAdvice(diagnosisData.isolationAdvice || '')
         setTestingRecommendation(diagnosisData.testingRecommendation || '')
+        
+        // 如果recommendation字段包含多个建议，尝试解析
+        if (diagnosisData.recommendation && !diagnosisData.lifestyleAdvice) {
+          const recommendation = diagnosisData.recommendation
+          
+          // 尝试从recommendation中提取不同类型的建议
+          const lifestyleMatch = recommendation.match(/生活方式建議[：:]\s*([^。.]+)/i) || 
+                                recommendation.match(/Lifestyle.*?[：:]\s*([^。.]+)/i)
+          const followUpMatch = recommendation.match(/復查建議[：:]\s*([^。.]+)/i) || 
+                               recommendation.match(/Follow.*?[：:]\s*([^。.]+)/i)
+          const isolationMatch = recommendation.match(/隔離建議[：:]\s*([^。.]+)/i) || 
+                                recommendation.match(/Isolation.*?[：:]\s*([^。.]+)/i)
+          
+          if (lifestyleMatch) setLifestyle(lifestyleMatch[1].trim())
+          if (followUpMatch) setFollowUp(followUpMatch[1].trim())
+          if (isolationMatch) setIsolationAdvice(isolationMatch[1].trim())
+          
+          // 如果没有匹配到特定模式，将整个recommendation作为lifestyle advice
+          if (!lifestyleMatch && !followUpMatch && !isolationMatch) {
+            setLifestyle(recommendation)
+          }
+        }
       } else {
         console.log('⚠️ 未找到COVID诊断记录')
         setExistingDiagnosis(null)

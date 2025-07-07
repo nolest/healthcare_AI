@@ -110,7 +110,7 @@ export default function PatientDiagnosisReportsPage() {
   }
 
   const handleViewCovidDiagnosis = (diagnosisId) => {
-    navigate(`/patient/diagnosis-reports/${diagnosisId}`)
+    navigate(`/patient/coviddiagnosis-reports/${diagnosisId}`)
   }
 
   const formatDateTime = (dateString) => {

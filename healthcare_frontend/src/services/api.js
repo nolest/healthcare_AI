@@ -492,6 +492,10 @@ class ApiService {
     return this.request(`/covid-diagnoses/${id}`);
   }
 
+  async getCovidDiagnosisDetail(id) {
+    return this.request(`/covid-diagnoses/${id}`);
+  }
+
   async updateCovidDiagnosis(id, updateData) {
     return this.request(`/covid-diagnoses/${id}`, {
       method: 'PATCH',

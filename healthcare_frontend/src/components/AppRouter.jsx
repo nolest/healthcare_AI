@@ -18,6 +18,7 @@ import PatientCovidAssessmentHistoryPage from '../pages/PatientCovidAssessmentHi
 import PatientCovidAssessmentResultPage from '../pages/PatientCovidAssessmentResultPage.jsx'
 import PatientDiagnosisReportsPage from '../pages/PatientDiagnosisReportsPage.jsx'
 import PatientDiagnosisReportDetailPage from '../pages/PatientDiagnosisReportDetailPage.jsx'
+import PatientCovidDiagnosisReportDetailPage from '../pages/PatientCovidDiagnosisReportDetailPage.jsx'
 import NotFoundPage from '../pages/NotFoundPage.jsx'
 import MedicalGuidancePage from '../pages/MedicalGuidancePage.jsx'
 import MedicalDiagnosisPage from '../pages/MedicalDiagnosisPage.jsx'
@@ -47,6 +48,7 @@ export default function AppRouter() {
         <Route path="/patient/diagnoses" element={<PatientDiagnosesPage />} />
         <Route path="/patient/diagnosis-reports" element={<PatientDiagnosisReportsPage />} />
         <Route path="/patient/diagnosis-reports/:reportId" element={<PatientDiagnosisReportDetailPage />} />
+        <Route path="/patient/coviddiagnosis-reports/:reportId" element={<PatientCovidDiagnosisReportDetailPage />} />
         <Route path="/patient/covid-assessment" element={<PatientCovidAssessmentPage />} />
         <Route path="/patient/covid-assessment/result" element={<PatientCovidAssessmentResultPage />} />
         <Route path="/patient/covid-assessment/history" element={<PatientCovidAssessmentHistoryPage />} />
