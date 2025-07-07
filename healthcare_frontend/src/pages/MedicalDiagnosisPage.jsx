@@ -149,6 +149,39 @@ export default function MedicalDiagnosisPage() {
     return labels[type] || i18n.t('common.unknown')
   }
 
+  // 基於 abnormalReasons 獲取異常類型顯示
+  const getAbnormalTypeDisplay = (measurement) => {
+    // 檢查是否有 abnormalReasons 字段
+    if (measurement.abnormalReasons && Array.isArray(measurement.abnormalReasons) && measurement.abnormalReasons.length > 0) {
+      const reasonCount = measurement.abnormalReasons.length
+      
+      if (reasonCount === 1) {
+        // 只有一個異常，顯示具體異常類型
+        const reason = measurement.abnormalReasons[0]
+        if (AbnormalReasonFormatter.isStructuredData(reason)) {
+          // 使用結構化數據的類型信息
+          const typeMapping = {
+            'systolic_pressure': i18n.t('measurement.blood_pressure'),
+            'diastolic_pressure': i18n.t('measurement.blood_pressure'),
+            'heart_rate': i18n.t('measurement.heart_rate'),
+            'temperature': i18n.t('measurement.temperature'),
+            'oxygen_saturation': i18n.t('measurement.oxygen_saturation')
+          }
+          return typeMapping[reason.type] || i18n.t('pages.medical_diagnosis.single_abnormal')
+        } else {
+          // 非結構化數據，顯示 "1個異常"
+          return i18n.t('pages.medical_diagnosis.single_abnormal')
+        }
+      } else {
+        // 多個異常，顯示 "x個異常"
+        return i18n.t('pages.medical_diagnosis.multiple_abnormal', { count: reasonCount })
+      }
+    }
+    
+    // 如果沒有 abnormalReasons，回退到原有邏輯
+    return getMeasurementTypeLabel(getMeasurementType(measurement))
+  }
+
   const getMeasurementTypeIcon = (type) => {
     switch (type) {
       case 'blood_pressure':
@@ -162,6 +195,95 @@ export default function MedicalDiagnosisPage() {
       default:
         return <Activity className="h-4 w-4 text-gray-600" />
     }
+  }
+
+  // 獲取異常類型圖標，根據不同類型返回不同圖標
+  const getAbnormalTypeIcon = (measurement) => {
+    // 檢查是否有 abnormalReasons 字段
+    if (measurement.abnormalReasons && Array.isArray(measurement.abnormalReasons) && measurement.abnormalReasons.length > 0) {
+      const reasonCount = measurement.abnormalReasons.length
+      
+      if (reasonCount > 1) {
+        // 多個異常，使用警告圖標
+        return <AlertTriangle className="h-4 w-4 text-red-600" />
+      } else {
+        // 單個異常，根據具體類型返回圖標
+        const reason = measurement.abnormalReasons[0]
+        
+        if (AbnormalReasonFormatter.isStructuredData(reason)) {
+          // 根據結構化數據的類型返回對應圖標
+          const typeMapping = {
+            'systolic_pressure': 'blood_pressure',
+            'diastolic_pressure': 'blood_pressure',
+            'heart_rate': 'heart_rate',
+            'temperature': 'temperature',
+            'oxygen_saturation': 'oxygen_saturation'
+          }
+          const iconType = typeMapping[reason.type] || 'default'
+          return getMeasurementTypeIcon(iconType)
+        } else {
+          // 非結構化數據，使用默認圖標
+          return <Activity className="h-4 w-4 text-orange-600" />
+        }
+      }
+    }
+    
+    // 沒有 abnormalReasons，回退到原有邏輯
+    const type = getMeasurementType(measurement)
+    return getMeasurementTypeIcon(type)
+  }
+
+  // 獲取異常數量標籤
+  const getAbnormalCountBadge = (measurement) => {
+    // 檢查是否有 abnormalReasons 字段
+    if (measurement.abnormalReasons && Array.isArray(measurement.abnormalReasons) && measurement.abnormalReasons.length > 0) {
+      const reasonCount = measurement.abnormalReasons.length
+      
+      if (reasonCount > 1) {
+        // 多個異常，顯示帶底色的數量標籤
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            {i18n.t('pages.medical_diagnosis.abnormal_count', { count: reasonCount })}
+          </span>
+        )
+      } else {
+        // 單個異常，顯示單個類型標籤
+        const reason = measurement.abnormalReasons[0]
+        
+        if (AbnormalReasonFormatter.isStructuredData(reason)) {
+          // 使用結構化數據的類型信息
+          const typeMapping = {
+            'systolic_pressure': i18n.t('measurement.blood_pressure'),
+            'diastolic_pressure': i18n.t('measurement.blood_pressure'),
+            'heart_rate': i18n.t('measurement.heart_rate'),
+            'temperature': i18n.t('measurement.temperature'),
+            'oxygen_saturation': i18n.t('measurement.oxygen_saturation')
+          }
+          const typeLabel = typeMapping[reason.type] || i18n.t('pages.medical_diagnosis.single_abnormal')
+          return (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+              {typeLabel}
+            </span>
+          )
+        } else {
+          // 非結構化數據，顯示通用標籤
+          return (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+              1
+            </span>
+          )
+        }
+      }
+    }
+    
+    // 沒有 abnormalReasons，回退到原有邏輯
+    const type = getMeasurementType(measurement)
+    const typeLabel = getMeasurementTypeLabel(type)
+    return (
+      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+        {typeLabel}
+      </span>
+    )
   }
 
   const getMeasurementValue = (measurement) => {
@@ -619,10 +741,8 @@ export default function MedicalDiagnosisPage() {
                           </TableCell>
                           <TableCell className="w-1/8">
                             <div className="flex items-center gap-2">
-                              {getMeasurementTypeIcon(measurementType)}
-                              <span className="font-medium text-sm truncate">
-                                {getMeasurementTypeLabel(measurementType)}
-                              </span>
+                              {getAbnormalTypeIcon(measurement)}
+                              {getAbnormalCountBadge(measurement)}
                             </div>
                           </TableCell>
                           <TableCell className="w-1/8">

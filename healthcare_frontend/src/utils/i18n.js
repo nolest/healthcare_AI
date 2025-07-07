@@ -892,6 +892,9 @@ class I18n {
         'pages.medical_diagnosis.no_data_available': '無數據',
         'pages.medical_diagnosis.abnormal_value_detected': '檢測到異常值',
         'pages.medical_diagnosis.and_more_symptoms': '等{count}個症狀',
+        'pages.medical_diagnosis.single_abnormal': '1個異常',
+        'pages.medical_diagnosis.multiple_abnormal': '{count}個異常',
+        'pages.medical_diagnosis.abnormal_count': '{count}',
 
         // Medical Diagnosis Form Page
         'pages.medical_diagnosis_form.title': '診斷評估',
@@ -2215,6 +2218,9 @@ class I18n {
         'pages.medical_diagnosis.and_more_symptoms': '等{count}个症状',
         'pages.medical_diagnosis.abnormal_value_detected': '检测到异常值',
         'pages.medical_diagnosis.no_data_available': '无数据',
+        'pages.medical_diagnosis.single_abnormal': '1个异常',
+        'pages.medical_diagnosis.multiple_abnormal': '{count}个异常',
+        'pages.medical_diagnosis.abnormal_count': '{count}',
 
         // Medical Diagnosis Form Page
         'pages.medical_diagnosis_form.title': '诊断评估',
@@ -3660,6 +3666,12 @@ class I18n {
         'pages.medical_diagnosis.male': 'Male',
         'pages.medical_diagnosis.female': 'Female',
         'pages.medical_diagnosis.years_old': ' years old',
+        'pages.medical_diagnosis.no_data_available': 'No Data Available',
+        'pages.medical_diagnosis.abnormal_value_detected': 'Abnormal Value Detected',
+        'pages.medical_diagnosis.and_more_symptoms': ' and {count} more symptoms',
+        'pages.medical_diagnosis.single_abnormal': '1 Abnormal',
+        'pages.medical_diagnosis.multiple_abnormal': '{count} Abnormal',
+        'pages.medical_diagnosis.abnormal_count': '{count}',
 
         // Medical Diagnosis Form Page
         'pages.medical_diagnosis_form.title': 'Diagnosis Assessment',
