@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Badge } from '../components/ui/badge.jsx'
 import { FileText, Activity, Shield, Clock, User, AlertTriangle, Calendar, Pill, Monitor, Heart, Thermometer, Image, Eye, MapPin, Stethoscope, Droplets, Weight, Gauge, TrendingUp, TrendingDown, Info, X, ChevronLeft, ChevronRight, Users, Clipboard } from 'lucide-react'
 import PatientHeader from '../components/ui/PatientHeader.jsx'
+import ImagePreview from '../components/ui/ImagePreview.jsx'
 import apiService from '../services/api.js'
 import i18n from '../utils/i18n.js'
 
@@ -249,7 +250,7 @@ export default function PatientDiagnosisReportDetailPage() {
           label: t('measurement.heart_rate'),
           value: data.heartRate,
           unit: 'bpm',
-          icon: <Heart className="h-5 w-5 text-white" />,
+          icon: <Heart className="h-5 w-5 text-pink-600" />,
           color: 'pink',
           isAbnormal: data.heartRate > 100 || data.heartRate < 60,
           details: t('measurement.heart_rate_details')
@@ -922,53 +923,12 @@ export default function PatientDiagnosisReportDetailPage() {
       </main>
 
       {/* 图片预览对话框 */}
-      {imagePreviewOpen && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="relative max-w-6xl max-h-[90vh] w-full">
-            {/* 关闭按钮 */}
-            <button
-              onClick={closeImagePreview}
-              className="absolute top-4 right-4 z-10 p-2 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors"
-            >
-              <X className="h-6 w-6" />
-            </button>
-            
-            {/* 图片导航 */}
-            {previewImages.length > 1 && (
-              <>
-                <button
-                  onClick={() => setPreviewInitialIndex(prev => prev > 0 ? prev - 1 : previewImages.length - 1)}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors"
-                >
-                  <ChevronLeft className="h-6 w-6" />
-                </button>
-                <button
-                  onClick={() => setPreviewInitialIndex(prev => prev < previewImages.length - 1 ? prev + 1 : 0)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors"
-                >
-                  <ChevronRight className="h-6 w-6" />
-                </button>
-              </>
-            )}
-            
-            {/* 图片显示 */}
-            <div className="flex items-center justify-center h-full">
-              <img
-                src={previewImages[previewInitialIndex]}
-                alt={`${i18n.t('pages.patient_diagnosis_detail.preview_image')} ${previewInitialIndex + 1}`}
-                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-              />
-          </div>
-
-            {/* 图片信息 */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-4 py-2 rounded-full backdrop-blur-sm">
-              <span className="text-sm font-medium">
-                {previewInitialIndex + 1} / {previewImages.length}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+      <ImagePreview
+        images={previewImages}
+        isOpen={imagePreviewOpen}
+        onClose={closeImagePreview}
+        initialIndex={previewInitialIndex}
+      />
     </div>
   )
 } 
