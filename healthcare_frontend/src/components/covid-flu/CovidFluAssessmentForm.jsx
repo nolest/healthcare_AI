@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '../ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card.jsx'
 import { Badge } from '../ui/badge.jsx'
@@ -17,35 +17,36 @@ import {
 } from 'lucide-react'
 import ImageUpload from '../ui/ImageUpload.jsx'
 import apiService from '../../services/api.js'
+import i18n from '../../utils/i18n.js'
 
 // 综合症状清单（COVID-19和流感）
 const allSymptoms = [
-  { id: 'fever', label: '發燒', severity: 'high' },
-  { id: 'cough', label: '咳嗽', severity: 'high' },
-  { id: 'shortness_breath', label: '呼吸困難或氣促', severity: 'high' },
-  { id: 'loss_taste_smell', label: '味覺或嗅覺喪失', severity: 'high' },
-  { id: 'body_aches', label: '肌肉或身體疼痛', severity: 'high' },
-  { id: 'fatigue', label: '疲勞', severity: 'medium' },
-  { id: 'headache', label: '頭痛', severity: 'medium' },
-  { id: 'sore_throat', label: '喉嚨痛', severity: 'medium' },
-  { id: 'runny_nose', label: '流鼻涕或鼻塞', severity: 'medium' },
-  { id: 'chills', label: '寒顫', severity: 'medium' },
-  { id: 'nausea', label: '噁心或嘔吐', severity: 'low' },
-  { id: 'diarrhea', label: '腹瀉', severity: 'low' }
+  { id: 'fever', severity: 'high' },
+  { id: 'cough', severity: 'high' },
+  { id: 'shortness_breath', severity: 'high' },
+  { id: 'loss_taste_smell', severity: 'high' },
+  { id: 'body_aches', severity: 'high' },
+  { id: 'fatigue', severity: 'medium' },
+  { id: 'headache', severity: 'medium' },
+  { id: 'sore_throat', severity: 'medium' },
+  { id: 'runny_nose', severity: 'medium' },
+  { id: 'chills', severity: 'medium' },
+  { id: 'nausea', severity: 'low' },
+  { id: 'diarrhea', severity: 'low' }
 ]
 
 // 風險因子
 const riskFactors = [
-  { id: 'age_65_plus', label: '65歲或以上', weight: 3 },
-  { id: 'chronic_lung', label: '慢性肺病', weight: 3 },
-  { id: 'heart_disease', label: '心臟病', weight: 3 },
-  { id: 'diabetes', label: '糖尿病', weight: 2 },
-  { id: 'obesity', label: '肥胖 (BMI ≥30)', weight: 2 },
-  { id: 'immunocompromised', label: '免疫功能低下', weight: 3 },
-  { id: 'pregnancy', label: '懷孕', weight: 2 },
-  { id: 'smoking', label: '吸煙', weight: 2 },
-  { id: 'kidney_disease', label: '腎臟疾病', weight: 2 },
-  { id: 'liver_disease', label: '肝臟疾病', weight: 2 }
+  { id: 'age_65_plus', weight: 3 },
+  { id: 'chronic_lung', weight: 3 },
+  { id: 'heart_disease', weight: 3 },
+  { id: 'diabetes', weight: 2 },
+  { id: 'obesity', weight: 2 },
+  { id: 'immunocompromised', weight: 3 },
+  { id: 'pregnancy', weight: 2 },
+  { id: 'smoking', weight: 2 },
+  { id: 'kidney_disease', weight: 2 },
+  { id: 'liver_disease', weight: 2 }
 ]
 
 export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
@@ -58,6 +59,7 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
   const [contactHistory, setContactHistory] = useState('')
   const [additionalNotes, setAdditionalNotes] = useState('')
   const [loading, setLoading] = useState(false)
+  const [language, setLanguage] = useState(i18n.getCurrentLanguage())
   
   // 图片上传相关状态
   const [selectedImages, setSelectedImages] = useState([])
@@ -66,6 +68,23 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
 
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    const handleLanguageChange = (newLanguage) => {
+      setLanguage(newLanguage)
+    }
+    
+    i18n.addListener(handleLanguageChange)
+    
+    return () => {
+      i18n.removeListener(handleLanguageChange)
+    }
+  }, [])
+
+  const t = (key, params = {}) => {
+    language; // 确保组件依赖于language状态
+    return i18n.t(key, params)
+  }
 
   const handleSymptomChange = (symptomId, checked) => {
     if (checked) {
@@ -112,7 +131,7 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
     })
 
     // 體溫評分
-    const temp = parseFloat(temperature)
+    const temp = temperature ? Number(temperature) : 0
     if (temp >= 39) score += 3
     else if (temp >= 38) score += 2
     else if (temp >= 37.5) score += 1
@@ -126,11 +145,11 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
   }
 
   const getRiskLevel = (score) => {
-    if (score >= 12) return { level: 'very_high', label: '極高風險', color: 'bg-red-600' }
-    if (score >= 8) return { level: 'high', label: '高風險', color: 'bg-red-500' }
-    if (score >= 5) return { level: 'medium', label: '中等風險', color: 'bg-yellow-500' }
-    if (score >= 2) return { level: 'low', label: '低風險', color: 'bg-green-500' }
-    return { level: 'very_low', label: '極低風險', color: 'bg-green-400' }
+    if (score >= 12) return { level: 'very_high', color: 'bg-red-600' }
+    if (score >= 8) return { level: 'high', color: 'bg-red-500' }
+    if (score >= 5) return { level: 'medium', color: 'bg-yellow-500' }
+    if (score >= 2) return { level: 'low', color: 'bg-green-500' }
+    return { level: 'very_low', color: 'bg-green-400' }
   }
 
   const getRecommendations = (riskLevel, score) => {
@@ -144,40 +163,192 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
 
     switch (riskLevel.level) {
       case 'very_high':
-        recommendations.testing.push('立即進行PCR檢測')
-        recommendations.testing.push('考慮快速抗原檢測作為補充')
-        recommendations.isolation.push('立即開始隔離，直到獲得陰性檢測結果')
-        recommendations.isolation.push('隔離期間避免與他人接觸')
-        recommendations.monitoring.push('密切監測症狀變化')
-        recommendations.monitoring.push('每日測量體溫')
-        recommendations.medical.push('立即聯繫醫療機構')
-        recommendations.medical.push('如出現呼吸困難，立即就醫')
+        recommendations.testing.push({
+          key: 'immediate_pcr',
+          category: 'testing',
+          priority: 'high',
+          type: 'action'
+        })
+        recommendations.testing.push({
+          key: 'rapid_antigen_supplement',
+          category: 'testing',
+          priority: 'medium',
+          type: 'action'
+        })
+        recommendations.isolation.push({
+          key: 'immediate_until_negative',
+          category: 'isolation',
+          priority: 'high',
+          type: 'action'
+        })
+        recommendations.isolation.push({
+          key: 'avoid_contact',
+          category: 'isolation',
+          priority: 'high',
+          type: 'action'
+        })
+        recommendations.monitoring.push({
+          key: 'close_symptom_monitoring',
+          category: 'monitoring',
+          priority: 'high',
+          type: 'action'
+        })
+        recommendations.monitoring.push({
+          key: 'daily_temperature',
+          category: 'monitoring',
+          priority: 'high',
+          type: 'action'
+        })
+        recommendations.medical.push({
+          key: 'immediate_contact',
+          category: 'medical',
+          priority: 'high',
+          type: 'action'
+        })
+        recommendations.medical.push({
+          key: 'breathing_difficulty_emergency',
+          category: 'medical',
+          priority: 'critical',
+          type: 'warning'
+        })
         break
 
       case 'high':
-        recommendations.testing.push('建議在24小時內進行檢測')
-        recommendations.testing.push('可考慮快速抗原檢測')
-        recommendations.isolation.push('開始預防性隔離')
-        recommendations.isolation.push('避免與高風險人群接觸')
-        recommendations.monitoring.push('監測症狀發展')
-        recommendations.monitoring.push('記錄體溫變化')
-        recommendations.medical.push('聯繫醫療提供者諮詢')
+        recommendations.testing.push({
+          key: 'within_24_hours',
+          category: 'testing',
+          priority: 'high',
+          type: 'action'
+        })
+        recommendations.testing.push({
+          key: 'rapid_antigen_initial',
+          category: 'testing',
+          priority: 'medium',
+          type: 'action'
+        })
+        recommendations.isolation.push({
+          key: 'until_test_negative',
+          category: 'isolation',
+          priority: 'high',
+          type: 'action'
+        })
+        recommendations.isolation.push({
+          key: 'separate_household',
+          category: 'isolation',
+          priority: 'medium',
+          type: 'action'
+        })
+        recommendations.monitoring.push({
+          key: 'symptom_monitoring',
+          category: 'monitoring',
+          priority: 'high',
+          type: 'action'
+        })
+        recommendations.monitoring.push({
+          key: 'temperature_twice_daily',
+          category: 'monitoring',
+          priority: 'medium',
+          type: 'action'
+        })
+        recommendations.medical.push({
+          key: 'contact_provider',
+          category: 'medical',
+          priority: 'medium',
+          type: 'action'
+        })
+        recommendations.medical.push({
+          key: 'symptom_worsening_alert',
+          category: 'medical',
+          priority: 'medium',
+          type: 'warning'
+        })
         break
 
       case 'medium':
-        recommendations.testing.push('考慮進行檢測')
-        recommendations.isolation.push('減少外出和社交活動')
-        recommendations.monitoring.push('觀察症狀變化')
-        recommendations.prevention.push('佩戴口罩')
-        recommendations.prevention.push('勤洗手')
+        recommendations.testing.push({
+          key: 'within_48_hours',
+          category: 'testing',
+          priority: 'medium',
+          type: 'action'
+        })
+        recommendations.testing.push({
+          key: 'home_test_option',
+          category: 'testing',
+          priority: 'low',
+          type: 'action'
+        })
+        recommendations.isolation.push({
+          key: 'precautionary_isolation',
+          category: 'isolation',
+          priority: 'medium',
+          type: 'action'
+        })
+        recommendations.monitoring.push({
+          key: 'daily_symptom_check',
+          category: 'monitoring',
+          priority: 'medium',
+          type: 'action'
+        })
+        recommendations.monitoring.push({
+          key: 'temperature_daily',
+          category: 'monitoring',
+          priority: 'low',
+          type: 'action'
+        })
+        recommendations.medical.push({
+          key: 'consult_if_worsening',
+          category: 'medical',
+          priority: 'low',
+          type: 'action'
+        })
+        recommendations.prevention.push({
+          key: 'wear_mask',
+          category: 'prevention',
+          priority: 'medium',
+          type: 'action'
+        })
         break
 
       case 'low':
+        recommendations.testing.push({
+          key: 'consider_testing',
+          category: 'testing',
+          priority: 'low',
+          type: 'action'
+        })
+        recommendations.monitoring.push({
+          key: 'symptom_awareness',
+          category: 'monitoring',
+          priority: 'low',
+          type: 'action'
+        })
+        recommendations.prevention.push({
+          key: 'frequent_handwashing',
+          category: 'prevention',
+          priority: 'medium',
+          type: 'action'
+        })
+        recommendations.prevention.push({
+          key: 'good_hygiene',
+          category: 'prevention',
+          priority: 'medium',
+          type: 'action'
+        })
+        break
+
       case 'very_low':
-        recommendations.monitoring.push('繼續觀察症狀')
-        recommendations.prevention.push('保持良好衛生習慣')
-        recommendations.prevention.push('充足休息')
-        recommendations.prevention.push('多喝水')
+        recommendations.prevention.push({
+          key: 'maintain_hygiene',
+          category: 'prevention',
+          priority: 'low',
+          type: 'action'
+        })
+        recommendations.prevention.push({
+          key: 'stay_informed',
+          category: 'prevention',
+          priority: 'low',
+          type: 'action'
+        })
         break
     }
 
@@ -214,7 +385,7 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
         // 添加评估数据
         formDataToSubmit.append('symptoms', JSON.stringify(selectedSymptoms))
         formDataToSubmit.append('riskFactors', JSON.stringify(selectedRiskFactors))
-        if (temperature) formDataToSubmit.append('temperature', temperature)
+        if (temperature) formDataToSubmit.append('temperature', Number(temperature).toString())
         formDataToSubmit.append('symptomOnset', symptomOnset)
         formDataToSubmit.append('exposureHistory', exposureHistory)
         formDataToSubmit.append('travelHistory', travelHistory)
@@ -222,7 +393,7 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
         formDataToSubmit.append('additionalNotes', additionalNotes)
         formDataToSubmit.append('riskScore', riskScore.toString())
         formDataToSubmit.append('riskLevel', riskLevel.level)
-        formDataToSubmit.append('riskLevelLabel', riskLevel.label)
+        formDataToSubmit.append('riskLevelLabel', riskLevel.level)
         formDataToSubmit.append('recommendations', JSON.stringify(recommendations))
 
         // 添加图片文件
@@ -249,7 +420,7 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
         const assessmentData = {
           symptoms: selectedSymptoms,
           riskFactors: selectedRiskFactors,
-          temperature: parseFloat(temperature) || null,
+          temperature: temperature ? Number(temperature) : null,
           symptomOnset: symptomOnset,
           exposureHistory: exposureHistory,
           travelHistory: travelHistory,
@@ -257,7 +428,7 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
           additionalNotes: additionalNotes,
           riskScore: riskScore,
           riskLevel: riskLevel.level,
-          riskLevelLabel: riskLevel.label,
+          riskLevelLabel: riskLevel.level,
           recommendations: recommendations
         }
 
@@ -309,10 +480,10 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold bg-gradient-to-r from-purple-700 to-indigo-700 bg-clip-text text-transparent">
-                    症狀檢查
+                    {t('covid_assessment_form.symptom_check')}
                   </h3>
                   <p className="text-gray-600/80 text-sm">
-                    請勾選您目前出現的症狀
+                    {t('covid_assessment_form.symptom_check_desc')}
                   </p>
                 </div>
               </div>
@@ -327,9 +498,9 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
                       className="focus:ring-purple-500"
                     />
                     <Label htmlFor={symptom.id} className="flex items-center gap-2 cursor-pointer">
-                      {symptom.label}
+                      {t(`covid_assessment_form.symptoms.${symptom.id}`)}
                       <Badge variant={symptom.severity === 'high' ? 'destructive' : symptom.severity === 'medium' ? 'default' : 'secondary'} className="text-xs">
-                        {symptom.severity === 'high' ? '高' : symptom.severity === 'medium' ? '中' : '低'}
+                        {t(`covid_assessment_form.severity.${symptom.severity}`)}
                       </Badge>
                     </Label>
                   </div>
@@ -345,10 +516,10 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold bg-gradient-to-r from-amber-700 to-orange-700 bg-clip-text text-transparent">
-                    風險因子評估
+                    {t('covid_assessment_form.risk_factor_assessment')}
                   </h3>
                   <p className="text-gray-600/80 text-sm">
-                    請勾選適用於您的風險因子
+                    {t('covid_assessment_form.risk_factor_assessment_desc')}
                   </p>
                 </div>
               </div>
@@ -363,9 +534,9 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
                       className="focus:ring-amber-500"
                     />
                     <Label htmlFor={factor.id} className="flex items-center gap-2 cursor-pointer">
-                      {factor.label}
+                      {t(`covid_assessment_form.risk_factors.${factor.id}`)}
                       <Badge variant="outline" className="text-xs">
-                        權重: {factor.weight}
+                        {t('covid_assessment_form.weight')}: {factor.weight}
                       </Badge>
                     </Label>
                   </div>
@@ -381,10 +552,10 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
                 </div>
                 <div>
                   <h3 className="text-lg font-bold bg-gradient-to-r from-blue-700 to-cyan-700 bg-clip-text text-transparent">
-                    詳細信息
+                    {t('covid_assessment_form.detailed_info')}
                   </h3>
                   <p className="text-gray-600/80 text-sm">
-                    提供更多詳細信息以便更準確的評估
+                    {t('covid_assessment_form.detailed_info_desc')}
                   </p>
                 </div>
               </div>
@@ -392,12 +563,12 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
               <div className="space-y-6 p-6 bg-gradient-to-br from-blue-50/50 to-cyan-50/50 rounded-2xl shadow-inner">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="temperature" className="text-sm font-medium text-gray-700">當前體溫 (°C)</Label>
+                    <Label htmlFor="temperature" className="text-sm font-medium text-gray-700">{t('covid_assessment_form.current_temperature')}</Label>
                     <Input
                       id="temperature"
                       type="number"
                       step="0.1"
-                      placeholder="例如: 37.5"
+                      placeholder={t('covid_assessment_form.temperature_placeholder')}
                       value={temperature}
                       onChange={(e) => setTemperature(e.target.value)}
                       disabled={loading || isUploading}
@@ -406,43 +577,43 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="onset" className="text-sm font-medium text-gray-700">症狀開始時間</Label>
+                    <Label htmlFor="onset" className="text-sm font-medium text-gray-700">{t('covid_assessment_form.symptom_onset')}</Label>
                     <Select value={symptomOnset} onValueChange={setSymptomOnset}>
                       <SelectTrigger className="h-11 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300">
-                        <SelectValue placeholder="選擇時間" />
+                        <SelectValue placeholder={t('covid_assessment_form.select_time')} />
                       </SelectTrigger>
                       <SelectContent className="rounded-2xl border-0 shadow-2xl bg-white/95 backdrop-blur-lg">
-                        <SelectItem value="today">今天</SelectItem>
-                        <SelectItem value="yesterday">昨天</SelectItem>
-                        <SelectItem value="2-3_days">2-3天前</SelectItem>
-                        <SelectItem value="4-7_days">4-7天前</SelectItem>
-                        <SelectItem value="1-2_weeks">1-2週前</SelectItem>
-                        <SelectItem value="more_than_2_weeks">超過2週</SelectItem>
+                        <SelectItem value="today">{t('covid_assessment_form.onset_time.today')}</SelectItem>
+                        <SelectItem value="yesterday">{t('covid_assessment_form.onset_time.yesterday')}</SelectItem>
+                        <SelectItem value="2-3_days">{t('covid_assessment_form.onset_time.2-3_days')}</SelectItem>
+                        <SelectItem value="4-7_days">{t('covid_assessment_form.onset_time.4-7_days')}</SelectItem>
+                        <SelectItem value="1-2_weeks">{t('covid_assessment_form.onset_time.1-2_weeks')}</SelectItem>
+                        <SelectItem value="more_than_2_weeks">{t('covid_assessment_form.onset_time.more_than_2_weeks')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="exposure" className="text-sm font-medium text-gray-700">接觸史</Label>
+                  <Label htmlFor="exposure" className="text-sm font-medium text-gray-700">{t('covid_assessment_form.exposure_history')}</Label>
                   <Select value={exposureHistory} onValueChange={setExposureHistory}>
                     <SelectTrigger className="h-11 bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-inner focus:ring-2 focus:ring-blue-500/30 focus:shadow-lg backdrop-blur-sm transition-all duration-300">
-                      <SelectValue placeholder="選擇接觸情況" />
+                      <SelectValue placeholder={t('covid_assessment_form.select_exposure')} />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl border-0 shadow-2xl bg-white/95 backdrop-blur-lg">
-                      <SelectItem value="none">無已知接觸</SelectItem>
-                      <SelectItem value="suspected">疑似接觸</SelectItem>
-                      <SelectItem value="confirmed">確診接觸</SelectItem>
-                      <SelectItem value="community">社區傳播風險</SelectItem>
+                      <SelectItem value="none">{t('covid_assessment_form.exposure.none')}</SelectItem>
+                      <SelectItem value="suspected">{t('covid_assessment_form.exposure.suspected')}</SelectItem>
+                      <SelectItem value="confirmed">{t('covid_assessment_form.exposure.confirmed')}</SelectItem>
+                      <SelectItem value="community">{t('covid_assessment_form.exposure.community')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="travel" className="text-sm font-medium text-gray-700">旅行史</Label>
+                  <Label htmlFor="travel" className="text-sm font-medium text-gray-700">{t('covid_assessment_form.travel_history')}</Label>
                   <Textarea
                     id="travel"
-                    placeholder="請描述最近14天的旅行經歷..."
+                    placeholder={t('covid_assessment_form.travel_placeholder')}
                     value={travelHistory}
                     onChange={(e) => setTravelHistory(e.target.value)}
                     disabled={loading || isUploading}
@@ -452,10 +623,10 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="contact" className="text-sm font-medium text-gray-700">密切接觸史</Label>
+                  <Label htmlFor="contact" className="text-sm font-medium text-gray-700">{t('covid_assessment_form.contact_history')}</Label>
                   <Textarea
                     id="contact"
-                    placeholder="請描述與他人的密切接觸情況..."
+                    placeholder={t('covid_assessment_form.contact_placeholder')}
                     value={contactHistory}
                     onChange={(e) => setContactHistory(e.target.value)}
                     disabled={loading || isUploading}
@@ -465,10 +636,10 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="notes" className="text-sm font-medium text-gray-700">其他備註</Label>
+                  <Label htmlFor="notes" className="text-sm font-medium text-gray-700">{t('covid_assessment_form.additional_notes')}</Label>
                   <Textarea
                     id="notes"
-                    placeholder="其他相關信息..."
+                    placeholder={t('covid_assessment_form.notes_placeholder')}
                     value={additionalNotes}
                     onChange={(e) => setAdditionalNotes(e.target.value)}
                     disabled={loading || isUploading}
@@ -485,8 +656,8 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
                   uploading={isUploading}
                   uploadProgress={uploadProgress}
                   accentColor="purple"
-                  label="症狀相關圖片"
-                  description="支持 JPG、PNG、GIF、WebP 格式"
+                  label={t('covid_assessment_form.symptom_images')}
+                  description={t('covid_assessment_form.image_description')}
                 />
               </div>
             </div>
@@ -505,7 +676,7 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
               <Alert className="border-0 bg-gradient-to-br from-green-50/80 to-emerald-50/80 rounded-2xl shadow-lg">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-green-800">
-                  評估提交成功！正在為您跳轉到結果頁面...
+                  {t('covid_assessment_form.assessment_success')}
                 </AlertDescription>
               </Alert>
             )}
@@ -522,12 +693,12 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
                   {loading || isUploading ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                      {isUploading ? '上傳中...' : '評估中...'}
+                      {isUploading ? t('covid_assessment_form.uploading') : t('covid_assessment_form.assessing')}
                     </>
                   ) : (
                     <>
                       <CheckCircle className="w-5 h-5 mr-2" />
-                      開始評估
+                      {t('covid_assessment_form.start_assessment')}
                     </>
                   )}
                 </div>
@@ -539,7 +710,7 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
                 disabled={loading || isUploading}
                 className="bg-gradient-to-br from-white/90 to-gray-50/90 border-0 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
               >
-                重置
+                {t('covid_assessment_form.reset')}
               </Button>
             </div>
 
@@ -547,7 +718,7 @@ export default function CovidFluAssessmentForm({ user, onAssessmentComplete }) {
               <Alert className="border-0 bg-gradient-to-br from-amber-50/80 to-orange-50/80 rounded-2xl shadow-lg">
                 <Info className="h-4 w-4 text-amber-600" />
                 <AlertDescription className="text-amber-800">
-                  請至少選擇一個症狀才能進行評估。
+                  {t('covid_assessment_form.select_at_least_one')}
                 </AlertDescription>
               </Alert>
             )}

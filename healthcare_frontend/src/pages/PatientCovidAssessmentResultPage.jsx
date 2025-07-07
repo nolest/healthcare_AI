@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Button } from '../components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card.jsx'
@@ -23,6 +23,7 @@ import {
 import PatientHeader from '../components/ui/PatientHeader.jsx'
 import apiService from '../services/api.js'
 import i18n from '../utils/i18n.js'
+import RecommendationFormatter from '../utils/recommendationFormatter.js'
 
 export default function PatientCovidAssessmentResultPage() {
   const navigate = useNavigate()
@@ -31,10 +32,16 @@ export default function PatientCovidAssessmentResultPage() {
   const [assessmentResult, setAssessmentResult] = useState(null)
   const [loading, setLoading] = useState(true)
   const [language, setLanguage] = useState(i18n.getCurrentLanguage())
+  const [formattedRecommendations, setFormattedRecommendations] = useState({})
 
   useEffect(() => {
     const handleLanguageChange = (newLanguage) => {
       setLanguage(newLanguage)
+      // 语言变化时重新格式化recommendations
+      if (assessmentResult?.recommendations) {
+        const formatted = RecommendationFormatter.smartFormat(assessmentResult.recommendations)
+        setFormattedRecommendations(formatted)
+      }
     }
     
     i18n.addListener(handleLanguageChange)
@@ -46,6 +53,16 @@ export default function PatientCovidAssessmentResultPage() {
       i18n.removeListener(handleLanguageChange)
     }
   }, [])
+
+  // 当assessmentResult变化时，格式化recommendations
+  useEffect(() => {
+    if (assessmentResult?.recommendations) {
+      console.log('原始recommendations数据:', assessmentResult.recommendations)
+      const formatted = RecommendationFormatter.smartFormat(assessmentResult.recommendations)
+      console.log('格式化后的recommendations:', formatted)
+      setFormattedRecommendations(formatted)
+    }
+  }, [assessmentResult])
 
   const checkUserPermission = async () => {
     try {
@@ -80,6 +97,17 @@ export default function PatientCovidAssessmentResultPage() {
     }
   }
 
+  const t = useMemo(() => {
+    return (key, params = {}) => {
+      const result = i18n.t(key, params)
+      // 如果翻译结果就是键名，说明翻译缺失
+      if (result === key) {
+        console.warn(`Missing translation for key: ${key} in language: ${language}`)
+      }
+      return result
+    }
+  }, [language]) // 明确依赖于language状态
+
   const getRiskLevelBadge = (riskLevel, riskLevelLabel) => {
     const variants = {
       'very_high': 'destructive',
@@ -107,37 +135,36 @@ export default function PatientCovidAssessmentResultPage() {
     )
   }
 
-  const getAssessmentTypeLabel = (type) => {
-    return type === 'covid' ? t('pages.covid_assessment_result.covid_assessment') : t('pages.covid_assessment_result.flu_assessment')
-  }
+  const getAssessmentTypeLabel = useMemo(() => {
+    return (type) => {
+      return type === 'covid' ? t('pages.covid_assessment_result.covid_assessment') : t('pages.covid_assessment_result.flu_assessment')
+    }
+  }, [t]) // 依賴於t函數
 
   const getAssessmentTypeIcon = (type) => {
     return type === 'covid' ? Shield : Activity
   }
 
-  const formatSymptoms = (symptoms) => {
-    const symptomLabels = {
-      'fever': t('pages.covid_assessment_result.symptom_fever'),
-      'cough': t('pages.covid_assessment_result.symptom_cough'), 
-      'shortness_breath': t('pages.covid_assessment_result.symptom_shortness_breath'),
-      'loss_taste_smell': t('pages.covid_assessment_result.symptom_loss_taste_smell'),
-      'body_aches': t('pages.covid_assessment_result.symptom_body_aches'),
-      'fatigue': t('pages.covid_assessment_result.symptom_fatigue'),
-      'headache': t('pages.covid_assessment_result.symptom_headache'),
-      'sore_throat': t('pages.covid_assessment_result.symptom_sore_throat'),
-      'runny_nose': t('pages.covid_assessment_result.symptom_runny_nose'),
-      'chills': t('pages.covid_assessment_result.symptom_chills'),
-      'nausea': t('pages.covid_assessment_result.symptom_nausea'),
-      'diarrhea': t('pages.covid_assessment_result.symptom_diarrhea')
+  const formatSymptoms = useMemo(() => {
+    return (symptoms) => {
+      const symptomLabels = {
+        'fever': t('pages.covid_assessment_result.symptom_fever'),
+        'cough': t('pages.covid_assessment_result.symptom_cough'), 
+        'shortness_breath': t('pages.covid_assessment_result.symptom_shortness_breath'),
+        'loss_taste_smell': t('pages.covid_assessment_result.symptom_loss_taste_smell'),
+        'body_aches': t('pages.covid_assessment_result.symptom_body_aches'),
+        'fatigue': t('pages.covid_assessment_result.symptom_fatigue'),
+        'headache': t('pages.covid_assessment_result.symptom_headache'),
+        'sore_throat': t('pages.covid_assessment_result.symptom_sore_throat'),
+        'runny_nose': t('pages.covid_assessment_result.symptom_runny_nose'),
+        'chills': t('pages.covid_assessment_result.symptom_chills'),
+        'nausea': t('pages.covid_assessment_result.symptom_nausea'),
+        'diarrhea': t('pages.covid_assessment_result.symptom_diarrhea')
+      }
+      
+      return symptoms.map(symptom => symptomLabels[symptom] || symptom)
     }
-    
-    return symptoms.map(symptom => symptomLabels[symptom] || symptom)
-  }
-
-  const t = (key) => {
-    language; // 确保组件依赖于language状态
-    return i18n.t(key)
-  }
+  }, [t]) // 依赖于t函数
 
   if (loading || !user) {
     return (
@@ -273,14 +300,14 @@ export default function PatientCovidAssessmentResultPage() {
                 
                 <div className="grid gap-4">
                   {/* 检测建议 */}
-                  {assessmentResult.recommendations.testing && assessmentResult.recommendations.testing.length > 0 && (
+                  {formattedRecommendations.testing && formattedRecommendations.testing.length > 0 && (
                     <div className="p-4 bg-gradient-to-br from-blue-50/80 to-cyan-50/80 rounded-xl">
                       <h4 className="font-medium text-blue-800 mb-2 flex items-center">
                         <FileText className="h-4 w-4 mr-2" />
                         {t('pages.covid_assessment_result.testing_recommendations')}
                       </h4>
                       <ul className="space-y-1 text-sm text-blue-700">
-                        {assessmentResult.recommendations.testing.map((item, index) => (
+                        {formattedRecommendations.testing.map((item, index) => (
                           <li key={index} className="flex items-start">
                             <ArrowRight className="h-3 w-3 mt-1 mr-2 flex-shrink-0" />
                             {item}
@@ -291,14 +318,14 @@ export default function PatientCovidAssessmentResultPage() {
                   )}
 
                   {/* 隔离建议 */}
-                  {assessmentResult.recommendations.isolation && assessmentResult.recommendations.isolation.length > 0 && (
+                  {formattedRecommendations.isolation && formattedRecommendations.isolation.length > 0 && (
                     <div className="p-4 bg-gradient-to-br from-amber-50/80 to-orange-50/80 rounded-xl">
                       <h4 className="font-medium text-amber-800 mb-2 flex items-center">
                         <Users className="h-4 w-4 mr-2" />
                         {t('pages.covid_assessment_result.isolation_recommendations')}
                       </h4>
                       <ul className="space-y-1 text-sm text-amber-700">
-                        {assessmentResult.recommendations.isolation.map((item, index) => (
+                        {formattedRecommendations.isolation.map((item, index) => (
                           <li key={index} className="flex items-start">
                             <ArrowRight className="h-3 w-3 mt-1 mr-2 flex-shrink-0" />
                             {item}
@@ -309,14 +336,14 @@ export default function PatientCovidAssessmentResultPage() {
                   )}
 
                   {/* 医疗建议 */}
-                  {assessmentResult.recommendations.medical && assessmentResult.recommendations.medical.length > 0 && (
+                  {formattedRecommendations.medical && formattedRecommendations.medical.length > 0 && (
                     <div className="p-4 bg-gradient-to-br from-red-50/80 to-pink-50/80 rounded-xl">
                       <h4 className="font-medium text-red-800 mb-2 flex items-center">
                         <Pill className="h-4 w-4 mr-2" />
                         {t('pages.covid_assessment_result.medical_recommendations')}
                       </h4>
                       <ul className="space-y-1 text-sm text-red-700">
-                        {assessmentResult.recommendations.medical.map((item, index) => (
+                        {formattedRecommendations.medical.map((item, index) => (
                           <li key={index} className="flex items-start">
                             <ArrowRight className="h-3 w-3 mt-1 mr-2 flex-shrink-0" />
                             {item}
@@ -327,14 +354,14 @@ export default function PatientCovidAssessmentResultPage() {
                   )}
 
                   {/* 预防建议 */}
-                  {assessmentResult.recommendations.prevention && assessmentResult.recommendations.prevention.length > 0 && (
+                  {formattedRecommendations.prevention && formattedRecommendations.prevention.length > 0 && (
                     <div className="p-4 bg-gradient-to-br from-green-50/80 to-emerald-50/80 rounded-xl">
                       <h4 className="font-medium text-green-800 mb-2 flex items-center">
                         <Shield className="h-4 w-4 mr-2" />
                         {t('pages.covid_assessment_result.prevention_measures')}
                       </h4>
                       <ul className="space-y-1 text-sm text-green-700">
-                        {assessmentResult.recommendations.prevention.map((item, index) => (
+                        {formattedRecommendations.prevention.map((item, index) => (
                           <li key={index} className="flex items-start">
                             <ArrowRight className="h-3 w-3 mt-1 mr-2 flex-shrink-0" />
                             {item}
@@ -345,14 +372,14 @@ export default function PatientCovidAssessmentResultPage() {
                   )}
 
                   {/* 监测建议 */}
-                  {assessmentResult.recommendations.monitoring && assessmentResult.recommendations.monitoring.length > 0 && (
+                  {formattedRecommendations.monitoring && formattedRecommendations.monitoring.length > 0 && (
                     <div className="p-4 bg-gradient-to-br from-indigo-50/80 to-purple-50/80 rounded-xl">
                       <h4 className="font-medium text-indigo-800 mb-2 flex items-center">
                         <Clock className="h-4 w-4 mr-2" />
                         {t('pages.covid_assessment_result.monitoring_recommendations')}
                       </h4>
                       <ul className="space-y-1 text-sm text-indigo-700">
-                        {assessmentResult.recommendations.monitoring.map((item, index) => (
+                        {formattedRecommendations.monitoring.map((item, index) => (
                           <li key={index} className="flex items-start">
                             <ArrowRight className="h-3 w-3 mt-1 mr-2 flex-shrink-0" />
                             {item}
@@ -369,7 +396,8 @@ export default function PatientCovidAssessmentResultPage() {
             <Alert className="border-l-4 border-l-blue-500 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 rounded-r-2xl">
               <AlertTriangle className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-800">
-                {t('pages.covid_assessment_result.important_reminder')}
+                <strong>{t('pages.covid_assessment_result.important_reminder_title')}</strong>
+                {t('pages.covid_assessment_result.important_reminder_content')}
               </AlertDescription>
             </Alert>
 

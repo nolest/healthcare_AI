@@ -527,7 +527,7 @@ export default function MedicalDiagnosisFormPage() {
       case 'heart_rate':
         return measurement.heartRate
       case 'temperature':
-        return parseFloat(measurement.temperature)
+        return Number(measurement.temperature)
       case 'oxygen_saturation':
         return measurement.oxygenSaturation
       default:
@@ -596,13 +596,13 @@ export default function MedicalDiagnosisFormPage() {
 
   const getMeasurementTypeLabel = (type) => {
     const labels = {
-      blood_pressure: '血壓',
-      heart_rate: '心率',
-      temperature: '體溫',
-      oxygen_saturation: '血氧',
-      unknown: '未知'
+      blood_pressure: i18n.t('measurement.blood_pressure'),
+      heart_rate: i18n.t('measurement.heart_rate'),
+      temperature: i18n.t('measurement.temperature'),
+      oxygen_saturation: i18n.t('measurement.oxygen_saturation'),
+      unknown: i18n.t('common.unknown')
     }
-    return labels[type] || '未知'
+    return labels[type] || i18n.t('common.unknown')
   }
 
   const getMeasurementTypeIcon = (type) => {
@@ -632,22 +632,22 @@ export default function MedicalDiagnosisFormPage() {
       case 'oxygen_saturation':
         return `${measurement.oxygenSaturation}%`
       default:
-        return '未知'
+        return i18n.t('common.unknown')
     }
   }
 
   // 获取状态标签
   const getStatusLabel = (status) => {
     const statusMap = {
-      'pending': '待處理',
-      'processing': '處理中',
-      'processed': '已處理',
-      'reviewed': '已審核',
-      'completed': '已完成',
-      'cancelled': '已取消',
-      'failed': '處理失敗'
+      'pending': i18n.t('pages.medical_diagnosis.pending_status'),
+      'processing': i18n.t('pages.medical_diagnosis.processing_status'),
+      'processed': i18n.t('pages.medical_diagnosis.processed_status'),
+      'reviewed': i18n.t('pages.medical_diagnosis.reviewed_status'),
+      'completed': i18n.t('pages.medical_diagnosis.completed_status'),
+      'cancelled': i18n.t('pages.medical_diagnosis.cancelled_status'),
+      'failed': i18n.t('pages.medical_diagnosis.failed_status')
     }
-    return statusMap[status] || status || '未知狀態'
+    return statusMap[status] || status || i18n.t('pages.medical_diagnosis.unknown_status')
   }
 
   // 获取状态样式
@@ -692,36 +692,36 @@ export default function MedicalDiagnosisFormPage() {
     switch (type) {
       case 'blood_pressure':
         if (measurement.systolic > 140 || measurement.diastolic > 90) {
-          return '高血壓'
+          return i18n.t('pages.medical_diagnosis.high_blood_pressure')
         } else if (measurement.systolic < 90 || measurement.diastolic < 60) {
-          return '低血壓'
+          return i18n.t('pages.medical_diagnosis.low_blood_pressure')
         }
         break
       case 'heart_rate':
         if (measurement.heartRate > 100) {
-          return '心動過速'
+          return i18n.t('pages.medical_diagnosis.tachycardia')
         } else if (measurement.heartRate < 60) {
-          return '心動過緩'
+          return i18n.t('pages.medical_diagnosis.bradycardia')
         }
         break
       case 'temperature':
         if (measurement.temperature > 37.5) {
-          return '發燒'
+          return i18n.t('pages.medical_diagnosis.fever')
         } else if (measurement.temperature < 36) {
-          return '體溫過低'
+          return i18n.t('pages.medical_diagnosis.hypothermia')
         }
         break
       case 'oxygen_saturation':
         if (measurement.oxygenSaturation < 95) {
-          return '血氧不足'
+          return i18n.t('pages.medical_diagnosis.hypoxemia')
         }
         break
     }
-    return '異常值'
+    return i18n.t('pages.medical_diagnosis.abnormal_value')
   }
 
   const formatDate = (dateString) => {
-    if (!dateString) return '未知時間'
+    if (!dateString) return i18n.t('pages.medical_diagnosis_form.unknown_time')
     
     try {
       const date = new Date(dateString)

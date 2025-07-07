@@ -58,6 +58,18 @@ export default function CovidDiagnosisFormPage() {
     return () => i18n.removeListener(handleLanguageChange)
   }, [])
   
+  // 翻译函数
+  const t = (key, params = {}) => {
+    // 确保组件依赖于language状态
+    language;
+    const result = i18n.t(key, params)
+    // 如果翻译结果就是键名，说明翻译缺失
+    if (result === key) {
+      console.warn(`Missing translation for key: ${key} in language: ${language}`)
+    }
+    return result
+  }
+  
   // 图片查看器状态
   const [imageViewerOpen, setImageViewerOpen] = useState(false)
   const [currentImages, setCurrentImages] = useState([])
@@ -96,18 +108,18 @@ export default function CovidDiagnosisFormPage() {
 
   // 症状选项
   const symptomOptions = [
-    { value: 'fever', label: i18n.t('symptoms.fever') },
-    { value: 'cough', label: i18n.t('symptoms.cough') },
-    { value: 'shortness_breath', label: i18n.t('symptoms.shortness_breath') },
-    { value: 'loss_taste_smell', label: i18n.t('symptoms.loss_taste_smell') },
-    { value: 'fatigue', label: i18n.t('symptoms.fatigue') },
-    { value: 'body_aches', label: i18n.t('symptoms.body_aches') },
-    { value: 'headache', label: i18n.t('symptoms.headache') },
-    { value: 'sore_throat', label: i18n.t('symptoms.sore_throat') },
-    { value: 'runny_nose', label: i18n.t('symptoms.runny_nose') },
-    { value: 'nausea', label: i18n.t('symptoms.nausea') },
-    { value: 'diarrhea', label: i18n.t('symptoms.diarrhea') },
-    { value: 'chills', label: i18n.t('symptoms.chills') }
+    { value: 'fever', label: t('symptoms.fever') },
+    { value: 'cough', label: t('symptoms.cough') },
+    { value: 'shortness_breath', label: t('symptoms.shortness_breath') },
+    { value: 'loss_taste_smell', label: t('symptoms.loss_taste_smell') },
+    { value: 'fatigue', label: t('symptoms.fatigue') },
+    { value: 'body_aches', label: t('symptoms.body_aches') },
+    { value: 'headache', label: t('symptoms.headache') },
+    { value: 'sore_throat', label: t('symptoms.sore_throat') },
+    { value: 'runny_nose', label: t('symptoms.runny_nose') },
+    { value: 'nausea', label: t('symptoms.nausea') },
+    { value: 'diarrhea', label: t('symptoms.diarrhea') },
+    { value: 'chills', label: t('symptoms.chills') }
   ]
 
   // 用于动态高度调整的refs
@@ -229,7 +241,7 @@ export default function CovidDiagnosisFormPage() {
             setPatientInfo(patient)
           } catch (error) {
             console.error('获取患者信息失败:', error)
-            setPatientInfo({ fullName: '未知患者', username: patientId })
+            setPatientInfo({ fullName: t('pages.covid_diagnosis_form.unknown_patient'), username: patientId })
           }
         }
         
@@ -242,12 +254,12 @@ export default function CovidDiagnosisFormPage() {
           loadExistingCovidDiagnosis(assessmentId)
         }
       } else {
-        setMessage('❌ 找不到指定的COVID评估记录')
+        setMessage(t('pages.covid_diagnosis_form.loading_error'))
         setTimeout(() => navigate('/medical/covid-management'), 3000)
       }
     } catch (error) {
       console.error('加载COVID评估记录失败:', error)
-      setMessage('❌ 加载COVID评估记录失败')
+      setMessage(t('pages.covid_diagnosis_form.load_failed'))
       setTimeout(() => navigate('/medical/covid-management'), 3000)
     } finally {
       setLoading(false)
@@ -675,7 +687,7 @@ export default function CovidDiagnosisFormPage() {
 
   // 获取时间差显示
   const getTimeAgo = (timestamp) => {
-    if (!timestamp) return '未知時間'
+    if (!timestamp) return t('pages.covid_diagnosis_form.unknown_time')
     
     try {
       const now = new Date()
@@ -683,7 +695,7 @@ export default function CovidDiagnosisFormPage() {
       
       // 检查时间是否有效
       if (isNaN(time.getTime())) {
-        return '未知時間'
+        return t('pages.covid_diagnosis_form.unknown_time')
       }
       
       const diffMs = now - time
@@ -692,29 +704,29 @@ export default function CovidDiagnosisFormPage() {
       const diffDays = Math.floor(diffHours / 24)
       
       if (diffDays > 0) {
-        return `${diffDays}天前`
+        return t('common.days_ago', { count: diffDays })
       } else if (diffHours > 0) {
-        return `${diffHours}小時前`
+        return t('common.hours_ago', { count: diffHours })
       } else if (diffMinutes > 0) {
-        return `${diffMinutes}分鐘前`
+        return t('common.minutes_ago', { count: diffMinutes })
       } else {
-        return '剛剛'
+        return t('pages.covid_diagnosis_form.just_now')
       }
     } catch (error) {
       console.error('時間計算錯誤:', error, 'timestamp:', timestamp)
-      return '未知時間'
+      return t('pages.covid_diagnosis_form.unknown_time')
     }
   }
 
   // 提交COVID诊断
   const handleSubmitDiagnosis = async () => {
     if (!diagnosis.trim()) {
-      setMessage('❌ 請輸入診斷結果')
+      setMessage(t('pages.covid_diagnosis_form.enter_diagnosis_required'))
       return
     }
     
     if (!riskLevel) {
-      setMessage('❌ 請選擇風險等級')
+      setMessage(t('pages.covid_diagnosis_form.select_risk_required'))
       return
     }
 
@@ -727,7 +739,7 @@ export default function CovidDiagnosisFormPage() {
       
       if (!patientId) {
         console.error('无法获取患者ID，currentUserId:', currentUserId, 'assessmentData:', assessmentData);
-        setMessage('❌ 無法獲取患者ID，請重試');
+        setMessage(t('pages.covid_diagnosis_form.patient_id_error'));
         return;
       }
 
@@ -736,7 +748,7 @@ export default function CovidDiagnosisFormPage() {
         patientId: patientId,
         diagnosisType: 'covid', // 必需字段，指定为COVID诊断
         diagnosis: diagnosis.trim(),
-        recommendation: `${lifestyle.trim() ? `生活方式建議: ${lifestyle.trim()}. ` : ''}${followUp.trim() ? `復查建議: ${followUp.trim()}. ` : ''}${isolationAdvice.trim() ? `隔離建議: ${isolationAdvice.trim()}. ` : ''}`.trim() || '無特殊建議',
+        recommendation: `${lifestyle.trim() ? `${t('pages.covid_diagnosis_form.lifestyle_advice_prefix')}: ${lifestyle.trim()}. ` : ''}${followUp.trim() ? `${t('pages.covid_diagnosis_form.follow_up_advice_prefix')}: ${followUp.trim()}. ` : ''}${isolationAdvice.trim() ? `${t('pages.covid_diagnosis_form.isolation_advice_prefix')}: ${isolationAdvice.trim()}. ` : ''}`.trim() || t('pages.covid_diagnosis_form.no_special_advice'),
         treatment: treatmentPlan.trim() || medications.trim() || undefined,
         riskLevel: riskLevel,
         testingRecommendation: testingRecommendation.trim() || undefined,
@@ -767,7 +779,7 @@ export default function CovidDiagnosisFormPage() {
           console.warn('COVID评估状态更新失败:', updateError)
         }
         
-        setMessage('✅ COVID診斷已成功提交！')
+        setMessage(t('pages.covid_diagnosis_form.diagnosis_success'))
         
         // 3秒后返回COVID管理列表
         setTimeout(() => {
@@ -775,12 +787,12 @@ export default function CovidDiagnosisFormPage() {
         }, 3000)
       } else {
         console.error('提交COVID诊断失败:', response)
-        setMessage('❌ 提交COVID診斷失敗，請重試')
+        setMessage(t('pages.covid_diagnosis_form.diagnosis_failed'))
       }
     } catch (error) {
       console.error('提交COVID诊断失败:', error)
       
-      let errorMessage = '❌ 提交COVID診斷失敗，請重試'
+      let errorMessage = t('pages.covid_diagnosis_form.diagnosis_failed')
       
       if (error.response) {
         console.error('HTTP状态码:', error.response.status)
@@ -802,7 +814,7 @@ export default function CovidDiagnosisFormPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">載入中...</p>
+          <p className="mt-4 text-gray-600">{t('pages.covid_diagnosis_form.loading')}</p>
         </div>
       </div>
     )
@@ -818,8 +830,8 @@ export default function CovidDiagnosisFormPage() {
 
       {/* Header */}
       <MedicalHeader 
-        title="COVID診斷評估"
-        subtitle="為患者COVID/流感評估提供專業診斷"
+        title={t('pages.covid_diagnosis_form.title')}
+        subtitle={t('pages.covid_diagnosis_form.subtitle')}
         icon={Bug}
         showBackButton={true}
         user={currentUser}
@@ -835,10 +847,10 @@ export default function CovidDiagnosisFormPage() {
             <CardHeader className="pb-4">
               <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
                 <Bug className="h-5 w-5 text-red-600" />
-                患者COVID/流感評估信息
+                {t('pages.covid_diagnosis_form.patient_info')}
               </CardTitle>
               <CardDescription className="text-gray-600">
-                {patientInfo?.fullName || patientInfo?.username || '未知患者'} - COVID/流感風險評估
+                {patientInfo?.fullName || patientInfo?.username || t('pages.covid_diagnosis_form.unknown_patient')} - {t('pages.covid_diagnosis_form.patient_info_desc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -848,23 +860,23 @@ export default function CovidDiagnosisFormPage() {
                   <div className="flex items-center gap-3">
                     <User className="h-5 w-5 text-blue-600" />
                     <div>
-                      <p className="text-sm text-gray-600">患者姓名</p>
-                      <p className="font-medium text-gray-800">{patientInfo?.fullName || patientInfo?.username || '未知患者'}</p>
+                      <p className="text-sm text-gray-600">{t('pages.covid_diagnosis_form.patient_name')}</p>
+                      <p className="font-medium text-gray-800">{patientInfo?.fullName || patientInfo?.username || t('pages.covid_diagnosis_form.unknown_patient')}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <FileText className="h-5 w-5 text-blue-600" />
                     <div>
-                      <p className="text-sm text-gray-600">患者ID</p>
-                      <p className="font-medium text-gray-800">{patientInfo?.username || '未知'}</p>
+                      <p className="text-sm text-gray-600">{t('pages.covid_diagnosis_form.patient_id')}</p>
+                      <p className="font-medium text-gray-800">{patientInfo?.username || t('pages.covid_diagnosis_form.unknown')}</p>
                     </div>
                   </div>
                   {patientInfo?.age && (
                     <div className="flex items-center gap-3">
                       <Calendar className="h-5 w-5 text-blue-600" />
                       <div>
-                        <p className="text-sm text-gray-600">年齡</p>
-                        <p className="font-medium text-gray-800">{patientInfo.age}歲</p>
+                        <p className="text-sm text-gray-600">{t('pages.covid_diagnosis_form.age')}</p>
+                        <p className="font-medium text-gray-800">{patientInfo.age}{t('pages.covid_diagnosis_form.years_old')}</p>
                       </div>
                     </div>
                   )}
@@ -872,9 +884,9 @@ export default function CovidDiagnosisFormPage() {
                     <div className="flex items-center gap-3">
                       <User className="h-5 w-5 text-blue-600" />
                       <div>
-                        <p className="text-sm text-gray-600">性別</p>
+                        <p className="text-sm text-gray-600">{t('pages.covid_diagnosis_form.gender')}</p>
                         <p className="font-medium text-gray-800">
-                          {patientInfo.gender === 'male' ? '男' : patientInfo.gender === 'female' ? '女' : '其他'}
+                          {patientInfo.gender === 'male' ? t('pages.covid_diagnosis_form.gender_male') : patientInfo.gender === 'female' ? t('pages.covid_diagnosis_form.gender_female') : t('pages.covid_diagnosis_form.gender_other')}
                         </p>
                       </div>
                     </div>
@@ -886,7 +898,7 @@ export default function CovidDiagnosisFormPage() {
                   <div className="flex items-center gap-3 mb-4">
                     <Shield className="h-6 w-6 text-red-600" />
                     <div>
-                      <h3 className="font-semibold text-gray-800">COVID/流感風險評估</h3>
+                      <h3 className="font-semibold text-gray-800">{t('pages.covid_diagnosis_form.covid_flu_assessment')}</h3>
                       <Badge className={getRiskLevelColor(assessmentData.riskLevel)}>
                         {getRiskLevelLabel(assessmentData.riskLevel)}
                       </Badge>
@@ -896,7 +908,7 @@ export default function CovidDiagnosisFormPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* 症状信息 */}
                     <div>
-                      <h4 className="font-medium text-gray-700 mb-2">症狀</h4>
+                      <h4 className="font-medium text-gray-700 mb-2">{t('pages.covid_diagnosis_form.symptoms')}</h4>
                       <div className="flex flex-wrap gap-2">
                         {assessmentData.symptoms && assessmentData.symptoms.length > 0 ? (
                           assessmentData.symptoms.map((symptom, index) => (
@@ -905,14 +917,14 @@ export default function CovidDiagnosisFormPage() {
                             </Badge>
                           ))
                         ) : (
-                          <span className="text-gray-500 text-sm">無症狀記錄</span>
+                          <span className="text-gray-500 text-sm">{t('pages.covid_diagnosis_form.no_symptoms')}</span>
                         )}
                       </div>
                     </div>
                     
                     {/* 体温信息 */}
                     <div>
-                      <h4 className="font-medium text-gray-700 mb-2">體溫</h4>
+                      <h4 className="font-medium text-gray-700 mb-2">{t('pages.covid_diagnosis_form.temperature')}</h4>
                       <div className="flex items-center gap-2">
                         <Thermometer className="h-4 w-4 text-red-500" />
                         <span className={`font-medium ${
@@ -920,7 +932,7 @@ export default function CovidDiagnosisFormPage() {
                             ? 'text-red-600' 
                             : 'text-gray-700'
                         }`}>
-                          {assessmentData.temperature ? `${assessmentData.temperature}°C` : '未記錄'}
+                          {assessmentData.temperature ? `${assessmentData.temperature}°C` : t('pages.covid_diagnosis_form.no_temperature')}
                         </span>
                       </div>
                     </div>
@@ -928,7 +940,7 @@ export default function CovidDiagnosisFormPage() {
                   
                   <div className="mt-4 pt-4 border-t border-red-200/50">
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-600">評估時間:</span>
+                      <span className="text-gray-600">{t('pages.covid_diagnosis_form.assessment_time')}:</span>
                       <div className="flex items-center gap-1 text-sm">
                         <Calendar className="h-3 w-3" />
                         {formatDate(assessmentData.createdAt)}
@@ -941,14 +953,14 @@ export default function CovidDiagnosisFormPage() {
                     <div className="pt-3 border-t border-red-200/50">
                       <div className="flex items-center gap-2 mb-2">
                         <Image className="h-4 w-4 text-gray-600" />
-                        <span className="text-gray-600 text-sm font-medium">評估圖片 ({assessmentData.imagePaths.length}張)</span>
+                        <span className="text-gray-600 text-sm font-medium">{t('pages.covid_diagnosis_form.assessment_images')} ({assessmentData.imagePaths.length}{t('pages.covid_diagnosis_form.images_count')})</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {assessmentData.imagePaths.map((image, index) => (
                           <div key={index} className="relative group">
                             <img
                               src={apiService.getImageUrl(currentUserId, image.split('/').pop(), 'covid')}
-                              alt={`COVID评估图片 ${index + 1}`}
+                              alt={`${t('pages.covid_diagnosis_form.assessment_image')} ${index + 1}`}
                               className="w-16 h-16 object-cover rounded-lg border border-gray-200 cursor-pointer hover:shadow-lg transition-shadow"
                               onClick={() => {
                                 const images = assessmentData.imagePaths.map(img => 
@@ -983,15 +995,15 @@ export default function CovidDiagnosisFormPage() {
                 <CardHeader className="pb-4 flex-shrink-0">
                   <CardTitle className="text-lg text-gray-800 flex items-center gap-2">
                     <History className="h-5 w-5 text-purple-600" />
-                    患者COVID評估歷史記錄
+                    {t('pages.covid_diagnosis_form.history_title')}
                     {patientHistory.length > 0 && (
                       <Badge variant="outline" className="ml-2 bg-purple-50 text-purple-700 border-purple-200">
-                        共 {patientHistory.length} 條記錄
+                        {t('pages.covid_diagnosis_form.history_count', { count: patientHistory.length })}
                       </Badge>
                     )}
                   </CardTitle>
                   <CardDescription className="text-gray-600">
-                    顯示該患者的歷史COVID/流感評估數據，幫助診斷判斷
+                    {t('pages.covid_diagnosis_form.history_desc')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col min-h-0">
@@ -1004,7 +1016,7 @@ export default function CovidDiagnosisFormPage() {
                     <div className="text-center py-8 text-gray-500">
                       <History className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-2">暫無歷史記錄</h3>
-                      <p>該患者暫無其他COVID/流感評估記錄</p>
+                      <p>{t('pages.covid_diagnosis_form.no_other_covid_assessments')}</p>
                     </div>
                   ) : (
                     <div className="space-y-3 overflow-y-auto pr-2 pl-1 flex-1">
@@ -1022,12 +1034,12 @@ export default function CovidDiagnosisFormPage() {
                                 </div>
                                 <div>
                                   <h4 className={`font-medium text-sm ${statusStyle.textColor}`}>
-                                    COVID/流感評估
+                                    {t('pages.covid_diagnosis_form.covid_flu_assessment')}
                                   </h4>
                                   <div className="flex items-center gap-1 mt-1">
                                     {isCurrentRecord && (
                                       <Badge className="bg-red-100 text-red-700 text-xs px-1.5 py-0.5">
-                                        當前記錄
+                                        {t('pages.covid_diagnosis_form.current_record')}
                                       </Badge>
                                     )}
                                     {/* 状态标签 */}
@@ -1045,7 +1057,7 @@ export default function CovidDiagnosisFormPage() {
                                     </Badge>
                                     {isHighRisk && !isCurrentRecord && record.status !== 'processed' && (
                                       <Badge variant="destructive" className="bg-orange-100 text-orange-700 text-xs px-1.5 py-0.5">
-                                        高風險
+                                        {t('pages.covid_diagnosis_form.high_risk')}
                                       </Badge>
                                     )}
                                   </div>
@@ -1079,7 +1091,7 @@ export default function CovidDiagnosisFormPage() {
                                 
                                 {record.symptoms && record.symptoms.length > 0 && (
                                   <span className="text-xs text-gray-600 truncate max-w-32">
-                                    📝 {record.symptoms.length}個症狀
+                                    📝 {record.symptoms.length}{t('pages.covid_diagnosis_form.symptoms_count')}
                                   </span>
                                 )}
                               </div>
@@ -1098,7 +1110,7 @@ export default function CovidDiagnosisFormPage() {
                                 onClick={() => handleViewCovidDetails(record._id)}
                               >
                                 <Eye className="h-3 w-3 mr-1" />
-                                {isCurrentRecord ? '當前記錄' : '查看詳情'}
+                                {isCurrentRecord ? t('pages.covid_diagnosis_form.current_record') : t('common.view_details')}
                               </Button>
                             </div>
                           </div>
@@ -1122,17 +1134,17 @@ export default function CovidDiagnosisFormPage() {
                   {isReadOnly ? (
                     <>
                       <Eye className="h-5 w-5 text-blue-600" />
-                      COVID診斷記錄查看
+                      {t('pages.covid_diagnosis_form.covid_diagnosis_record_view')}
                     </>
                   ) : (
                     <>
                       <Stethoscope className="h-5 w-5 text-green-600" />
-                      COVID診斷評估表單
+                      {t('pages.covid_diagnosis_form.covid_diagnosis_form_title')}
                     </>
                   )}
                 </CardTitle>
                 <CardDescription className="text-gray-600">
-                  {isReadOnly ? '此COVID評估記錄已完成診斷' : '請提供專業的COVID/流感診斷結果和治療建議'}
+                  {isReadOnly ? t('pages.covid_diagnosis_form.diagnosis_completed') : t('pages.covid_diagnosis_form.provide_diagnosis')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -1143,9 +1155,9 @@ export default function CovidDiagnosisFormPage() {
                     <Alert className="border-blue-200 bg-blue-50">
                       <Eye className="h-4 w-4" />
                       <AlertDescription className="text-blue-700">
-                        <strong>此COVID評估記錄已完成診斷</strong>
+                        <strong>{t('pages.covid_diagnosis_form.this_covid_assessment_completed')}</strong>
                         <br />
-                        以下是該記錄的診斷詳情，內容為只讀模式。
+                        {t('pages.covid_diagnosis_form.diagnosis_details_readonly')}
                       </AlertDescription>
                     </Alert>
                     
@@ -1153,7 +1165,7 @@ export default function CovidDiagnosisFormPage() {
                       <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm">
                         <div className="flex items-center gap-3">
                           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-                          <p className="text-blue-800 font-medium">⏳ 正在加載COVID診斷記錄，請稍候...</p>
+                          <p className="text-blue-800 font-medium">{t('pages.covid_diagnosis_form.loading_covid_diagnosis')}</p>
                         </div>
                       </div>
                     ) : existingDiagnosis ? (
@@ -1163,10 +1175,10 @@ export default function CovidDiagnosisFormPage() {
                         <div className="space-y-3">
                           <div className="flex items-center gap-2 mb-3">
                             <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
-                            <h3 className="text-lg font-semibold text-gray-800">COVID/流感診斷結果</h3>
+                            <h3 className="text-lg font-semibold text-gray-800">{t('pages.covid_diagnosis_form.covid_flu_diagnosis_result')}</h3>
                           </div>
                           <div className="p-4 bg-gradient-to-br from-blue-50 via-blue-25 to-white rounded-xl shadow-sm">
-                            <p className="text-blue-900 font-medium text-base leading-relaxed whitespace-pre-wrap">{diagnosis || '無診斷結果'}</p>
+                            <p className="text-blue-900 font-medium text-base leading-relaxed whitespace-pre-wrap">{diagnosis || t('pages.covid_diagnosis_form.no_diagnosis_result')}</p>
                           </div>
                         </div>
 
@@ -1174,7 +1186,7 @@ export default function CovidDiagnosisFormPage() {
                         <div className="space-y-3">
                           <div className="flex items-center gap-2 mb-3">
                             <div className="w-1 h-6 bg-gradient-to-b from-orange-500 to-orange-600 rounded-full"></div>
-                            <h3 className="text-lg font-semibold text-gray-800">風險等級</h3>
+                            <h3 className="text-lg font-semibold text-gray-800">{t('pages.covid_diagnosis_form.risk_level_title')}</h3>
                           </div>
                           <div className="p-4 bg-gradient-to-br from-orange-50 via-orange-25 to-white rounded-xl shadow-sm">
                             <Badge 
@@ -1188,11 +1200,11 @@ export default function CovidDiagnosisFormPage() {
                                       : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white border-0'
                               }`}
                             >
-                              {riskLevel === 'very_low' ? '🔵 極低風險' : 
-                               riskLevel === 'low' ? '🟢 低風險' : 
-                               riskLevel === 'medium' ? '🟡 中風險' : 
-                               riskLevel === 'high' ? '🔴 高風險' : 
-                               riskLevel === 'very_high' ? '🚨 極高風險' : '⚪ 未設定'}
+                              {riskLevel === 'very_low' ? t('pages.covid_diagnosis_form.risk_levels.very_low') : 
+                               riskLevel === 'low' ? t('pages.covid_diagnosis_form.risk_levels.low') : 
+                               riskLevel === 'medium' ? t('pages.covid_diagnosis_form.risk_levels.medium') : 
+                               riskLevel === 'high' ? t('pages.covid_diagnosis_form.risk_levels.high') : 
+                               riskLevel === 'very_high' ? t('pages.covid_diagnosis_form.risk_levels.very_high') : '⚪ 未設定'}
                             </Badge>
                           </div>
                         </div>
@@ -1202,20 +1214,20 @@ export default function CovidDiagnosisFormPage() {
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-3">
                               <div className="w-1 h-6 bg-gradient-to-b from-green-500 to-green-600 rounded-full"></div>
-                              <h3 className="text-lg font-semibold text-gray-800">用藥建議</h3>
+                              <h3 className="text-lg font-semibold text-gray-800">{t('pages.covid_diagnosis_form.medication_advice_title')}</h3>
                             </div>
                             <div className="p-4 bg-gradient-to-br from-green-50 via-green-25 to-white rounded-xl shadow-sm min-h-[100px]">
-                              <p className="text-green-900 leading-relaxed whitespace-pre-wrap">{medications || '暫無用藥建議'}</p>
+                              <p className="text-green-900 leading-relaxed whitespace-pre-wrap">{medications || t('pages.covid_diagnosis_form.no_medication_advice')}</p>
                             </div>
                           </div>
                           
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-3">
                               <div className="w-1 h-6 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full"></div>
-                              <h3 className="text-lg font-semibold text-gray-800">生活方式建議</h3>
+                              <h3 className="text-lg font-semibold text-gray-800">{t('pages.covid_diagnosis_form.lifestyle_advice_title')}</h3>
                             </div>
                             <div className="p-4 bg-gradient-to-br from-purple-50 via-purple-25 to-white rounded-xl shadow-sm min-h-[100px]">
-                              <p className="text-purple-900 leading-relaxed whitespace-pre-wrap">{lifestyle || '暫無生活方式建議'}</p>
+                              <p className="text-purple-900 leading-relaxed whitespace-pre-wrap">{lifestyle || t('pages.covid_diagnosis_form.no_lifestyle_advice')}</p>
                             </div>
                           </div>
                         </div>
@@ -1225,20 +1237,20 @@ export default function CovidDiagnosisFormPage() {
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-3">
                               <div className="w-1 h-6 bg-gradient-to-b from-red-500 to-red-600 rounded-full"></div>
-                              <h3 className="text-lg font-semibold text-gray-800">隔離建議</h3>
+                              <h3 className="text-lg font-semibold text-gray-800">{t('pages.covid_diagnosis_form.isolation_advice_title')}</h3>
                             </div>
                             <div className="p-4 bg-gradient-to-br from-red-50 via-red-25 to-white rounded-xl shadow-sm min-h-[100px]">
-                              <p className="text-red-900 leading-relaxed whitespace-pre-wrap">{isolationAdvice || '暫無隔離建議'}</p>
+                              <p className="text-red-900 leading-relaxed whitespace-pre-wrap">{isolationAdvice || t('pages.covid_diagnosis_form.no_isolation_advice')}</p>
                             </div>
                           </div>
                           
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-3">
                               <div className="w-1 h-6 bg-gradient-to-b from-cyan-500 to-cyan-600 rounded-full"></div>
-                              <h3 className="text-lg font-semibold text-gray-800">檢測建議</h3>
+                              <h3 className="text-lg font-semibold text-gray-800">{t('pages.covid_diagnosis_form.testing_recommendation_title')}</h3>
                             </div>
                             <div className="p-4 bg-gradient-to-br from-cyan-50 via-cyan-25 to-white rounded-xl shadow-sm min-h-[100px]">
-                              <p className="text-cyan-900 leading-relaxed whitespace-pre-wrap">{testingRecommendation || '暫無檢測建議'}</p>
+                              <p className="text-cyan-900 leading-relaxed whitespace-pre-wrap">{testingRecommendation || t('pages.covid_diagnosis_form.no_testing_recommendation')}</p>
                             </div>
                           </div>
                         </div>
@@ -1247,10 +1259,10 @@ export default function CovidDiagnosisFormPage() {
                         <div className="space-y-3">
                           <div className="flex items-center gap-2 mb-3">
                             <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-indigo-600 rounded-full"></div>
-                            <h3 className="text-lg font-semibold text-gray-800">復查建議</h3>
+                            <h3 className="text-lg font-semibold text-gray-800">{t('pages.covid_diagnosis_form.follow_up_advice_title')}</h3>
                           </div>
                           <div className="p-4 bg-gradient-to-br from-indigo-50 via-indigo-25 to-white rounded-xl shadow-sm">
-                            <p className="text-indigo-900 leading-relaxed whitespace-pre-wrap">{followUp || '暫無復查建議'}</p>
+                            <p className="text-indigo-900 leading-relaxed whitespace-pre-wrap">{followUp || t('pages.covid_diagnosis_form.no_follow_up_advice')}</p>
                           </div>
                         </div>
 
@@ -1259,7 +1271,7 @@ export default function CovidDiagnosisFormPage() {
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 mb-3">
                               <div className="w-1 h-6 bg-gradient-to-b from-gray-500 to-gray-600 rounded-full"></div>
-                              <h3 className="text-lg font-semibold text-gray-800">其他備註</h3>
+                              <h3 className="text-lg font-semibold text-gray-800">{t('pages.covid_diagnosis_form.other_notes_title')}</h3>
                             </div>
                             <div className="p-4 bg-gradient-to-br from-gray-50 via-gray-25 to-white rounded-xl shadow-sm">
                               <p className="text-gray-900 leading-relaxed whitespace-pre-wrap">{notes}</p>
@@ -1273,18 +1285,18 @@ export default function CovidDiagnosisFormPage() {
                             <div className="flex items-center gap-4 text-sm text-slate-600">
                               <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4 text-blue-500" />
-                                <span className="font-medium">診斷時間：{formatDate(existingDiagnosis.createdAt)}</span>
+                                <span className="font-medium">{t('pages.covid_diagnosis_form.diagnosis_time', { time: formatDate(existingDiagnosis.createdAt) })}</span>
                               </div>
                               {existingDiagnosis.doctorId && (
                                 <div className="flex items-center gap-2">
                                   <User className="h-4 w-4 text-green-500" />
-                                  <span className="font-medium">診斷醫生：{existingDiagnosis.doctorId.fullName || existingDiagnosis.doctorId.username || '未知醫生'}</span>
+                                  <span className="font-medium">{t('pages.covid_diagnosis_form.diagnosis_doctor', { doctor: existingDiagnosis.doctorId.fullName || existingDiagnosis.doctorId.username || t('pages.covid_diagnosis_form.unknown_doctor') })}</span>
                                 </div>
                               )}
                             </div>
                             <div className="flex items-center gap-1 text-xs text-slate-500 bg-white px-2 py-1 rounded-full">
                               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                              <span>已完成診斷</span>
+                              <span>{t('pages.covid_diagnosis_form.diagnosis_completed')}</span>
                             </div>
                           </div>
                         </div>
@@ -1295,10 +1307,10 @@ export default function CovidDiagnosisFormPage() {
                           <div className="w-5 h-5 bg-gray-400 rounded-full flex items-center justify-center">
                             <span className="text-white text-xs">!</span>
                           </div>
-                          <p className="text-gray-700 font-medium">⚠️ 此COVID評估記錄尚未完成診斷</p>
+                          <p className="text-gray-700 font-medium">⚠️ {t('pages.covid_diagnosis_form.assessment_not_diagnosed')}</p>
                         </div>
                         <p className="text-gray-600 text-sm mt-2 ml-8">
-                          該評估記錄可能還在等待醫生處理，或者診斷記錄不存在。
+                          {t('pages.covid_diagnosis_form.assessment_waiting_description')}
                         </p>
                       </div>
                     )}
@@ -1310,7 +1322,7 @@ export default function CovidDiagnosisFormPage() {
                         className="flex-1 bg-gradient-to-r from-slate-50 to-gray-50 border-0 text-gray-700 hover:from-slate-100 hover:to-gray-100 hover:shadow-md transition-all duration-200 font-medium py-3 rounded-xl"
                       >
                         <ArrowLeft className="h-4 w-4 mr-2" />
-                        返回COVID管理列表
+                        {t('pages.covid_diagnosis_form.back_to_covid_management')}
                       </Button>
                     </div>
                   </div>
@@ -1448,7 +1460,7 @@ export default function CovidDiagnosisFormPage() {
                     className="border-gray-300 text-gray-600 hover:bg-gray-50"
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    {i18n.t('pages.covid_diagnosis_form.back_to_list')}
+                    {t('pages.covid_diagnosis_form.back_to_covid_management')}
                   </Button>
                 </div>
 

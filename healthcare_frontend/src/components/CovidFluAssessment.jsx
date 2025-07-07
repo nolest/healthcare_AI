@@ -156,7 +156,7 @@ export default function CovidFluAssessment({ user, onAssessmentComplete, onBack 
     })
 
     // 體溫評分
-    const temp = parseFloat(temperature)
+    const temp = temperature ? Number(temperature) : 0
     if (temp >= 39) score += 3
     else if (temp >= 38) score += 2
     else if (temp >= 37.5) score += 1
@@ -251,7 +251,7 @@ export default function CovidFluAssessment({ user, onAssessmentComplete, onBack 
         assessmentType: assessmentType,
         symptoms: selectedSymptoms,
         riskFactors: selectedRiskFactors,
-        temperature: parseFloat(temperature) || null,
+        temperature: temperature ? Number(temperature) : null,
         symptomOnset: symptomOnset,
         exposureHistory: exposureHistory,
         travelHistory: travelHistory,

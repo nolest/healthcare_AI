@@ -221,7 +221,7 @@ export default function MedicalDiagnosisPage() {
   }
 
   const formatDate = (dateString) => {
-    if (!dateString) return i18n.t('common.unknown_time')
+    if (!dateString) return i18n.t('pages.medical_diagnosis_form.unknown_time')
     const date = new Date(dateString)
     const locale = language === 'en' ? 'en-US' : language === 'zh-CN' ? 'zh-CN' : 'zh-TW'
     return date.toLocaleString(locale, {

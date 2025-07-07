@@ -500,40 +500,160 @@ export class CovidAssessmentsService {
 
     switch (riskLevel) {
       case 'very_high':
-        recommendations.testing.push('立即进行PCR检测');
-        recommendations.testing.push('考虑快速抗原检测作为补充');
-        recommendations.isolation.push('立即开始隔离，直到获得阴性检测结果');
-        recommendations.isolation.push('隔离期间避免与他人接触');
-        recommendations.monitoring.push('密切监测症状变化');
-        recommendations.monitoring.push('每日测量体温');
-        recommendations.medical.push('立即联系医疗机构');
-        recommendations.medical.push('如出现呼吸困难，立即就医');
+        recommendations.testing.push({
+          key: 'immediate_pcr',
+          category: 'testing',
+          priority: 'high',
+          type: 'action'
+        });
+        recommendations.testing.push({
+          key: 'rapid_antigen_supplement',
+          category: 'testing',
+          priority: 'medium',
+          type: 'action'
+        });
+        recommendations.isolation.push({
+          key: 'immediate_until_negative',
+          category: 'isolation',
+          priority: 'high',
+          type: 'action'
+        });
+        recommendations.isolation.push({
+          key: 'avoid_contact',
+          category: 'isolation',
+          priority: 'high',
+          type: 'action'
+        });
+        recommendations.monitoring.push({
+          key: 'close_symptom_monitoring',
+          category: 'monitoring',
+          priority: 'high',
+          type: 'action'
+        });
+        recommendations.monitoring.push({
+          key: 'daily_temperature',
+          category: 'monitoring',
+          priority: 'high',
+          type: 'action'
+        });
+        recommendations.medical.push({
+          key: 'immediate_contact',
+          category: 'medical',
+          priority: 'high',
+          type: 'action'
+        });
+        recommendations.medical.push({
+          key: 'breathing_difficulty_emergency',
+          category: 'medical',
+          priority: 'critical',
+          type: 'warning'
+        });
         break;
 
       case 'high':
-        recommendations.testing.push('建议在24小时内进行检测');
-        recommendations.testing.push('可考虑快速抗原检测');
-        recommendations.isolation.push('开始预防性隔离');
-        recommendations.isolation.push('避免与高风险人群接触');
-        recommendations.monitoring.push('监测症状发展');
-        recommendations.monitoring.push('记录体温变化');
-        recommendations.medical.push('联系医疗提供者咨询');
+        recommendations.testing.push({
+          key: 'within_24_hours',
+          category: 'testing',
+          priority: 'high',
+          type: 'action'
+        });
+        recommendations.testing.push({
+          key: 'consider_rapid_antigen',
+          category: 'testing',
+          priority: 'medium',
+          type: 'action'
+        });
+        recommendations.isolation.push({
+          key: 'preventive_isolation',
+          category: 'isolation',
+          priority: 'high',
+          type: 'action'
+        });
+        recommendations.isolation.push({
+          key: 'avoid_high_risk_contact',
+          category: 'isolation',
+          priority: 'medium',
+          type: 'action'
+        });
+        recommendations.monitoring.push({
+          key: 'symptom_development',
+          category: 'monitoring',
+          priority: 'high',
+          type: 'action'
+        });
+        recommendations.monitoring.push({
+          key: 'record_temperature',
+          category: 'monitoring',
+          priority: 'medium',
+          type: 'action'
+        });
+        recommendations.medical.push({
+          key: 'contact_provider',
+          category: 'medical',
+          priority: 'medium',
+          type: 'action'
+        });
         break;
 
       case 'medium':
-        recommendations.testing.push('考虑进行检测');
-        recommendations.isolation.push('减少外出和社交活动');
-        recommendations.monitoring.push('观察症状变化');
-        recommendations.prevention.push('佩戴口罩');
-        recommendations.prevention.push('勤洗手');
+        recommendations.testing.push({
+          key: 'consider_testing',
+          category: 'testing',
+          priority: 'medium',
+          type: 'action'
+        });
+        recommendations.isolation.push({
+          key: 'reduce_social_activity',
+          category: 'isolation',
+          priority: 'medium',
+          type: 'action'
+        });
+        recommendations.monitoring.push({
+          key: 'observe_symptoms',
+          category: 'monitoring',
+          priority: 'medium',
+          type: 'action'
+        });
+        recommendations.prevention.push({
+          key: 'wear_mask',
+          category: 'prevention',
+          priority: 'medium',
+          type: 'action'
+        });
+        recommendations.prevention.push({
+          key: 'frequent_handwashing',
+          category: 'prevention',
+          priority: 'medium',
+          type: 'action'
+        });
         break;
 
       case 'low':
       case 'very_low':
-        recommendations.monitoring.push('继续观察症状');
-        recommendations.prevention.push('保持良好卫生习惯');
-        recommendations.prevention.push('充足休息');
-        recommendations.prevention.push('多喝水');
+        recommendations.monitoring.push({
+          key: 'continue_observation',
+          category: 'monitoring',
+          priority: 'low',
+          type: 'action'
+        });
+        recommendations.prevention.push({
+          key: 'good_hygiene',
+          category: 'prevention',
+          priority: 'low',
+          type: 'action'
+        });
+        recommendations.prevention.push({
+          key: 'adequate_rest',
+          category: 'prevention',
+          priority: 'low',
+          type: 'action'
+        });
+        recommendations.prevention.push({
+          key: 'drink_water',
+          category: 'prevention',
+          priority: 'low',
+          type: 'action'
+        });
         break;
     }
 
