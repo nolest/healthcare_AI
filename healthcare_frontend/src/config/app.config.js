@@ -19,8 +19,8 @@ const testingConfig = {
 };
 
 const productionConfig = {
-  apiUrl: import.meta.env.VITE_API_URL || 'http://43.143.141.188:6886/hcbe/api',
-  staticUrl: import.meta.env.VITE_STATIC_URL || 'http://43.143.141.188:6886/hcbe',
+  apiUrl: import.meta.env.VITE_API_URL || 'http://43.134.141.188:6886/hcbe/api',
+  staticUrl: import.meta.env.VITE_STATIC_URL || 'http://43.134.141.188:6886/hcbe',
   environment: 'production',
 };
 
