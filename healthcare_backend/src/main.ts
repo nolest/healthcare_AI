@@ -1,54 +1,73 @@
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
-import { NestExpressApplication } from '@nestjs/platform-express';
-import { join } from 'path';
 import { AppModule } from './app.module';
-import { appConfig } from './config/app.config';
+import { join } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  
+  // 确保uploads目录存在
+  const uploadsPath = join(process.cwd(), 'uploads');
+  const picPath = join(uploadsPath, 'pic');
+  const measurementPath = join(picPath, 'measurement');
+  const covidPath = join(picPath, 'covid');
+
+  console.log('[STARTUP] Checking uploads directories...');
+  console.log('[STARTUP] Process CWD:', process.cwd());
+  console.log('[STARTUP] Node ENV:', process.env.NODE_ENV);
+
+  try {
+    if (!existsSync(uploadsPath)) {
+      console.log('[STARTUP] Creating uploads directory:', uploadsPath);
+      mkdirSync(uploadsPath, { recursive: true });
+    }
+    if (!existsSync(picPath)) {
+      console.log('[STARTUP] Creating pic directory:', picPath);
+      mkdirSync(picPath, { recursive: true });
+    }
+    if (!existsSync(measurementPath)) {
+      console.log('[STARTUP] Creating measurement directory:', measurementPath);
+      mkdirSync(measurementPath, { recursive: true });
+    }
+    if (!existsSync(covidPath)) {
+      console.log('[STARTUP] Creating covid directory:', covidPath);
+      mkdirSync(covidPath, { recursive: true });
+    }
+    console.log('[STARTUP] All upload directories are ready');
+  } catch (error) {
+    console.error('[STARTUP] Error creating upload directories:', error);
+    // 不要因为目录创建失败而停止应用启动
+  }
+
+  const app = await NestFactory.create(AppModule);
+
   // 启用CORS
   app.enableCors({
-    origin: appConfig.frontendUrl,
+    origin: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
 
-  // 配置静态文件服务
-  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
-    prefix: '/uploads/',
-  });
-
-  // 全局验证管道
+  // 启用全局验证管道
   app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
     transform: true,
+    whitelist: true,
   }));
 
-  // API前缀
-  app.setGlobalPrefix('api');
-
-  // Swagger配置
+  // Swagger文档配置
   const config = new DocumentBuilder()
-    .setTitle('远程医疗系统 API')
-    .setDescription('远程医疗系统后端API文档')
+    .setTitle('Healthcare AI API')
+    .setDescription('Healthcare AI系统API文档')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
-    
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-docs', app, document);
 
-  await app.listen(appConfig.port);
-  
-  console.log(`🚀 应用启动成功！`);
-  console.log(`🌍 环境: ${appConfig.environment}`);
-  console.log(`📱 API地址: ${appConfig.apiUrl}/api`);
-  console.log(`📚 API文档: ${appConfig.apiUrl}/api-docs`);
-  console.log(`📷 图片访问: ${appConfig.staticUrl}/uploads/`);
-  console.log(`🖥️  前端地址: ${appConfig.frontendUrl}`);
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  console.log(`[STARTUP] Application is running on port ${port}`);
+  console.log(`[STARTUP] Swagger docs available at http://localhost:${port}/api-docs`);
 }
 
 bootstrap();

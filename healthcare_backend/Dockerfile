@@ -20,6 +20,11 @@ RUN npm run build
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nestjs -u 1001
 
+# 创建uploads目录并设置权限
+RUN mkdir -p /app/uploads/pic/measurement /app/uploads/pic/covid
+RUN chown -R nestjs:nodejs /app/uploads
+RUN chmod -R 755 /app/uploads
+
 # 更改文件所有权
 RUN chown -R nestjs:nodejs /app
 USER nestjs
