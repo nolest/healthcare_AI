@@ -48,6 +48,9 @@ async function bootstrap() {
     credentials: true,
   });
 
+  // 设置全局路径前缀
+  app.setGlobalPrefix('api');
+
   // 启用全局验证管道
   app.useGlobalPipes(new ValidationPipe({
     transform: true,

@@ -80,14 +80,17 @@ curl -I http://localhost:7723/api/health 2>/dev/null | head -n 1
 echo "测试通过Nginx代理的API："
 curl -I http://localhost:6886/hcbe/api/health 2>/dev/null | head -n 1
 
+echo "测试登录接口："
+curl -X POST -H "Content-Type: application/json" -d '{"username":"test","password":"test"}' http://localhost:6886/hcbe/api/auth/login 2>/dev/null | head -n 1
+
 echo ""
 echo "=========================================="
 echo "重新部署完成！"
 echo "=========================================="
 echo "访问地址："
 echo "前端: http://43.134.141.188:6886/"
-echo "API文档: http://43.134.141.188:6886/hcbe/api"
-echo "数据库管理: http://43.134.141.188:8081/"
+echo "API文档: http://43.134.141.188:6886/hcbe/api-docs"
+echo "数据库管理: http://43.134.141.188:6886/db/"
 echo ""
 echo "如果遇到问题，请检查："
 echo "1. 防火墙设置: sudo ufw status"
