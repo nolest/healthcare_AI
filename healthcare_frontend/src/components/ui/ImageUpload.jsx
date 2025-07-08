@@ -199,7 +199,7 @@ export default function ImageUpload({
           <Label className="flex items-center justify-between">
             <span>{t('image_upload.preview_title')}</span>
             <span className="text-xs text-gray-500">
-              {t('image_upload.total_size')}: {(selectedImages.reduce((total, img) => total + img.size, 0) / 1024 / 1024).toFixed(1)} MB
+              {t('image_upload.total_size')}: {(selectedImages.reduce((total, img) => total + (img?.size || 0), 0) / 1024 / 1024).toFixed(1)} MB
             </span>
           </Label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -238,7 +238,7 @@ export default function ImageUpload({
                 </div>
                 
                 <div className="absolute bottom-1 right-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
-                  {(selectedImages[index]?.size / 1024 / 1024).toFixed(1)}MB
+                  {selectedImages[index]?.size ? (selectedImages[index].size / 1024 / 1024).toFixed(1) : '0.0'}MB
                 </div>
               </div>
             ))}
