@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Globe } from 'lucide-react'
 import i18n from '../utils/i18n'
 
-export default function LanguageSwitcher() {
+export default function LanguageSwitcher({ textColor = 'white' }) {
   const [currentLanguage, setCurrentLanguage] = useState(i18n.getCurrentLanguage())
 
   useEffect(() => {
@@ -22,13 +22,21 @@ export default function LanguageSwitcher() {
 
   const languages = i18n.getAvailableLanguages()
 
+  // 根据textColor属性设置文字颜色样式
+  const getTextColorClasses = () => {
+    if (textColor === 'dark') {
+      return 'text-gray-700 hover:text-gray-900'
+    }
+    return 'text-white/70 hover:text-white/90'
+  }
+
   return (
     <div className="flex items-center space-x-3 px-4 h-full">
       <div className="p-1.5 bg-gradient-to-br from-blue-500/70 to-indigo-600/70 rounded-xl shadow-sm">
         <Globe className="h-4 w-4 text-white" />
       </div>
       <Select value={currentLanguage} onValueChange={handleLanguageChange}>
-        <SelectTrigger className="w-auto min-w-[4rem] border-0 bg-transparent shadow-none focus:ring-0 focus:ring-offset-0 focus:outline-none focus-visible:ring-0 focus-visible:border-transparent hover:bg-white/30 transition-all duration-200 rounded-xl px-3 py-1.5 text-sm font-medium text-white/70 hover:text-white/90">
+        <SelectTrigger className={`w-auto min-w-[4rem] border-0 bg-transparent shadow-none focus:ring-0 focus:ring-offset-0 focus:outline-none focus-visible:ring-0 focus-visible:border-transparent hover:bg-white/30 transition-all duration-200 rounded-xl px-3 py-1.5 text-sm font-medium ${getTextColorClasses()}`}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent className="border-0 bg-gradient-to-br from-white/98 to-white/95 backdrop-blur-xl shadow-2xl shadow-blue-500/25 rounded-2xl p-2 min-w-[8rem]">
