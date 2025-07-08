@@ -63,7 +63,7 @@ export default function PatientHeader({
           <div className="flex items-center space-x-4">
             {/* 语言设置 */}
             <div className="h-11 bg-gradient-to-br from-white/70 to-white/50 backdrop-blur-md rounded-2xl shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 transition-all duration-300 overflow-hidden flex items-center">
-              <LanguageSwitcher />
+              <LanguageSwitcher textColor="dark" />
             </div>
             
             {/* 用户信息 */}
