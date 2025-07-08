@@ -89,7 +89,20 @@ export class CovidAssessmentsController {
       
       return result;
     } catch (error) {
-      console.error('❌ 创建COVID评估记录时出错:', error);
+      console.error(`[${new Date().toISOString()}] ❌ 创建COVID评估记录时出错:`, error);
+      console.error(`[${new Date().toISOString()}] ❌ 错误堆栈:`, error.stack);
+      
+      // 提供更详细的错误信息
+      if (error.message && error.message.includes('Upload directory')) {
+        throw new Error(`文件上传目录错误: ${error.message}`);
+      } else if (error.message && error.message.includes('只允许上传图片文件')) {
+        throw new Error(`文件类型错误: ${error.message}`);
+      } else if (error.code === 'EACCES') {
+        throw new Error('文件系统权限错误，无法创建上传目录或文件');
+      } else if (error.code === 'ENOSPC') {
+        throw new Error('磁盘空间不足，无法保存上传的文件');
+      }
+      
       throw error;
     }
   }

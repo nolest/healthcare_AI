@@ -786,6 +786,21 @@ export default function PatientDiagnosisReportDetailPage() {
                 )}
               </div>
 
+              {/* 用药建议和生活方式建议 */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {(report.medications || report.medicationPrescription) && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full"></div>
+                      <h3 className="text-lg font-semibold text-gray-800">{i18n.t('pages.patient_diagnosis_detail.medication_advice')}</h3>
+                    </div>
+                    <div className="p-4 bg-gradient-to-br from-blue-50 via-blue-25 to-white rounded-xl shadow-sm min-h-[100px]">
+                      <p className="text-blue-900 leading-relaxed whitespace-pre-wrap">{report.medications || report.medicationPrescription || i18n.t('pages.patient_diagnosis_detail.no_medication_advice')}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* 生活方式建议和复查建议 */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {report.lifestyle && (

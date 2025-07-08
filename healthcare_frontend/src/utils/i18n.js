@@ -293,6 +293,8 @@ class I18n {
         'pages.patient_diagnosis_detail.doctor_recommendation': '醫生建議',
         'pages.patient_diagnosis_detail.no_recommendation': '暫無建議',
         'pages.patient_diagnosis_detail.treatment_plan': '治療方案',
+        'pages.patient_diagnosis_detail.medication_advice': '用藥建議',
+        'pages.patient_diagnosis_detail.no_medication_advice': '暫無用藥建議',
         'pages.patient_diagnosis_detail.lifestyle_advice': '生活方式建議',
         'pages.patient_diagnosis_detail.follow_up_advice': '復查建議',
         
@@ -2423,6 +2425,8 @@ class I18n {
         'pages.patient_diagnosis_detail.doctor_recommendation': '医生建议',
         'pages.patient_diagnosis_detail.no_recommendation': '暂无建议',
         'pages.patient_diagnosis_detail.treatment_plan': '治疗方案',
+        'pages.patient_diagnosis_detail.medication_advice': '用药建议',
+        'pages.patient_diagnosis_detail.no_medication_advice': '暂无用药建议',
         'pages.patient_diagnosis_detail.lifestyle_advice': '生活方式建议',
         'pages.patient_diagnosis_detail.follow_up_advice': '复查建议',
         
@@ -5027,6 +5031,8 @@ class I18n {
         'pages.patient_diagnosis_detail.doctor_recommendation': 'Doctor Recommendations',
         'pages.patient_diagnosis_detail.no_recommendation': 'No recommendations',
         'pages.patient_diagnosis_detail.treatment_plan': 'Treatment Plan',
+        'pages.patient_diagnosis_detail.medication_advice': 'Medication Advice',
+        'pages.patient_diagnosis_detail.no_medication_advice': 'No medication advice',
         'pages.patient_diagnosis_detail.lifestyle_advice': 'Lifestyle Advice',
         'pages.patient_diagnosis_detail.follow_up_advice': 'Follow-up Advice',
         'pages.patient_diagnosis_detail.abnormal_reasons': 'Abnormal Reasons Analysis',

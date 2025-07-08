@@ -28,11 +28,31 @@ export class MeasurementsController {
     @UploadedFiles() files: Express.Multer.File[]
   ) {
     try {
+      console.log(`[${new Date().toISOString()}] 📥 收到测量数据提交请求`);
+      console.log(`[${new Date().toISOString()}] 👤 用户信息:`, {
+        id: req.user._id,
+        username: req.user.username
+      });
+      console.log(`[${new Date().toISOString()}] 📋 请求体:`, createMeasurementDto);
+      console.log(`[${new Date().toISOString()}] 📸 上传文件数量:`, files?.length || 0);
+      
+      if (files && files.length > 0) {
+        console.log(`[${new Date().toISOString()}] 📸 文件详情:`, files.map(f => ({
+          originalname: f.originalname,
+          filename: f.filename,
+          path: f.path,
+          size: f.size,
+          mimetype: f.mimetype
+        })));
+      }
+
       // 处理上传的图片路径
       const imagePaths = files ? files.map(file => {
         // 返回相对于uploads目录的路径
         const relativePath = file.path.replace(process.cwd(), '').replace(/\\/g, '/');
-        return relativePath.startsWith('/') ? relativePath : '/' + relativePath;
+        const finalPath = relativePath.startsWith('/') ? relativePath : '/' + relativePath;
+        console.log(`[${new Date().toISOString()}] 🖼️ 图片路径处理: ${file.path} -> ${finalPath}`);
+        return finalPath;
       }) : [];
 
       // 手动转换数据类型（multipart/form-data中所有数据都是字符串）
@@ -54,14 +74,32 @@ export class MeasurementsController {
         }
       });
 
+      console.log(`[${new Date().toISOString()}] ✅ 处理后的测量数据:`, measurementData);
+
       const result = await this.measurementsService.create(req.user._id, measurementData);
+      
+      console.log(`[${new Date().toISOString()}] ✅ 测量数据创建成功:`, result._id);
+      
       return {
         success: true,
         data: result,
         message: '测量数据提交成功'
       };
     } catch (error) {
-      console.error('创建测量记录时出错:', error);
+      console.error(`[${new Date().toISOString()}] ❌ 创建测量记录时出错:`, error);
+      console.error(`[${new Date().toISOString()}] ❌ 错误堆栈:`, error.stack);
+      
+      // 提供更详细的错误信息
+      if (error.message && error.message.includes('Upload directory')) {
+        throw new Error(`文件上传目录错误: ${error.message}`);
+      } else if (error.message && error.message.includes('只允许上传图片文件')) {
+        throw new Error(`文件类型错误: ${error.message}`);
+      } else if (error.code === 'EACCES') {
+        throw new Error('文件系统权限错误，无法创建上传目录或文件');
+      } else if (error.code === 'ENOSPC') {
+        throw new Error('磁盘空间不足，无法保存上传的文件');
+      }
+      
       throw error;
     }
   }
