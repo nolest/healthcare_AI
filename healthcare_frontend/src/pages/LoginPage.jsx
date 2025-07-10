@@ -174,7 +174,7 @@ export default function LoginPage() {
           {/* 底部信息 */}
           <div className="text-center text-sm" style={{ marginTop: '0' }}>
             <div className="inline-block bg-white/10 backdrop-blur-sm rounded-2xl px-4 py-2 text-white">
-                              <p>© 2022 {i18n.t('app.title')}</p>
+                              <p>© Health Care Technology AP Limited</p>
               <p>{i18n.t('features.professional_diagnosis')} · {i18n.t('features.secure_reliable')} · {i18n.t('features.smart_measurement')}</p>
             </div>
           </div>

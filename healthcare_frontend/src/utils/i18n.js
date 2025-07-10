@@ -34,7 +34,8 @@ class I18n {
         'common.view_details': '查看詳情',
         
         // 系統標題
-        'app.title': 'Health Care Technology AP Limited',
+        'app.title': '遠程健康醫護系統',
+        'app.page_title': '遠程健康醫護系統',
         'app.subtitle': '智能診斷點 遠程醫療服務',
         'app.description': '在辦公大樓、機場、保險公司等場所，患者可獨立進行基本生命體徵測量，並通過遠程醫療平台由專業醫護人員進行評估和診斷。',
         
@@ -1749,7 +1750,8 @@ class I18n {
         'common.view_details': '查看详情',
         
         // 系统标题
-        'app.title': 'Health Care Technology AP Limited',
+        'app.title': '远程健康医护系统',
+        'app.page_title': '远程健康医护系统',
         'app.subtitle': '智能诊断点 远程医疗服务',
         'app.description': '在办公大楼、机场、保险公司等场所，患者可独立进行基本生命体征测量，并通过远程医疗平台由专业医护人员进行评估和诊断。',
         
@@ -3345,7 +3347,8 @@ class I18n {
         'common.view_details': 'View Details',
         
         // App Title
-        'app.title': 'Health Care Technology AP Limited',
+        'app.title': 'Remote Health Care System',
+        'app.page_title': 'Remote Health Care System',
         'app.subtitle': 'Smart Diagnostic Points Remote Healthcare Services',
         'app.description': 'At office buildings, airports, insurance companies and other locations, patients can independently measure basic vital signs and receive professional evaluation and diagnosis from healthcare professionals through the telemedicine platform.',
         

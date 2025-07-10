@@ -1,4 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import i18n from '../utils/i18n'
 import LoginPage from '../pages/LoginPage.jsx'
 import RegisterPage from '../pages/RegisterPage.jsx'
 import PatientMenuPage from '../pages/PatientMenuPage.jsx'
@@ -28,6 +30,24 @@ import ConfirmDialogTestPage from '../pages/ConfirmDialogTestPage.jsx'
 import ImagePreviewTestPage from '../pages/ImagePreviewTestPage.jsx'
 
 export default function AppRouter() {
+  // 监听语言变化并更新页面标题
+  useEffect(() => {
+    const updatePageTitle = () => {
+      document.title = i18n.t('app.page_title')
+    }
+    
+    // 初始设置标题
+    updatePageTitle()
+    
+    // 监听语言变化
+    i18n.addListener(updatePageTitle)
+    
+    // 清理监听器
+    return () => {
+      i18n.removeListener(updatePageTitle)
+    }
+  }, [])
+
   return (
     <Router>
       <Routes>
