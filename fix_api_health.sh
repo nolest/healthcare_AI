@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🔧 修復 API 健康檢查問題"
 echo "=========================="
@@ -93,7 +93,7 @@ echo "直接訪問 API："
 curl -s -o /dev/null -w "狀態碼: %{http_code}\n" http://localhost:7723/health
 
 echo "通過 Nginx 訪問 API："
-curl -s -o /dev/null -w "狀態碼: %{http_code}\n" http://43.143.141.188:6886/hcbe/health
+curl -s -o /dev/null -w "狀態碼: %{http_code}\n" http://43.134.141.188:6886/hcbe/health
 
 # 10. 檢查最終狀態
 echo "📊 最終狀態檢查..."
@@ -116,7 +116,7 @@ if ! docker exec healthcare-api curl -f http://localhost:7723/health > /dev/null
 else
     echo "🎉 API 健康檢查修復成功！"
     echo "📋 現在可以訪問："
-    echo "   前端: http://43.143.141.188:6886/"
-    echo "   API: http://43.143.141.188:6886/hcbe/"
-    echo "   數據庫管理: http://43.143.141.188:6886/db/"
+    echo "   前端: http://43.134.141.188:6886/"
+    echo "   API: http://43.134.141.188:6886/hcbe/"
+    echo "   數據庫管理: http://43.134.141.188:6886/db/"
 fi 

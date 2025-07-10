@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🔧 修復權限和路徑問題"
 echo "===================="
@@ -24,7 +24,7 @@ echo "⚙️ 更新Nginx配置..."
 sudo tee /etc/nginx/sites-available/healthcare > /dev/null << 'EOF'
 server {
     listen 6886;
-    server_name 43.143.141.188;
+    server_name 43.134.141.188;
 
     client_max_body_size 100M;
 
@@ -125,9 +125,9 @@ curl -s -o /dev/null -w "API (localhost:6886/hcbe): %{http_code}\n" http://local
 
 echo ""
 echo "外部測試："
-curl -s -o /dev/null -w "前端 (43.143.141.188:6886): %{http_code}\n" http://43.143.141.188:6886/
-curl -s -o /dev/null -w "API (43.143.141.188:6886/hcbe): %{http_code}\n" http://43.143.141.188:6886/hcbe/api/health
-curl -s -o /dev/null -w "數據庫 (43.143.141.188:6886/db): %{http_code}\n" http://43.143.141.188:6886/db/
+curl -s -o /dev/null -w "前端 (43.134.141.188:6886): %{http_code}\n" http://43.134.141.188:6886/
+curl -s -o /dev/null -w "API (43.134.141.188:6886/hcbe): %{http_code}\n" http://43.134.141.188:6886/hcbe/api/health
+curl -s -o /dev/null -w "數據庫 (43.134.141.188:6886/db): %{http_code}\n" http://43.134.141.188:6886/db/
 
 echo ""
 echo "🔍 如果仍有問題，檢查最新錯誤日誌..."

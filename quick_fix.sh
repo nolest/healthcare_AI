@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🔧 快速修復 - 重新啟動所有服務"
 echo "================================="
@@ -51,5 +51,5 @@ curl -s -o /dev/null -w "Nginx->API: %{http_code}\n" http://localhost:6886/hcbe/
 
 echo ""
 echo "🌐 測試外部訪問..."
-curl -s -o /dev/null -w "外部前端: %{http_code}\n" http://43.143.141.188:6886/
-curl -s -o /dev/null -w "外部API: %{http_code}\n" http://43.143.141.188:6886/hcbe/api/health 
+curl -s -o /dev/null -w "外部前端: %{http_code}\n" http://43.134.141.188:6886/
+curl -s -o /dev/null -w "外部API: %{http_code}\n" http://43.134.141.188:6886/hcbe/api/health 

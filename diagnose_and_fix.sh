@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🔍 診斷醫療AI系統問題"
 echo "=========================="
@@ -155,15 +155,15 @@ echo "🎯 最終測試..."
 sleep 10
 
 echo "測試前端頁面："
-FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.143.141.188:6886/)
+FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.134.141.188:6886/)
 echo "前端狀態碼: $FRONTEND_STATUS"
 
 echo "測試後端API："
-BACKEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.143.141.188:6886/hcbe/health)
+BACKEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.134.141.188:6886/hcbe/health)
 echo "後端狀態碼: $BACKEND_STATUS"
 
 echo "測試數據庫管理："
-DB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.143.141.188:6886/db/)
+DB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.134.141.188:6886/db/)
 echo "數據庫管理狀態碼: $DB_STATUS"
 
 echo "測試後端API（直接）："
@@ -173,9 +173,9 @@ echo "直接API狀態碼: $DIRECT_API_STATUS"
 echo ""
 echo "🎉 診斷和修復完成！"
 echo "📋 訪問地址："
-echo "   前端: http://43.143.141.188:6886/"
-echo "   API: http://43.143.141.188:6886/hcbe/"
-echo "   數據庫管理: http://43.143.141.188:6886/db/"
+echo "   前端: http://43.134.141.188:6886/"
+echo "   API: http://43.134.141.188:6886/hcbe/"
+echo "   數據庫管理: http://43.134.141.188:6886/db/"
 echo ""
 
 # 16. 提供故障排除建議

@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🌐 医疗AI系统 - 前端重新发布脚本"
 echo "===================================="
@@ -138,8 +138,8 @@ if [ "$BUILD_FRONTEND" = true ]; then
     
     # 设置环境变量
     export NODE_ENV=production
-    export VITE_API_URL=http://43.143.141.188:6886/hcbe
-    export VITE_STATIC_URL=http://43.143.141.188:6886
+    export VITE_API_URL=http://43.134.141.188:6886/hcbe
+    export VITE_STATIC_URL=http://43.134.141.188:6886
     
     # 构建前端
     npm run build || handle_error "前端构建失败"
@@ -179,7 +179,7 @@ sleep 5
 
 # 12. 验证前端部署
 log_info "验证前端部署..."
-FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.143.141.188:6886/)
+FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.134.141.188:6886/)
 if [ "$FRONTEND_STATUS" = "200" ]; then
     log_success "前端页面正常访问 (状态码: $FRONTEND_STATUS)"
 else
@@ -188,7 +188,7 @@ fi
 
 # 13. 检查关键文件
 log_info "检查关键静态文件..."
-STATIC_JS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.143.141.188:6886/assets/ | head -c 1)
+STATIC_JS_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.134.141.188:6886/assets/ | head -c 1)
 if [ "$STATIC_JS_STATUS" = "2" ] || [ "$STATIC_JS_STATUS" = "3" ]; then
     log_success "静态文件访问正常"
 else
@@ -214,7 +214,7 @@ echo ""
 echo "🎉 前端重新发布完成！"
 echo "=================================="
 echo "📋 访问地址:"
-echo "   前端: http://43.143.141.188:6886/"
+echo "   前端: http://43.134.141.188:6886/"
 echo ""
 echo "📁 路径信息:"
 echo "   前端源码: $FRONTEND_DIR"
@@ -244,7 +244,7 @@ log_success "前端重新发布脚本执行完成！"
 # 18. 显示下一步建议
 echo ""
 echo "💡 建议:"
-echo "1. 在浏览器中访问 http://43.143.141.188:6886/ 验证前端功能"
+echo "1. 在浏览器中访问 http://43.134.141.188:6886/ 验证前端功能"
 echo "2. 检查浏览器控制台是否有错误"
 echo "3. 测试关键功能是否正常工作"
 echo "4. 如有问题，可以使用备份快速恢复" 

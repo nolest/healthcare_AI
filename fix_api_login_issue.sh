@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🔧 診斷和修復API登錄問題"
 echo "========================="
@@ -47,7 +47,7 @@ echo ""
 echo "🔧 修復可能的問題..."
 
 # 獲取正確的公網IP
-PUBLIC_IP=$(curl -s ipinfo.io/ip 2>/dev/null || curl -s ifconfig.me 2>/dev/null || echo "43.143.141.188")
+PUBLIC_IP=$(curl -s ipinfo.io/ip 2>/dev/null || curl -s ifconfig.me 2>/dev/null || echo "43.134.141.188")
 echo "檢測到的公網IP: $PUBLIC_IP"
 
 # 更新Nginx配置

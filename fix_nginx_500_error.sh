@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🔧 修復Nginx 500錯誤"
 echo "==================="
@@ -67,8 +67,8 @@ echo ""
 echo "🧪 測試修復結果..."
 curl -s -o /dev/null -w "本地前端: %{http_code}\n" http://localhost:6886/
 curl -s -o /dev/null -w "本地API: %{http_code}\n" http://localhost:6886/hcbe/api/health
-curl -s -o /dev/null -w "外部前端: %{http_code}\n" http://43.143.141.188:6886/
-curl -s -o /dev/null -w "外部API: %{http_code}\n" http://43.143.141.188:6886/hcbe/api/health
+curl -s -o /dev/null -w "外部前端: %{http_code}\n" http://43.134.141.188:6886/
+curl -s -o /dev/null -w "外部API: %{http_code}\n" http://43.134.141.188:6886/hcbe/api/health
 
 echo ""
 echo "🔍 如果仍有問題，檢查最新錯誤日誌..."

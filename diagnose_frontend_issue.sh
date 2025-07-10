@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🔍 医疗AI系统 - 前端访问问题诊断脚本"
 echo "=========================================="
@@ -101,8 +101,8 @@ curl -s -o /dev/null -w "状态码: %{http_code}, 响应时间: %{time_total}s\n
 
 # 10. 测试外部访问
 log_info "测试外部访问..."
-echo "测试43.143.141.188:6886："
-curl -s -o /dev/null -w "状态码: %{http_code}, 响应时间: %{time_total}s\n" http://43.143.141.188:6886/ || echo "连接失败"
+echo "测试43.134.141.188:6886："
+curl -s -o /dev/null -w "状态码: %{http_code}, 响应时间: %{time_total}s\n" http://43.134.141.188:6886/ || echo "连接失败"
 
 # 11. 检查系统资源
 log_info "检查系统资源..."

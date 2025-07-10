@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🏥 醫療AI系統 - 更新部署腳本"
 echo "========================================"
@@ -27,7 +27,7 @@ echo "⚙️ 更新Nginx配置..."
 sudo tee /etc/nginx/sites-available/healthcare > /dev/null <<'EOF'
 server {
     listen 6886;
-    server_name 43.143.141.188;
+    server_name 43.134.141.188;
     
     client_max_body_size 100M;
     
@@ -122,20 +122,20 @@ docker-compose ps
 # 測試服務
 echo "🧪 測試服務..."
 echo "測試前端頁面..."
-curl -s -o /dev/null -w "HTTP狀態碼: %{http_code}\n" http://43.143.141.188:6886/
+curl -s -o /dev/null -w "HTTP狀態碼: %{http_code}\n" http://43.134.141.188:6886/
 
 echo "測試後端API..."
-curl -s -o /dev/null -w "HTTP狀態碼: %{http_code}\n" http://43.143.141.188:6886/hcbe/health
+curl -s -o /dev/null -w "HTTP狀態碼: %{http_code}\n" http://43.134.141.188:6886/hcbe/health
 
 echo "測試數據庫管理界面..."
-curl -s -o /dev/null -w "HTTP狀態碼: %{http_code}\n" http://43.143.141.188:6886/db/
+curl -s -o /dev/null -w "HTTP狀態碼: %{http_code}\n" http://43.134.141.188:6886/db/
 
 echo ""
 echo "🎉 更新部署完成！"
 echo "📋 訪問地址："
-echo "   前端: http://43.143.141.188:6886/"
-echo "   API: http://43.143.141.188:6886/hcbe/"
-echo "   數據庫管理: http://43.143.141.188:6886/db/"
+echo "   前端: http://43.134.141.188:6886/"
+echo "   API: http://43.134.141.188:6886/hcbe/"
+echo "   數據庫管理: http://43.134.141.188:6886/db/"
 echo ""
 echo "🔑 默認賬戶："
 echo "   管理員: admin / admin123"

@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "⚡ 医疗AI系统 - 快速前端发布脚本"
 echo "==================================="
@@ -48,8 +48,8 @@ fi
 # 4. 构建前端
 log_info "构建前端项目..."
 export NODE_ENV=production
-export VITE_API_URL=http://43.143.141.188:6886/hcbe
-export VITE_STATIC_URL=http://43.143.141.188:6886
+export VITE_API_URL=http://43.134.141.188:6886/hcbe
+export VITE_STATIC_URL=http://43.134.141.188:6886
 
 npm run build
 
@@ -71,13 +71,13 @@ sudo systemctl reload nginx
 # 8. 测试前端访问
 log_info "测试前端访问..."
 sleep 3
-STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.143.141.188:6886/)
+STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.134.141.188:6886/)
 
 if [ "$STATUS" = "200" ]; then
     log_success "前端发布成功！"
     echo ""
     echo "🎉 前端已成功发布！"
-    echo "📋 访问地址: http://43.143.141.188:6886/"
+    echo "📋 访问地址: http://43.134.141.188:6886/"
 else
     log_error "前端访问异常 (状态码: $STATUS)"
     echo "请检查Nginx配置和日志"

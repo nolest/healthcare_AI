@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🔧 修復 Docker Compose 問題"
 echo "============================"
@@ -75,13 +75,13 @@ echo "測試MongoDB管理："
 curl -s -o /dev/null -w "狀態碼: %{http_code}\n" http://localhost:8081
 
 echo "測試前端頁面："
-curl -s -o /dev/null -w "狀態碼: %{http_code}\n" http://43.143.141.188:6886/
+curl -s -o /dev/null -w "狀態碼: %{http_code}\n" http://43.134.141.188:6886/
 
 echo "測試後端API（通過Nginx）："
-curl -s -o /dev/null -w "狀態碼: %{http_code}\n" http://43.143.141.188:6886/hcbe/health
+curl -s -o /dev/null -w "狀態碼: %{http_code}\n" http://43.134.141.188:6886/hcbe/health
 
 echo "測試數據庫管理（通過Nginx）："
-curl -s -o /dev/null -w "狀態碼: %{http_code}\n" http://43.143.141.188:6886/db/
+curl -s -o /dev/null -w "狀態碼: %{http_code}\n" http://43.134.141.188:6886/db/
 
 # 13. 最終狀態報告
 echo ""
@@ -91,9 +91,9 @@ echo "📊 最終服務狀態："
 
 echo ""
 echo "📋 訪問地址："
-echo "   前端: http://43.143.141.188:6886/"
-echo "   API: http://43.143.141.188:6886/hcbe/"
-echo "   數據庫管理: http://43.143.141.188:6886/db/"
+echo "   前端: http://43.134.141.188:6886/"
+echo "   API: http://43.134.141.188:6886/hcbe/"
+echo "   數據庫管理: http://43.134.141.188:6886/db/"
 echo ""
 echo "🔑 默認賬戶："
 echo "   管理員: admin / admin123"

@@ -1,4 +1,4 @@
-# 🌐 医疗AI系统 - 前端发布指南
+﻿# 🌐 医疗AI系统 - 前端发布指南
 
 ## 📋 脚本说明
 
@@ -30,8 +30,8 @@
    git pull origin prod
    
    # 方法2：手动上传
-   scp redeploy_frontend.sh ubuntu@43.143.141.188:/home/ubuntu/
-   scp quick_frontend_deploy.sh ubuntu@43.143.141.188:/home/ubuntu/
+   scp redeploy_frontend.sh ubuntu@43.134.141.188:/home/ubuntu/
+   scp quick_frontend_deploy.sh ubuntu@43.134.141.188:/home/ubuntu/
    ```
 
 2. **添加执行权限**：
@@ -88,8 +88,8 @@
 脚本会自动设置以下环境变量：
 ```bash
 NODE_ENV=production
-VITE_API_URL=http://43.143.141.188:6886/hcbe
-VITE_STATIC_URL=http://43.143.141.188:6886
+VITE_API_URL=http://43.134.141.188:6886/hcbe
+VITE_STATIC_URL=http://43.134.141.188:6886
 ```
 
 ## 🛡️ 安全特性
@@ -209,7 +209,7 @@ sudo mv /home/ubuntu/backup/frontend_YYYYMMDD_HHMMSS /home/ubuntu/code/healthcar
 - **构建文件路径**：`/home/ubuntu/code/healthcare_AI/healthcare_frontend/dist`
 - **备份路径**：`/home/ubuntu/backup/`
 - **Nginx配置文件**：`/etc/nginx/sites-available/healthcare`
-- **访问地址**：`http://43.143.141.188:6886/`
+- **访问地址**：`http://43.134.141.188:6886/`
 
 ## 🎯 最佳实践
 

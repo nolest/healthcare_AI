@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🔧 医疗AI系统 - 修复Nginx配置路径问题"
 echo "========================================"
@@ -36,7 +36,7 @@ log_info "创建正确的Nginx配置..."
 sudo tee /etc/nginx/sites-available/healthcare > /dev/null <<'EOF'
 server {
     listen 6886;
-    server_name 43.143.141.188 localhost;
+    server_name 43.134.141.188 localhost;
     
     client_max_body_size 100M;
     
@@ -167,9 +167,9 @@ fi
 
 # 测试外部访问（短超时）
 log_info "测试外部访问（10秒超时）..."
-EXTERNAL_STATUS=$(timeout 10 curl -s -o /dev/null -w "%{http_code}" http://43.143.141.188:6886/ 2>/dev/null)
+EXTERNAL_STATUS=$(timeout 10 curl -s -o /dev/null -w "%{http_code}" http://43.134.141.188:6886/ 2>/dev/null)
 if [ "$EXTERNAL_STATUS" = "200" ]; then
-    log_success "外部访问正常 (43.143.141.188:6886) - 状态码: $EXTERNAL_STATUS"
+    log_success "外部访问正常 (43.134.141.188:6886) - 状态码: $EXTERNAL_STATUS"
 else
     log_warning "外部访问异常 (状态码: $EXTERNAL_STATUS)"
     log_info "这可能是云服务器安全组问题，不是Nginx配置问题"
@@ -197,7 +197,7 @@ echo "   ✅ 设置了正确的文件权限"
 echo ""
 echo "📋 访问地址："
 echo "   本地访问: http://localhost:6886/ (状态码: $LOCAL_STATUS)"
-echo "   外部访问: http://43.143.141.188:6886/ (状态码: $EXTERNAL_STATUS)"
+echo "   外部访问: http://43.134.141.188:6886/ (状态码: $EXTERNAL_STATUS)"
 echo ""
 echo "🔧 管理命令："
 echo "   查看配置: sudo cat /etc/nginx/sites-available/healthcare"

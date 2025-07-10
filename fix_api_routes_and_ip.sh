@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🔧 医疗AI系统 - 修复API路由前缀和IP地址"
 echo "========================================"
@@ -29,7 +29,7 @@ log_error() {
 # 项目路径
 FRONTEND_DIR="/home/ubuntu/code/healthcare_AI/healthcare_frontend"
 BACKEND_DIR="/home/ubuntu/code/healthcare_AI/healthcare_backend"
-WRONG_IP="43.143.141.188"
+WRONG_IP="43.134.141.188"
 CORRECT_IP="43.134.141.188"
 
 # 1. 修复Nginx配置中的API路由前缀

@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🔧 医疗AI系统 - 前端访问问题快速修复脚本"
 echo "=============================================="
@@ -37,7 +37,7 @@ if [ ! -f "/etc/nginx/sites-available/healthcare" ]; then
     sudo tee /etc/nginx/sites-available/healthcare > /dev/null <<'EOF'
 server {
     listen 6886;
-    server_name 43.143.141.188 localhost;
+    server_name 43.134.141.188 localhost;
     
     client_max_body_size 100M;
     
@@ -188,9 +188,9 @@ else
 fi
 
 # 测试外部访问
-EXTERNAL_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.143.141.188:6886/ 2>/dev/null)
+EXTERNAL_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.134.141.188:6886/ 2>/dev/null)
 if [ "$EXTERNAL_STATUS" = "200" ]; then
-    log_success "外部访问正常 (43.143.141.188:6886)"
+    log_success "外部访问正常 (43.134.141.188:6886)"
 else
     log_warning "外部访问异常 (状态码: $EXTERNAL_STATUS)"
 fi
@@ -214,7 +214,7 @@ echo "   端口监听: $(sudo netstat -tlnp | grep :6886 | wc -l) 个进程监�
 echo ""
 echo "📋 访问地址："
 echo "   本地访问: http://localhost:6886/"
-echo "   外部访问: http://43.143.141.188:6886/"
+echo "   外部访问: http://43.134.141.188:6886/"
 echo ""
 echo "🔧 管理命令："
 echo "   查看Nginx状态: sudo systemctl status nginx"

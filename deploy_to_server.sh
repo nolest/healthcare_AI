@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🏥 醫療AI系統 - Ubuntu服務器部署腳本"
 echo "========================================"
@@ -40,7 +40,7 @@ echo "⚙️ 配置Nginx..."
 sudo tee /etc/nginx/sites-available/healthcare > /dev/null <<'EOF'
 server {
     listen 6886;
-    server_name 43.143.141.188;
+    server_name 43.134.141.188;
     
     client_max_body_size 100M;
     
@@ -161,9 +161,9 @@ sudo systemctl start healthcare-ai.service
 echo ""
 echo "🎉 部署完成！"
 echo "📋 訪問地址："
-echo "   前端: http://43.143.141.188:6886/"
-echo "   API: http://43.143.141.188:6886/hcbe/"
-echo "   數據庫管理: http://43.143.141.188:6886/db/"
+echo "   前端: http://43.134.141.188:6886/"
+echo "   API: http://43.134.141.188:6886/hcbe/"
+echo "   數據庫管理: http://43.134.141.188:6886/db/"
 echo ""
 echo "🔑 默認賬戶："
 echo "   管理員: admin / admin123"

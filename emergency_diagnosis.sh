@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🚨 緊急診斷 - 服務連接失敗"
 echo "================================="
@@ -65,6 +65,6 @@ sleep 30
 echo ""
 echo "🔍 10. 最終測試..."
 echo "測試各服務端點:"
-curl -s -o /dev/null -w "前端: %{http_code}\n" http://43.143.141.188:6886/
-curl -s -o /dev/null -w "API: %{http_code}\n" http://43.143.141.188:6886/hcbe/api/health
-curl -s -o /dev/null -w "數據庫: %{http_code}\n" http://43.143.141.188:6886/db/ 
+curl -s -o /dev/null -w "前端: %{http_code}\n" http://43.134.141.188:6886/
+curl -s -o /dev/null -w "API: %{http_code}\n" http://43.134.141.188:6886/hcbe/api/health
+curl -s -o /dev/null -w "數據庫: %{http_code}\n" http://43.134.141.188:6886/db/ 

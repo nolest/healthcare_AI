@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🔧 修復醫療AI系統部署問題"
 echo "=================================="
@@ -132,23 +132,23 @@ docker exec healthcare-api npm run db:setup
 # 6. 測試服務
 echo "🧪 測試服務..."
 echo "測試前端頁面..."
-FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.143.141.188:6886/)
+FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.134.141.188:6886/)
 echo "前端狀態碼: $FRONTEND_STATUS"
 
 echo "測試後端API..."
-BACKEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.143.141.188:6886/hcbe/health)
+BACKEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.134.141.188:6886/hcbe/health)
 echo "後端狀態碼: $BACKEND_STATUS"
 
 echo "測試數據庫管理界面..."
-DB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.143.141.188:6886/db/)
+DB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://43.134.141.188:6886/db/)
 echo "數據庫管理狀態碼: $DB_STATUS"
 
 echo ""
 echo "🎉 修復完成！"
 echo "📋 訪問地址："
-echo "   前端: http://43.143.141.188:6886/"
-echo "   API: http://43.143.141.188:6886/hcbe/"
-echo "   數據庫管理: http://43.143.141.188:6886/db/"
+echo "   前端: http://43.134.141.188:6886/"
+echo "   API: http://43.134.141.188:6886/hcbe/"
+echo "   數據庫管理: http://43.134.141.188:6886/db/"
 echo ""
 
 # 7. 檢查所有服務是否正常

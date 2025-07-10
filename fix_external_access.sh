@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "🌐 修復外部訪問問題"
 echo "=================="
@@ -32,7 +32,7 @@ ip addr show | grep -E "(inet|eth0|ens)"
 # 5. 測試從服務器內部訪問外部IP
 echo ""
 echo "🧪 測試從服務器內部訪問外部IP..."
-curl -s -o /dev/null -w "內部訪問外部IP: %{http_code}\n" http://43.143.141.188:6886/ --connect-timeout 5
+curl -s -o /dev/null -w "內部訪問外部IP: %{http_code}\n" http://43.134.141.188:6886/ --connect-timeout 5
 
 # 6. 檢查Nginx綁定
 echo ""
@@ -52,7 +52,7 @@ echo "更新Nginx配置為監聽所有接口..."
 sudo tee /etc/nginx/sites-available/healthcare > /dev/null << 'EOF'
 server {
     listen 6886;
-    server_name 43.143.141.188 localhost;
+    server_name 43.134.141.188 localhost;
 
     client_max_body_size 100M;
 
@@ -139,8 +139,8 @@ curl -s -o /dev/null -w "API (localhost:6886/hcbe): %{http_code}\n" http://local
 
 echo ""
 echo "外部測試："
-curl -s -o /dev/null -w "前端 (43.143.141.188:6886): %{http_code}\n" http://43.143.141.188:6886/ --connect-timeout 10
-curl -s -o /dev/null -w "API (43.143.141.188:6886/hcbe): %{http_code}\n" http://43.143.141.188:6886/hcbe/api/health --connect-timeout 10
+curl -s -o /dev/null -w "前端 (43.134.141.188:6886): %{http_code}\n" http://43.134.141.188:6886/ --connect-timeout 10
+curl -s -o /dev/null -w "API (43.134.141.188:6886/hcbe): %{http_code}\n" http://43.134.141.188:6886/hcbe/api/health --connect-timeout 10
 
 echo ""
 echo "🔍 如果外部訪問仍然失敗，請檢查："
@@ -150,6 +150,6 @@ echo "3. 網絡供應商是否有端口限制"
 
 echo ""
 echo "📱 如果一切正常，您可以通過以下地址訪問："
-echo "- 前端應用：http://43.143.141.188:6886/"
-echo "- API文檔：http://43.143.141.188:6886/hcbe/api-docs"
-echo "- 數據庫管理：http://43.143.141.188:6886/db/" 
+echo "- 前端應用：http://43.134.141.188:6886/"
+echo "- API文檔：http://43.134.141.188:6886/hcbe/api-docs"
+echo "- 數據庫管理：http://43.134.141.188:6886/db/" 
